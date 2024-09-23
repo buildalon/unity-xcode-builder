@@ -17,7 +17,7 @@ steps:
     id: xcode-build
     with:
       project-path: '/path/to/your/build/output/directory'
-      app-store-connect-key: ${{ APP_STORE_CONNECT_KEY }}
+      app-store-connect-key: ${{ secrets.APP_STORE_CONNECT_KEY }}
       app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY }}
       app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
       team-id: ${{ secrets.APPLE_TEAM_ID }}
