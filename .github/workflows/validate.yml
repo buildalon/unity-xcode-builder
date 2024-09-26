@@ -21,11 +21,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13]
+        os: [macos-15]
         unity-version: [2021.x, 2022.x, 6000.x]
         build-target:
           - iOS
           - StandaloneOSX
+          - VisionOS
     steps:
       - uses: actions/checkout@v4
       - run: 'npm install -g openupm-cli'
@@ -73,6 +74,14 @@ jobs:
           build-target: ${{ matrix.build-target }}
           log-name: '${{ matrix.build-target }}-Build'
           args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild -sceneList Assets/Scenes/SampleScene.unity -export -enableAppleAutomaticSigning -bundleIdentifier com.test.buildalon.xcode'
+
+      - name: Download visionOS
+        if: ${{ matrix.build-target == 'VisionOS' }}
+        run: |
+            sudo xcodebuild -runFirstLaunch
+            sudo xcrun simctl list
+            sudo xcodebuild -downloadPlatform visionOS
+            sudo xcodebuild -runFirstLaunch
 
       - uses: ./ # buildalon/unity-xcode-builder
         id: xcode-build
