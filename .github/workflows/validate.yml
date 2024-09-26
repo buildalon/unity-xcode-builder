@@ -74,7 +74,6 @@ jobs:
           build-target: ${{ matrix.build-target }}
           log-name: '${{ matrix.build-target }}-Build'
           args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild -sceneList Assets/Scenes/SampleScene.unity -export -enableAppleAutomaticSigning -bundleIdentifier com.test.buildalon.xcode'
-
       - name: Download visionOS
         if: ${{ matrix.build-target == 'VisionOS' }}
         run: |
@@ -82,7 +81,6 @@ jobs:
             sudo xcrun simctl list
             sudo xcodebuild -downloadPlatform visionOS
             sudo xcodebuild -runFirstLaunch
-
       - uses: ./ # buildalon/unity-xcode-builder
         id: xcode-build
         with:
@@ -92,7 +90,6 @@ jobs:
           app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           team-id: ${{ secrets.APPLE_TEAM_ID }}
           export-option: ad-hoc
-
       - name: print outputs
         run: |
           echo "Executable: ${{ steps.xcode-build.outputs.executable }}"
