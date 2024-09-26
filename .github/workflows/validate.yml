@@ -24,9 +24,10 @@ jobs:
         os: [macos-15]
         unity-version: [2021.x, 2022.x, 6000.x]
         build-target:
+          - VisionOS
           - iOS
           - StandaloneOSX
-          - VisionOS
+      max-parallel: 2
     steps:
       - uses: actions/checkout@v4
       - run: 'npm install -g openupm-cli'
@@ -48,8 +49,15 @@ jobs:
           $projectPath = "${{ github.workspace }}/UnityProject"
           echo "UNITY_PROJECT_PATH=$projectPath" >> $env:GITHUB_ENV
         shell: pwsh
-        # Activates the installation with the provided credentials
       - uses: buildalon/activate-unity-license@v1
+        if: ${{ matrix.build-target == 'VisionOS' }}
+        with:
+          license: 'Professional'
+          username: ${{ secrets.UNITY_USERNAME }}
+          password: ${{ secrets.UNITY_PASSWORD }}
+          serial: ${{ secrets.UNITY_SERIAL }}
+      - uses: buildalon/activate-unity-license@v1
+        if: ${{ matrix.build-target != 'VisionOS' }}
         with:
           license: 'Personal'
           username: ${{ secrets.UNITY_USERNAME }}
