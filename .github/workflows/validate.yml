@@ -31,7 +31,6 @@ jobs:
           - os: macos-15
             unity-version: 2021.x
             build-target: VisionOS
-      max-parallel: 2
     steps:
       - uses: actions/checkout@v4
       - run: 'npm install -g openupm-cli'
