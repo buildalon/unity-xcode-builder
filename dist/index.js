@@ -40911,11 +40911,11 @@ async function ExportXcodeArchive(projectRef) {
     }
     await execWithXcBeautify(exportArgs);
     projectRef.exportPath = exportPath;
-    const globPath = `${exportPath}/**/*.{ipa,app}`;
+    const globPath = `${exportPath}/**/*.ipa\n${exportPath}/**/*.app`;
     const globber = await glob.create(globPath);
     const files = await globber.glob();
     if (files.length === 0) {
-        throw new Error('No IPA or APP file found in the export path');
+        throw new Error(`No IPA or APP file found in the export path.\n${globPath}`);
     }
     core.setOutput('executable', files[0]);
     core.info(`Exported: ${exportPath}`);
