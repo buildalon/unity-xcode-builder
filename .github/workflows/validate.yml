@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13]
+        os: [macos-latest]
         unity-version: [2021.x, 2022.x, 6000.x]
         build-target:
           - iOS
