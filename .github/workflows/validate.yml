@@ -15,19 +15,27 @@ jobs:
   unity-build:
     name: '(${{ matrix.unity-version }}) ${{ matrix.build-target }}'
     env:
+      VERSION: ''
       TEMPLATE_PATH: ''
-      UNITY_PROJECT_PATH: '' # set by unity-setup action
+      UNITY_PROJECT_PATH: ''
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13]
-        unity-version: [2021.x, 2022.x, 6000.x]
+        os: [macos-15]
+        unity-version: [2021.x, 2022.3.x, 6000.x]
         build-target:
           - iOS
           - StandaloneOSX
+          - VisionOS
+        exclude:
+          - os: macos-15
+            unity-version: 2021.x
+            build-target: VisionOS
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - run: 'npm install -g openupm-cli'
         # Installs the Unity Editor based on your project version text file
         # sets -> env.UNITY_EDITOR_PATH
@@ -37,7 +45,8 @@ jobs:
           version-file: 'None'
           build-targets: ${{ matrix.build-target }}
           unity-version: ${{ matrix.unity-version }}
-      - name: Find Unity Template Path
+          architecture: 'arm64'
+      - name: Find Unity Template Path and Version
         run: |
           $rootPath = $env:UNITY_EDITOR_PATH -replace "Editor.*", ""
           Write-Host "ROOT_PATH=$rootPath"
@@ -46,8 +55,16 @@ jobs:
           echo "TEMPLATE_PATH=$templatePath" >> $env:GITHUB_ENV
           $projectPath = "${{ github.workspace }}/UnityProject"
           echo "UNITY_PROJECT_PATH=$projectPath" >> $env:GITHUB_ENV
+          $version = $(git tag --sort=-v:refname) | Select-Object -First 1
+          $version = $version.Substring(1)
+          if ($version -match '^\d+\.\d+\.\d+$') {
+              Write-Host "Version: $version"
+            } else {
+              Write-Host "Version: $version is not a valid version string"
+              exit 1
+            }
+          echo "VERSION=$version" >> $env:GITHUB_ENV
         shell: pwsh
-        # Activates the installation with the provided credentials
       - uses: buildalon/activate-unity-license@v1
         with:
           license: 'Personal'
@@ -58,7 +75,7 @@ jobs:
         with:
           log-name: 'create-test-project'
           args: '-quit -nographics -batchmode -createProject "${{ github.workspace }}/UnityProject" -cloneFromTemplate "${{ env.TEMPLATE_PATH }}"'
-      - run: 'openupm add com.virtualmaker.buildalon'
+      - run: openupm add com.virtualmaker.buildalon
         name: Add Build Pipeline Package
         working-directory: ${{ github.workspace }}/UnityProject
       - uses: buildalon/unity-action@v1
@@ -72,8 +89,7 @@ jobs:
         with:
           build-target: ${{ matrix.build-target }}
           log-name: '${{ matrix.build-target }}-Build'
-          args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild -sceneList Assets/Scenes/SampleScene.unity -export -enableAppleAutomaticSigning -bundleIdentifier com.test.buildalon.xcode'
-
+          args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild -sceneList Assets/Scenes/SampleScene.unity -export -enableAppleAutomaticSigning -bundleIdentifier com.test.buildalon.xcode -versionName ${{ env.VERSION }}'
       - uses: ./ # buildalon/unity-xcode-builder
         id: xcode-build
         with:
@@ -82,9 +98,10 @@ jobs:
           app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           team-id: ${{ secrets.APPLE_TEAM_ID }}
-          export-option: ad-hoc
-
+          export-option: app-store
+          upload: ${{ matrix.unity-version == '6000.x' }}
       - name: print outputs
+        if: always()
         run: |
           echo "Executable: ${{ steps.xcode-build.outputs.executable }}"
           echo "Output Directory: ${{ steps.xcode-build.outputs.output-directory }}"

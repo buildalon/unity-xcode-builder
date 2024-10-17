@@ -2,14 +2,16 @@
 
 [![Discord](https://img.shields.io/discord/939721153688264824.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2)](https://discord.gg/VM9cWJ9rjH) [![marketplace](https://img.shields.io/static/v1?label=&labelColor=505050&message=Buildalon%20Actions&color=FF1E6F&logo=github-actions&logoColor=0076D6)](https://github.com/marketplace?query=buildalon) [![validate](https://github.com/buildalon/unity-xcode-builder/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/buildalon/unity-xcode-builder/actions/workflows/validate.yml)
 
-A GitHub Action to build and archive Unity exported xcode projects.
+A GitHub Action to take Unity exported Xcode projects and automate the process of building, signing, archiving, notarizing, and uploading to Apple App Store Connect or Steam.
 
 > [!NOTE]
-> The main goal of this action to to take what is provided from Unity, archive, sign, notarize and package it to be directly uploaded to the Apple app store or steam.
+> Steam uploads require an additional action step: [`upload-steam`](https://github.com/buildalon/upload-steam)
 
 ## How to use
 
 ### workflow
+
+To archive, export, and upload directly to Apple App Store Connect, use the following workflow configuration:
 
 ```yaml
 steps:
@@ -58,12 +60,14 @@ This action requires several secrets that need to be setup in the repository or 
 | `bundle-id` | The bundle ID of the Xcode project. Overrides the value in the exported Unity project. | Defaults to parsing bundle ID from `.xcodeproj`. |
 | `configuration` | The configuration to build the Xcode project with. | Defaults to `Release`. |
 | `scheme` | The scheme to use when building the xcode project. | false |
-| `destination` | The destination to use when building the xcode project. | Defaults to `generic/platform={platform}`. |
+| `destination` | The destination to use when building the xcode project. | Defaults to 'generic/platform={platform}'. |
 | `platform` | The platform to build for. Can be one of `iOS`, `macOS`, `tvOS`, `visionOS`. | Defaults to parsing platform from `.xcodeproj`. |
 | `export-option` | The export option to use for exporting the Xcode project. Can be one of `app-store`, `steam`, `ad-hoc`, `package`, `enterprise`, `development`, `developer-id`, `mac-application`. | Defaults to `development` |
 | `export-option-plist` | The path to custom export option plist file to use when exporting the Xcode project. | Overrides `export-option`. |
 | `entitlements-plist` | The path to custom entitlements plist file. | Generates [default hardened runtime entitlements](https://developer.apple.com/documentation/security/hardened-runtime) if not provided. |
-| `notarize` | Whether to notarize the exported Xcode project. | Defaults to `true` if `export-option === steam`. |
+| `notarize` | Whether to notarize the exported Xcode project. | Defaults to `true` if `export-option !== app-store`. |
+| `upload` | Whether to upload the exported Xcode project to App Store Connect. | Defaults to `true` if `export-option === app-store`. |
+| `whats-new` | When `uploading === true`, Let your testers know what you would like them to test in this build. This information will be available to testers in all groups who have access to this build. | Defaults to the last git commit sha, current branch name, and commit message. |
 
 ### outputs
 

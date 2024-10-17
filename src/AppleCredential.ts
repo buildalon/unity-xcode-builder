@@ -7,6 +7,42 @@ const security = '/usr/bin/security';
 const temp = process.env['RUNNER_TEMP'] || '.';
 const appStoreConnectKeyDir = `${process.env.HOME}/.appstoreconnect/private_keys`;
 
+class AppleCredential {
+    constructor(
+        name: string,
+        keychainPath: string,
+        appStoreConnectKeyId: string,
+        appStoreConnectIssuerId: string,
+        appStoreConnectKeyPath?: string,
+        appStoreConnectKey?: string,
+        teamId?: string,
+        signingIdentity?: string,
+        provisioningProfileUUID?: string
+    ) {
+        this.name = name;
+        this.keychainPath = keychainPath;
+        this.appStoreConnectKeyId = appStoreConnectKeyId;
+        this.appStoreConnectIssuerId = appStoreConnectIssuerId;
+        this.appStoreConnectKeyPath = appStoreConnectKeyPath;
+        this.appStoreConnectKey = appStoreConnectKey;
+        this.teamId = teamId;
+        this.signingIdentity = signingIdentity;
+        this.provisioningProfileUUID = provisioningProfileUUID;
+    }
+    name: string;
+    keychainPath: string;
+    appStoreConnectKeyId: string;
+    appStoreConnectIssuerId: string;
+    appStoreConnectKeyPath?: string;
+    appStoreConnectKey?: string;
+    teamId?: string;
+    signingIdentity?: string;
+    provisioningProfileUUID?: string;
+    bearerToken?: string;
+    appleId?: string;
+    ascPublicId?: string;
+}
+
 // https://docs.github.com/en/actions/use-cases-and-examples/deploying/installing-an-apple-certificate-on-macos-runners-for-xcode-development#add-a-step-to-your-workflow
 async function ImportCredentials(): Promise<AppleCredential> {
     try {
@@ -119,7 +155,7 @@ async function ImportCredentials(): Promise<AppleCredential> {
     }
 }
 
-async function Cleanup(): Promise<void> {
+async function RemoveCredentials(): Promise<void> {
     const provisioningProfilePath = core.getState('provisioningProfilePath');
     if (provisioningProfilePath) {
         core.info('Removing provisioning profile...');
@@ -146,41 +182,8 @@ async function Cleanup(): Promise<void> {
     }
 }
 
-class AppleCredential {
-    constructor(
-        name: string,
-        keychainPath: string,
-        appStoreConnectKeyId: string,
-        appStoreConnectIssuerId: string,
-        appStoreConnectKeyPath: string,
-        appStoreConnectKey: string,
-        teamId?: string,
-        signingIdentity?: string,
-        provisioningProfileUUID?: string
-    ) {
-        this.name = name;
-        this.keychainPath = keychainPath;
-        this.appStoreConnectKeyId = appStoreConnectKeyId;
-        this.appStoreConnectIssuerId = appStoreConnectIssuerId;
-        this.appStoreConnectKeyPath = appStoreConnectKeyPath;
-        this.appStoreConnectKey = appStoreConnectKey;
-        this.teamId = teamId;
-        this.signingIdentity = signingIdentity;
-        this.provisioningProfileUUID = provisioningProfileUUID;
-    }
-    name: string;
-    keychainPath: string;
-    appStoreConnectKeyId: string;
-    appStoreConnectIssuerId: string;
-    appStoreConnectKeyPath: string;
-    appStoreConnectKey: string;
-    teamId?: string;
-    signingIdentity?: string;
-    provisioningProfileUUID?: string;
-}
-
 export {
     ImportCredentials,
-    Cleanup,
+    RemoveCredentials,
     AppleCredential
 }
