@@ -1,8 +1,8 @@
-name: Buildalon unity-xcode-builder
-description: A GitHub Action to build and archive Unity exported xcode projects.
+name: unity-xcode-builder
+description: A GitHub Action to build, archive, and upload Unity exported xcode projects.
 branding:
   icon: command
-  color: red
+  color: blue
 inputs:
   xcode-version:
     description: The version of Xcode to use for building the Xcode project. Defaults to the active version of Xcode on the runner.
@@ -65,6 +65,12 @@ inputs:
     required: false
   notarize:
     description: Whether to notarize the exported Xcode project. Apps to be uploaded to Steam must be notarized by Apple. Defaults to `true` if `export-option === steam`.
+    required: false
+  upload:
+    description: Whether to upload the exported Xcode project to App Store Connect. Defaults to `true` if `export-option === app-store`.
+    required: false
+  whats-new:
+    description: 'When `uploading === true`, Let your testers know what you would like them to test in this build. This information will be available to testers in all groups who have access to this build. Defaults to the last git commit sha, current branch name, and commit message.'
     required: false
 outputs:
   executable:

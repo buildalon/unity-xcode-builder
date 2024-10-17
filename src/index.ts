@@ -1,14 +1,17 @@
 import core = require('@actions/core');
 import exec = require('@actions/exec');
 import {
-    ImportCredentials,
-    Cleanup
-} from './credentials';
-import {
     GetProjectDetails,
     ArchiveXcodeProject,
-    ExportXcodeArchive
+    ExportXcodeArchive,
+    ValidateApp,
+    UploadApp
 } from './xcode';
+import {
+    ImportCredentials,
+    RemoveCredentials
+} from './AppleCredential';
+import semver = require('semver');
 
 const IS_POST = !!core.getState('isPost');
 
@@ -16,20 +19,42 @@ const main = async () => {
     try {
         if (!IS_POST) {
             core.saveState('isPost', true);
-            const xcodeVersion = core.getInput('xcode-version');
-            if (xcodeVersion) {
-                core.info(`Setting xcode version to ${xcodeVersion}`);
-                await exec.exec('sudo', ['xcode-select', '-s', `/Applications/Xcode_${xcodeVersion}.app/Contents/Developer`]);
+            let xcodeVersionString = core.getInput('xcode-version');
+            if (xcodeVersionString) {
+                core.info(`Setting xcode version to ${xcodeVersionString}`);
+                await exec.exec('sudo', ['xcode-select', '-s', `/Applications/Xcode_${xcodeVersionString}.app/Contents/Developer`]);
             }
-            await exec.exec('xcodebuild', ['-version']);
+            let xcodeVersionOutput = '';
+            await exec.exec('xcodebuild', ['-version'], {
+                listeners: {
+                    stdout: (data: Buffer) => {
+                        xcodeVersionOutput += data.toString();
+                    }
+                }
+            });
+            const xcodeVersionMatch = xcodeVersionOutput.match(/Xcode (?<version>\d+\.\d+)/);
+            if (!xcodeVersionMatch) {
+                throw new Error('Failed to get Xcode version!');
+            }
+            xcodeVersionString = xcodeVersionMatch.groups.version;
+            if (!xcodeVersionString) {
+                throw new Error('Failed to prase Xcode version!');
+            }
             const credential = await ImportCredentials();
             let projectRef = await GetProjectDetails();
             projectRef.credential = credential;
+            projectRef.xcodeVersion = semver.coerce(xcodeVersionString);
             projectRef = await ArchiveXcodeProject(projectRef);
             projectRef = await ExportXcodeArchive(projectRef);
-            core.setOutput('output-directory', projectRef.exportPath);
+            await ValidateApp(projectRef);
+            const uploadInput = core.getInput('upload') || projectRef.isAppStoreUpload().toString();
+            const upload = projectRef.isAppStoreUpload() && uploadInput === 'true';
+            core.debug(`uploadInput: ${upload}`);
+            if (upload) {
+                await UploadApp(projectRef);
+            }
         } else {
-            await Cleanup();
+            await RemoveCredentials();
         }
     } catch (error) {
         core.setFailed(error.stack);
