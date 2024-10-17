@@ -608,7 +608,7 @@ async function UploadApp(projectRef: XcodeProject) {
         if (error instanceof UnauthorizedError) {
             throw error;
         } else {
-            core.warning(`Failed to get the latest bundle version!\n${error.message}`);
+            log(`Failed to get the latest bundle version!\n${error}`, 'info');
         }
     }
     const platforms = {
@@ -652,9 +652,11 @@ async function UploadApp(projectRef: XcodeProject) {
     }
     core.debug(outputJson);
     try {
-        await UpdateTestDetails(projectRef, bundleVersion, await getWhatsNew());
+        const whatsNew = await getWhatsNew();
+        core.info(`Uploading test details...\n${whatsNew}`);
+        await UpdateTestDetails(projectRef, bundleVersion, whatsNew);
     } catch (error) {
-        log(`Failed to update test details!\n${JSON.stringify(error)}`, 'error');
+        log(`Failed to upload test details!\n${JSON.stringify(error)}`, 'error');
     }
 }
 

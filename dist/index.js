@@ -59235,7 +59235,7 @@ async function UploadApp(projectRef) {
             throw error;
         }
         else {
-            core.warning(`Failed to get the latest bundle version!\n${error.message}`);
+            (0, utilities_1.log)(`Failed to get the latest bundle version!\n${error}`, 'info');
         }
     }
     const platforms = {
@@ -59280,10 +59280,12 @@ async function UploadApp(projectRef) {
     }
     core.debug(outputJson);
     try {
-        await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, bundleVersion, await getWhatsNew());
+        const whatsNew = await getWhatsNew();
+        core.info(`Uploading test details...\n${whatsNew}`);
+        await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, bundleVersion, whatsNew);
     }
     catch (error) {
-        (0, utilities_1.log)(`Failed to update test details!\n${JSON.stringify(error)}`, 'error');
+        (0, utilities_1.log)(`Failed to upload test details!\n${JSON.stringify(error)}`, 'error');
     }
 }
 async function getWhatsNew() {
