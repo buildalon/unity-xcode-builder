@@ -1,4 +1,4 @@
-name: unity-xcode-builder
+name: Buildalon unity-xcode-builder
 description: A GitHub Action to build, archive, and upload Unity exported xcode projects.
 branding:
   icon: command
