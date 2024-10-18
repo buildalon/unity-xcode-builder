@@ -59,6 +59,8 @@ async function GetProjectDetails(): Promise<XcodeProject> {
     let infoPlistContent = plist.parse(fs.readFileSync(infoPlistPath, 'utf8'));
     const versionString = infoPlistContent['CFBundleShortVersionString'];
     core.info(`Version string: ${versionString}`);
+    const buildString = infoPlistContent['CFBundleVersion'];
+    core.info(`Build string: ${buildString}`);
     return new XcodeProject(
         projectPath,
         projectName,
@@ -93,7 +95,8 @@ async function parseBuildSettings(projectPath: string, scheme: string): Promise<
     if (!platformName) {
         throw new Error('Unable to determine the platform name from the build settings');
     }
-    const bundleId = core.getInput('bundle-id') || matchRegexPattern(buildSettingsOutput, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId'); if (!bundleId || bundleId === 'NO') {
+    const bundleId = core.getInput('bundle-id') || matchRegexPattern(buildSettingsOutput, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
+    if (!bundleId || bundleId === 'NO') {
         throw new Error('Unable to determine the bundle ID from the build settings');
     }
     const platforms = {
@@ -670,19 +673,23 @@ async function getWhatsNew(): Promise<string> {
         const branchNameDetails = await execGit(['log', head, '-1', '--format=%d']);
         const branchNameMatch = branchNameDetails.match(/\((?<branch>.+)\)/);
         let branchName = '';
-        if (branchNameMatch) {
+        if (branchNameMatch && branchNameMatch.groups) {
+            branchName = branchNameMatch.groups.branch;
             if (branchName.includes(' -> ')) {
                 branchName = branchName.split(' -> ')[1];
             }
             if (branchName.includes(',')) {
                 branchName = branchName.split(',')[1];
             }
-            if (branchName.includes('origin/')) {
-                branchName = branchName.split('origin/')[1];
+            if (branchName.includes('/')) {
+                branchName = branchName.split('/')[1];
             }
         }
-        const commitMessage = await execGit(['log', head, '-1', '--format=%s']);
+        const commitMessage = await execGit(['log', head, '-1', '--format=%B']);
         whatsNew = `[${commitSha.trim()}]${branchName.trim()}\n${commitMessage.trim()}`;
+        if (whatsNew.length > 4000) {
+            whatsNew = `${whatsNew.substring(0, 3997)}...`;
+        }
     }
     if (whatsNew.length === 0) {
         throw new Error('Test details empty!');
