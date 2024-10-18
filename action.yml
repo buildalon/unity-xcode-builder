@@ -2,7 +2,7 @@ name: Buildalon unity-xcode-builder
 description: A GitHub Action to build, archive, and upload Unity exported xcode projects.
 branding:
   icon: command
-  color: blue
+  color: red
 inputs:
   xcode-version:
     description: The version of Xcode to use for building the Xcode project. Defaults to the active version of Xcode on the runner.

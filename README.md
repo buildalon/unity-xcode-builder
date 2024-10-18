@@ -60,7 +60,7 @@ This action requires several secrets that need to be setup in the repository or 
 | `bundle-id` | The bundle ID of the Xcode project. Overrides the value in the exported Unity project. | Defaults to parsing bundle ID from `.xcodeproj`. |
 | `configuration` | The configuration to build the Xcode project with. | Defaults to `Release`. |
 | `scheme` | The scheme to use when building the xcode project. | false |
-| `destination` | The destination to use when building the xcode project. | Defaults to 'generic/platform={platform}'. |
+| `destination` | The destination to use when building the xcode project. | Defaults to `generic/platform={platform}`. |
 | `platform` | The platform to build for. Can be one of `iOS`, `macOS`, `tvOS`, `visionOS`. | Defaults to parsing platform from `.xcodeproj`. |
 | `export-option` | The export option to use for exporting the Xcode project. Can be one of `app-store`, `steam`, `ad-hoc`, `package`, `enterprise`, `development`, `developer-id`, `mac-application`. | Defaults to `development` |
 | `export-option-plist` | The path to custom export option plist file to use when exporting the Xcode project. | Overrides `export-option`. |
