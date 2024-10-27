@@ -58844,6 +58844,7 @@ async function ArchiveXcodeProject(projectRef) {
     }
     if (projectRef.platform === 'iOS') {
         archiveArgs.push('COPY_PHASE_STRIP=NO');
+        archiveArgs.push('CODE_SIGN_IDENTITY=iPhone Developer');
     }
     if (projectRef.platform === 'macOS' && !projectRef.isAppStoreUpload()) {
         archiveArgs.push('ENABLE_HARDENED_RUNTIME=YES');

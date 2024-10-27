@@ -221,6 +221,8 @@ async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<XcodeProje
     if (projectRef.platform === 'iOS') {
         // don't strip debug symbols during copy
         archiveArgs.push('COPY_PHASE_STRIP=NO');
+        // Ensure development signing for iOS
+        archiveArgs.push('CODE_SIGN_IDENTITY=iPhone Developer');
     }
     if (projectRef.platform === 'macOS' && !projectRef.isAppStoreUpload()) {
         // enable hardened runtime
