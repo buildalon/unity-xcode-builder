@@ -61322,11 +61322,11 @@ const main = async () => {
             projectRef.xcodeVersion = semver.coerce(xcodeVersionString);
             projectRef = await (0, xcode_1.ArchiveXcodeProject)(projectRef);
             projectRef = await (0, xcode_1.ExportXcodeArchive)(projectRef);
-            await (0, xcode_1.ValidateApp)(projectRef);
             const uploadInput = core.getInput('upload') || projectRef.isAppStoreUpload().toString();
             const upload = projectRef.isAppStoreUpload() && uploadInput === 'true';
             core.debug(`uploadInput: ${upload}`);
             if (upload) {
+                await (0, xcode_1.ValidateApp)(projectRef);
                 await (0, xcode_1.UploadApp)(projectRef);
             }
         }
