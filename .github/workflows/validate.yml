@@ -36,60 +36,60 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - run: 'npm install -g openupm-cli'
-        # Installs the Unity Editor based on your project version text file
-        # sets -> env.UNITY_EDITOR_PATH
-        # sets -> env.UNITY_PROJECT_PATH
-      - uses: buildalon/unity-setup@v1
-        with:
-          version-file: 'None'
-          build-targets: ${{ matrix.build-target }}
-          unity-version: ${{ matrix.unity-version }}
-          architecture: 'arm64'
-      - name: Find Unity Template Path and Version
-        run: |
-          $rootPath = $env:UNITY_EDITOR_PATH -replace "Editor.*", ""
-          Write-Host "ROOT_PATH=$rootPath"
-          $templatePath = Get-ChildItem -Recurse -Filter "com.unity.template.3d*.tgz" -Path $rootPath | Select-Object -First 1 | Select-Object -ExpandProperty FullName
-          Write-Host "TEMPLATE_PATH=$templatePath"
-          echo "TEMPLATE_PATH=$templatePath" >> $env:GITHUB_ENV
-          $projectPath = "${{ github.workspace }}/UnityProject"
-          echo "UNITY_PROJECT_PATH=$projectPath" >> $env:GITHUB_ENV
-          $version = $(git tag --sort=-v:refname) | Select-Object -First 1
-          $version = $version.Substring(1)
-          if ($version -match '^\d+\.\d+\.\d+$') {
-              Write-Host "Version: $version"
-            } else {
-              Write-Host "Version: $version is not a valid version string"
-              exit 1
-            }
-          echo "VERSION=$version" >> $env:GITHUB_ENV
-        shell: pwsh
-      - uses: buildalon/activate-unity-license@v1
-        with:
-          license: 'Personal'
-          username: ${{ secrets.UNITY_USERNAME }}
-          password: ${{ secrets.UNITY_PASSWORD }}
-      - uses: buildalon/unity-action@v1
-        name: Create Test Project
-        with:
-          log-name: 'create-test-project'
-          args: '-quit -nographics -batchmode -createProject "${{ github.workspace }}/UnityProject" -cloneFromTemplate "${{ env.TEMPLATE_PATH }}"'
-      - run: openupm add com.virtualmaker.buildalon
-        name: Add Build Pipeline Package
-        working-directory: ${{ github.workspace }}/UnityProject
-      - uses: buildalon/unity-action@v1
-        name: '${{ matrix.build-target }}-Validate'
-        with:
-          build-target: ${{ matrix.build-target }}
-          log-name: '${{ matrix.build-target }}-Validate'
-          args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.ValidateProject -importTMProEssentialsAsset'
-      - uses: buildalon/unity-action@v1
-        name: '${{ matrix.build-target }}-Build'
-        with:
-          build-target: ${{ matrix.build-target }}
-          log-name: '${{ matrix.build-target }}-Build'
-          args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild -sceneList Assets/Scenes/SampleScene.unity -export -enableAppleAutomaticSigning -bundleIdentifier com.test.buildalon.xcode -versionName ${{ env.VERSION }}'
+      # - run: 'npm install -g openupm-cli'
+      #   # Installs the Unity Editor based on your project version text file
+      #   # sets -> env.UNITY_EDITOR_PATH
+      #   # sets -> env.UNITY_PROJECT_PATH
+      # - uses: buildalon/unity-setup@v1
+      #   with:
+      #     version-file: 'None'
+      #     build-targets: ${{ matrix.build-target }}
+      #     unity-version: ${{ matrix.unity-version }}
+      #     architecture: 'arm64'
+      # - name: Find Unity Template Path and Version
+      #   run: |
+      #     $rootPath = $env:UNITY_EDITOR_PATH -replace "Editor.*", ""
+      #     Write-Host "ROOT_PATH=$rootPath"
+      #     $templatePath = Get-ChildItem -Recurse -Filter "com.unity.template.3d*.tgz" -Path $rootPath | Select-Object -First 1 | Select-Object -ExpandProperty FullName
+      #     Write-Host "TEMPLATE_PATH=$templatePath"
+      #     echo "TEMPLATE_PATH=$templatePath" >> $env:GITHUB_ENV
+      #     $projectPath = "${{ github.workspace }}/UnityProject"
+      #     echo "UNITY_PROJECT_PATH=$projectPath" >> $env:GITHUB_ENV
+      #     $version = $(git tag --sort=-v:refname) | Select-Object -First 1
+      #     $version = $version.Substring(1)
+      #     if ($version -match '^\d+\.\d+\.\d+$') {
+      #         Write-Host "Version: $version"
+      #       } else {
+      #         Write-Host "Version: $version is not a valid version string"
+      #         exit 1
+      #       }
+      #     echo "VERSION=$version" >> $env:GITHUB_ENV
+      #   shell: pwsh
+      # - uses: buildalon/activate-unity-license@v1
+      #   with:
+      #     license: 'Personal'
+      #     username: ${{ secrets.UNITY_USERNAME }}
+      #     password: ${{ secrets.UNITY_PASSWORD }}
+      # - uses: buildalon/unity-action@v1
+      #   name: Create Test Project
+      #   with:
+      #     log-name: 'create-test-project'
+      #     args: '-quit -nographics -batchmode -createProject "${{ github.workspace }}/UnityProject" -cloneFromTemplate "${{ env.TEMPLATE_PATH }}"'
+      # - run: openupm add com.virtualmaker.buildalon
+      #   name: Add Build Pipeline Package
+      #   working-directory: ${{ github.workspace }}/UnityProject
+      # - uses: buildalon/unity-action@v1
+      #   name: '${{ matrix.build-target }}-Validate'
+      #   with:
+      #     build-target: ${{ matrix.build-target }}
+      #     log-name: '${{ matrix.build-target }}-Validate'
+      #     args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.ValidateProject -importTMProEssentialsAsset'
+      # - uses: buildalon/unity-action@v1
+      #   name: '${{ matrix.build-target }}-Build'
+      #   with:
+      #     build-target: ${{ matrix.build-target }}
+      #     log-name: '${{ matrix.build-target }}-Build'
+      #     args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild -sceneList Assets/Scenes/SampleScene.unity -export -enableAppleAutomaticSigning -bundleIdentifier com.test.buildalon.xcode -versionName ${{ env.VERSION }}'
       - uses: ./ # buildalon/unity-xcode-builder
         id: xcode-build
         with:
