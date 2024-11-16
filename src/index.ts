@@ -26,7 +26,7 @@ const main = async () => {
                 // check if the xcode version is already installed, if not install it with xcodes
                 let installedListOutput = '';
                 await exec.exec('xcodes', ['installed'], {
-                    ignoreReturnCode: true,
+                    // ignoreReturnCode: true,
                     listeners: {
                         stdout: (data: Buffer) => {
                             installedListOutput += data.toString();
@@ -42,7 +42,7 @@ const main = async () => {
                 }
                 let availableListOutput = '';
                 await exec.exec('xcodes', ['list'], {
-                    ignoreReturnCode: true,
+                    // ignoreReturnCode: true,
                     listeners: {
                         stdout: (data: Buffer) => {
                             availableListOutput += data.toString();
@@ -112,7 +112,14 @@ const main = async () => {
                         throw new Error(`Xcode version ${requestedVersion} is not available!`);
                     }
                     // install the xcode version
-                    await exec.exec('xcodes', ['install', requestedVersionString]);
+                    let installOutput = '';
+                    await exec.exec('xcodes', ['install', requestedVersionString], {
+                        listeners: {
+                            stdout: (data: Buffer) => {
+                                installOutput += data.toString();
+                            }
+                        }
+                    });
                 }
                 await exec.exec('xcodes', ['select', requestedVersionString]);
             }

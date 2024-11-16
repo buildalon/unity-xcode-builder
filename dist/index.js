@@ -61301,7 +61301,6 @@ const main = async () => {
                 core.info(`Setting xcode version to ${xcodeVersionInputString}...`);
                 let installedListOutput = '';
                 await exec.exec('xcodes', ['installed'], {
-                    ignoreReturnCode: true,
                     listeners: {
                         stdout: (data) => {
                             installedListOutput += data.toString();
@@ -61315,7 +61314,6 @@ const main = async () => {
                 }
                 let availableListOutput = '';
                 await exec.exec('xcodes', ['list'], {
-                    ignoreReturnCode: true,
                     listeners: {
                         stdout: (data) => {
                             availableListOutput += data.toString();
