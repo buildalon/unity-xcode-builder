@@ -61298,7 +61298,7 @@ const main = async () => {
             let xcodeVersionString = core.getInput('xcode-version');
             if (xcodeVersionString) {
                 core.info(`Setting xcode version to ${xcodeVersionString}`);
-                await exec.exec('sudo', ['xcode-select', '-s', `/Applications/Xcode_${xcodeVersionString}.app/Contents/Developer`]);
+                await exec.exec('xcodes', ['select', xcodeVersionString]);
             }
             let xcodeVersionOutput = '';
             await exec.exec('xcodebuild', ['-version'], {
