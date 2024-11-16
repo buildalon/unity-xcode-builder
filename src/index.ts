@@ -79,13 +79,17 @@ const main = async () => {
                 let requestedVersion: semver.SemVer;
                 const installLatest = xcodeVersionInputString === 'latest';
                 if (!installLatest) {
+                    const getMaxSatisfying = xcodeVersionInputString.includes('x');
                     let inputVersionParts = xcodeVersionInputString.split('.');
                     while (inputVersionParts.length < 2) {
                         inputVersionParts.push('0');
                     }
                     requestedVersion = semver.coerce(inputVersionParts.join('.'));
+                    if (getMaxSatisfying) {
+                        requestedVersion = semver.maxSatisfying(availableList, requestedVersion.raw);
+                    }
                 } else {
-                    requestedVersion = availableList[0];
+                    requestedVersion = semver.maxSatisfying(availableList, '*');
                 }
                 if (!requestedVersion) {
                     throw new Error('Failed to parse requested Xcode version!');
