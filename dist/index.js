@@ -61295,10 +61295,69 @@ const main = async () => {
     try {
         if (!IS_POST) {
             core.saveState('isPost', true);
-            let xcodeVersionString = core.getInput('xcode-version');
-            if (xcodeVersionString) {
-                core.info(`Setting xcode version to ${xcodeVersionString}`);
-                await exec.exec('sudo', ['xcode-select', '-s', `/Applications/Xcode_${xcodeVersionString}.app/Contents/Developer`]);
+            const credential = await (0, AppleCredential_1.ImportCredentials)();
+            let xcodeVersionInputString = core.getInput('xcode-version');
+            if (xcodeVersionInputString) {
+                core.info(`Setting xcode version to ${xcodeVersionInputString}...`);
+                let installedListOutput = '';
+                await exec.exec('xcodes', ['installed'], {
+                    ignoreReturnCode: true,
+                    listeners: {
+                        stdout: (data) => {
+                            installedListOutput += data.toString();
+                        }
+                    }
+                });
+                let installedList = [];
+                let installedListMatch = installedListOutput.match(/^(?<version>\d+\.\d+)/gm);
+                if (installedListMatch) {
+                    installedList = installedListMatch.map((version) => semver.coerce(version, { loose: true }));
+                }
+                let availableListOutput = '';
+                await exec.exec('xcodes', ['list'], {
+                    ignoreReturnCode: true,
+                    listeners: {
+                        stdout: (data) => {
+                            availableListOutput += data.toString();
+                        }
+                    }
+                });
+                let availableList = [];
+                let availableListMatch = availableListOutput.match(/^(?<version>\d+\.\d+(\.\d+)?)/gm);
+                if (availableListMatch) {
+                    availableList = availableListMatch.map((version) => semver.coerce(version, { loose: true }));
+                }
+                let requestedVersion;
+                const installLatest = xcodeVersionInputString === 'latest';
+                if (!installLatest) {
+                    let inputVersionParts = xcodeVersionInputString.split('.');
+                    while (inputVersionParts.length < 2) {
+                        inputVersionParts.push('0');
+                    }
+                    requestedVersion = semver.coerce(inputVersionParts.join('.'));
+                }
+                else {
+                    requestedVersion = availableList[0];
+                }
+                if (!requestedVersion) {
+                    throw new Error('Failed to parse requested Xcode version!');
+                }
+                let requestedVersionString = requestedVersion.raw;
+                let versionParts = requestedVersionString.split('.');
+                if (versionParts[2] === '0') {
+                    requestedVersionString = versionParts.slice(0, 2).join('.');
+                }
+                core.info(`Requested Xcode version: ${requestedVersionString}`);
+                let xcodeVersionInstalled = installedList.find((version) => semver.eq(version, requestedVersion));
+                if (!xcodeVersionInstalled) {
+                    core.info(`Xcode version ${requestedVersionString} is not installed!`);
+                    let xcodeVersionAvailable = availableList.find((version) => semver.eq(version, requestedVersion));
+                    if (!xcodeVersionAvailable) {
+                        throw new Error(`Xcode version ${requestedVersion} is not available!`);
+                    }
+                    await exec.exec('xcodes', ['install', requestedVersionString]);
+                }
+                await exec.exec('xcodes', ['select', requestedVersionString]);
             }
             let xcodeVersionOutput = '';
             await exec.exec('xcodebuild', ['-version'], {
@@ -61308,18 +61367,9 @@ const main = async () => {
                     }
                 }
             });
-            const xcodeVersionMatch = xcodeVersionOutput.match(/Xcode (?<version>\d+\.\d+)/);
-            if (!xcodeVersionMatch) {
-                throw new Error('Failed to get Xcode version!');
-            }
-            xcodeVersionString = xcodeVersionMatch.groups.version;
-            if (!xcodeVersionString) {
-                throw new Error('Failed to prase Xcode version!');
-            }
-            const credential = await (0, AppleCredential_1.ImportCredentials)();
             let projectRef = await (0, xcode_1.GetProjectDetails)();
             projectRef.credential = credential;
-            projectRef.xcodeVersion = semver.coerce(xcodeVersionString);
+            projectRef.xcodeVersion = semver.coerce(xcodeVersionInputString);
             projectRef = await (0, xcode_1.ArchiveXcodeProject)(projectRef);
             projectRef = await (0, xcode_1.ExportXcodeArchive)(projectRef);
             const uploadInput = core.getInput('upload') || projectRef.isAppStoreUpload().toString();
