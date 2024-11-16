@@ -81,10 +81,13 @@ const main = async () => {
                 if (!installLatest) {
                     const getMaxSatisfying = xcodeVersionInputString.includes('x');
                     let inputVersionParts = xcodeVersionInputString.split('.');
-                    while (inputVersionParts.length < 2) {
-                        inputVersionParts.push('0');
+                    let finalVersionParts = [];
+                    for (let i = 0; i < inputVersionParts.length; i++) {
+                        if (inputVersionParts[i] !== 'x') {
+                            finalVersionParts.push(inputVersionParts[i]);
+                        }
                     }
-                    requestedVersion = semver.coerce(inputVersionParts.join('.'));
+                    requestedVersion = semver.coerce(finalVersionParts.join('.'), { loose: true });
                     if (getMaxSatisfying) {
                         requestedVersion = semver.maxSatisfying(availableList, requestedVersion.raw);
                     }

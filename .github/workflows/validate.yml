@@ -93,7 +93,7 @@ jobs:
       - uses: ./ # buildalon/unity-xcode-builder
         id: xcode-build
         with:
-          xcode-version: 13.x
+          xcode-version: 14.3.1
           project-path: ${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}/**/*.xcodeproj
           app-store-connect-key: ${{ secrets.APP_STORE_CONNECT_KEY }}
           app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
