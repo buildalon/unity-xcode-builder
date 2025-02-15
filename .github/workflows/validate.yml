@@ -22,14 +22,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15]
+        os: [macos-latest]
         unity-version: [2021.x, 2022.3.x, 6000.x]
         build-target:
           - iOS
           - StandaloneOSX
           - VisionOS
         exclude:
-          - os: macos-15
+          - os: macos-latest
             unity-version: 2021.x
             build-target: VisionOS
     steps:
