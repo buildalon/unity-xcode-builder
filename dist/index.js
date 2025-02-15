@@ -8,7 +8,11 @@ require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -21,7 +25,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -83,13 +87,13 @@ class Command {
     }
 }
 function escapeData(s) {
-    return utils_1.toCommandValue(s)
+    return (0, utils_1.toCommandValue)(s)
         .replace(/%/g, '%25')
         .replace(/\r/g, '%0D')
         .replace(/\n/g, '%0A');
 }
 function escapeProperty(s) {
-    return utils_1.toCommandValue(s)
+    return (0, utils_1.toCommandValue)(s)
         .replace(/%/g, '%25')
         .replace(/\r/g, '%0D')
         .replace(/\n/g, '%0A')
@@ -107,7 +111,11 @@ function escapeProperty(s) {
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -120,7 +128,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -134,7 +142,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getIDToken = exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.notice = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
+exports.platform = exports.toPlatformPath = exports.toWin32Path = exports.toPosixPath = exports.markdownSummary = exports.summary = exports.getIDToken = exports.getState = exports.saveState = exports.group = exports.endGroup = exports.startGroup = exports.info = exports.notice = exports.warning = exports.error = exports.debug = exports.isDebug = exports.setFailed = exports.setCommandEcho = exports.setOutput = exports.getBooleanInput = exports.getMultilineInput = exports.getInput = exports.addPath = exports.setSecret = exports.exportVariable = exports.ExitCode = void 0;
 const command_1 = __nccwpck_require__(7351);
 const file_command_1 = __nccwpck_require__(717);
 const utils_1 = __nccwpck_require__(5278);
@@ -154,7 +162,7 @@ var ExitCode;
      * A code indicating that the action was a failure
      */
     ExitCode[ExitCode["Failure"] = 1] = "Failure";
-})(ExitCode = exports.ExitCode || (exports.ExitCode = {}));
+})(ExitCode || (exports.ExitCode = ExitCode = {}));
 //-----------------------------------------------------------------------
 // Variables
 //-----------------------------------------------------------------------
@@ -165,13 +173,13 @@ var ExitCode;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function exportVariable(name, val) {
-    const convertedVal = utils_1.toCommandValue(val);
+    const convertedVal = (0, utils_1.toCommandValue)(val);
     process.env[name] = convertedVal;
     const filePath = process.env['GITHUB_ENV'] || '';
     if (filePath) {
-        return file_command_1.issueFileCommand('ENV', file_command_1.prepareKeyValueMessage(name, val));
+        return (0, file_command_1.issueFileCommand)('ENV', (0, file_command_1.prepareKeyValueMessage)(name, val));
     }
-    command_1.issueCommand('set-env', { name }, convertedVal);
+    (0, command_1.issueCommand)('set-env', { name }, convertedVal);
 }
 exports.exportVariable = exportVariable;
 /**
@@ -179,7 +187,7 @@ exports.exportVariable = exportVariable;
  * @param secret value of the secret
  */
 function setSecret(secret) {
-    command_1.issueCommand('add-mask', {}, secret);
+    (0, command_1.issueCommand)('add-mask', {}, secret);
 }
 exports.setSecret = setSecret;
 /**
@@ -189,10 +197,10 @@ exports.setSecret = setSecret;
 function addPath(inputPath) {
     const filePath = process.env['GITHUB_PATH'] || '';
     if (filePath) {
-        file_command_1.issueFileCommand('PATH', inputPath);
+        (0, file_command_1.issueFileCommand)('PATH', inputPath);
     }
     else {
-        command_1.issueCommand('add-path', {}, inputPath);
+        (0, command_1.issueCommand)('add-path', {}, inputPath);
     }
     process.env['PATH'] = `${inputPath}${path.delimiter}${process.env['PATH']}`;
 }
@@ -267,10 +275,10 @@ exports.getBooleanInput = getBooleanInput;
 function setOutput(name, value) {
     const filePath = process.env['GITHUB_OUTPUT'] || '';
     if (filePath) {
-        return file_command_1.issueFileCommand('OUTPUT', file_command_1.prepareKeyValueMessage(name, value));
+        return (0, file_command_1.issueFileCommand)('OUTPUT', (0, file_command_1.prepareKeyValueMessage)(name, value));
     }
     process.stdout.write(os.EOL);
-    command_1.issueCommand('set-output', { name }, utils_1.toCommandValue(value));
+    (0, command_1.issueCommand)('set-output', { name }, (0, utils_1.toCommandValue)(value));
 }
 exports.setOutput = setOutput;
 /**
@@ -279,7 +287,7 @@ exports.setOutput = setOutput;
  *
  */
 function setCommandEcho(enabled) {
-    command_1.issue('echo', enabled ? 'on' : 'off');
+    (0, command_1.issue)('echo', enabled ? 'on' : 'off');
 }
 exports.setCommandEcho = setCommandEcho;
 //-----------------------------------------------------------------------
@@ -310,7 +318,7 @@ exports.isDebug = isDebug;
  * @param message debug message
  */
 function debug(message) {
-    command_1.issueCommand('debug', {}, message);
+    (0, command_1.issueCommand)('debug', {}, message);
 }
 exports.debug = debug;
 /**
@@ -319,7 +327,7 @@ exports.debug = debug;
  * @param properties optional properties to add to the annotation.
  */
 function error(message, properties = {}) {
-    command_1.issueCommand('error', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+    (0, command_1.issueCommand)('error', (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
 }
 exports.error = error;
 /**
@@ -328,7 +336,7 @@ exports.error = error;
  * @param properties optional properties to add to the annotation.
  */
 function warning(message, properties = {}) {
-    command_1.issueCommand('warning', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+    (0, command_1.issueCommand)('warning', (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
 }
 exports.warning = warning;
 /**
@@ -337,7 +345,7 @@ exports.warning = warning;
  * @param properties optional properties to add to the annotation.
  */
 function notice(message, properties = {}) {
-    command_1.issueCommand('notice', utils_1.toCommandProperties(properties), message instanceof Error ? message.toString() : message);
+    (0, command_1.issueCommand)('notice', (0, utils_1.toCommandProperties)(properties), message instanceof Error ? message.toString() : message);
 }
 exports.notice = notice;
 /**
@@ -356,14 +364,14 @@ exports.info = info;
  * @param name The name of the output group
  */
 function startGroup(name) {
-    command_1.issue('group', name);
+    (0, command_1.issue)('group', name);
 }
 exports.startGroup = startGroup;
 /**
  * End an output group.
  */
 function endGroup() {
-    command_1.issue('endgroup');
+    (0, command_1.issue)('endgroup');
 }
 exports.endGroup = endGroup;
 /**
@@ -401,9 +409,9 @@ exports.group = group;
 function saveState(name, value) {
     const filePath = process.env['GITHUB_STATE'] || '';
     if (filePath) {
-        return file_command_1.issueFileCommand('STATE', file_command_1.prepareKeyValueMessage(name, value));
+        return (0, file_command_1.issueFileCommand)('STATE', (0, file_command_1.prepareKeyValueMessage)(name, value));
     }
-    command_1.issueCommand('save-state', { name }, utils_1.toCommandValue(value));
+    (0, command_1.issueCommand)('save-state', { name }, (0, utils_1.toCommandValue)(value));
 }
 exports.saveState = saveState;
 /**
@@ -439,6 +447,10 @@ var path_utils_1 = __nccwpck_require__(2981);
 Object.defineProperty(exports, "toPosixPath", ({ enumerable: true, get: function () { return path_utils_1.toPosixPath; } }));
 Object.defineProperty(exports, "toWin32Path", ({ enumerable: true, get: function () { return path_utils_1.toWin32Path; } }));
 Object.defineProperty(exports, "toPlatformPath", ({ enumerable: true, get: function () { return path_utils_1.toPlatformPath; } }));
+/**
+ * Platform utilities exports
+ */
+exports.platform = __importStar(__nccwpck_require__(5243));
 //# sourceMappingURL=core.js.map
 
 /***/ }),
@@ -451,7 +463,11 @@ Object.defineProperty(exports, "toPlatformPath", ({ enumerable: true, get: funct
 // For internal use, subject to change.
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -464,7 +480,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -472,9 +488,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.prepareKeyValueMessage = exports.issueFileCommand = void 0;
 // We use any as a valid input type
 /* eslint-disable @typescript-eslint/no-explicit-any */
+const crypto = __importStar(__nccwpck_require__(6113));
 const fs = __importStar(__nccwpck_require__(7147));
 const os = __importStar(__nccwpck_require__(2037));
-const uuid_1 = __nccwpck_require__(8974);
 const utils_1 = __nccwpck_require__(5278);
 function issueFileCommand(command, message) {
     const filePath = process.env[`GITHUB_${command}`];
@@ -484,14 +500,14 @@ function issueFileCommand(command, message) {
     if (!fs.existsSync(filePath)) {
         throw new Error(`Missing file at path: ${filePath}`);
     }
-    fs.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os.EOL}`, {
+    fs.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os.EOL}`, {
         encoding: 'utf8'
     });
 }
 exports.issueFileCommand = issueFileCommand;
 function prepareKeyValueMessage(key, value) {
-    const delimiter = `ghadelimiter_${uuid_1.v4()}`;
-    const convertedValue = utils_1.toCommandValue(value);
+    const delimiter = `ghadelimiter_${crypto.randomUUID()}`;
+    const convertedValue = (0, utils_1.toCommandValue)(value);
     // These should realistically never happen, but just in case someone finds a
     // way to exploit uuid generation let's not allow keys or values that contain
     // the delimiter.
@@ -576,9 +592,9 @@ class OidcClient {
                     const encodedAudience = encodeURIComponent(audience);
                     id_token_url = `${id_token_url}&audience=${encodedAudience}`;
                 }
-                core_1.debug(`ID token url is ${id_token_url}`);
+                (0, core_1.debug)(`ID token url is ${id_token_url}`);
                 const id_token = yield OidcClient.getCall(id_token_url);
-                core_1.setSecret(id_token);
+                (0, core_1.setSecret)(id_token);
                 return id_token;
             }
             catch (error) {
@@ -599,7 +615,11 @@ exports.OidcClient = OidcClient;
 
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
 }) : (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
@@ -612,7 +632,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -654,6 +674,107 @@ function toPlatformPath(pth) {
 }
 exports.toPlatformPath = toPlatformPath;
 //# sourceMappingURL=path-utils.js.map
+
+/***/ }),
+
+/***/ 5243:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getDetails = exports.isLinux = exports.isMacOS = exports.isWindows = exports.arch = exports.platform = void 0;
+const os_1 = __importDefault(__nccwpck_require__(2037));
+const exec = __importStar(__nccwpck_require__(1514));
+const getWindowsInfo = () => __awaiter(void 0, void 0, void 0, function* () {
+    const { stdout: version } = yield exec.getExecOutput('powershell -command "(Get-CimInstance -ClassName Win32_OperatingSystem).Version"', undefined, {
+        silent: true
+    });
+    const { stdout: name } = yield exec.getExecOutput('powershell -command "(Get-CimInstance -ClassName Win32_OperatingSystem).Caption"', undefined, {
+        silent: true
+    });
+    return {
+        name: name.trim(),
+        version: version.trim()
+    };
+});
+const getMacOsInfo = () => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d;
+    const { stdout } = yield exec.getExecOutput('sw_vers', undefined, {
+        silent: true
+    });
+    const version = (_b = (_a = stdout.match(/ProductVersion:\s*(.+)/)) === null || _a === void 0 ? void 0 : _a[1]) !== null && _b !== void 0 ? _b : '';
+    const name = (_d = (_c = stdout.match(/ProductName:\s*(.+)/)) === null || _c === void 0 ? void 0 : _c[1]) !== null && _d !== void 0 ? _d : '';
+    return {
+        name,
+        version
+    };
+});
+const getLinuxInfo = () => __awaiter(void 0, void 0, void 0, function* () {
+    const { stdout } = yield exec.getExecOutput('lsb_release', ['-i', '-r', '-s'], {
+        silent: true
+    });
+    const [name, version] = stdout.trim().split('\n');
+    return {
+        name,
+        version
+    };
+});
+exports.platform = os_1.default.platform();
+exports.arch = os_1.default.arch();
+exports.isWindows = exports.platform === 'win32';
+exports.isMacOS = exports.platform === 'darwin';
+exports.isLinux = exports.platform === 'linux';
+function getDetails() {
+    return __awaiter(this, void 0, void 0, function* () {
+        return Object.assign(Object.assign({}, (yield (exports.isWindows
+            ? getWindowsInfo()
+            : exports.isMacOS
+                ? getMacOsInfo()
+                : getLinuxInfo()))), { platform: exports.platform,
+            arch: exports.arch,
+            isWindows: exports.isWindows,
+            isMacOS: exports.isMacOS,
+            isLinux: exports.isLinux });
+    });
+}
+exports.getDetails = getDetails;
+//# sourceMappingURL=platform.js.map
 
 /***/ }),
 
@@ -991,652 +1112,6 @@ function toCommandProperties(annotationProperties) {
 }
 exports.toCommandProperties = toCommandProperties;
 //# sourceMappingURL=utils.js.map
-
-/***/ }),
-
-/***/ 8974:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-Object.defineProperty(exports, "v1", ({
-  enumerable: true,
-  get: function () {
-    return _v.default;
-  }
-}));
-Object.defineProperty(exports, "v3", ({
-  enumerable: true,
-  get: function () {
-    return _v2.default;
-  }
-}));
-Object.defineProperty(exports, "v4", ({
-  enumerable: true,
-  get: function () {
-    return _v3.default;
-  }
-}));
-Object.defineProperty(exports, "v5", ({
-  enumerable: true,
-  get: function () {
-    return _v4.default;
-  }
-}));
-Object.defineProperty(exports, "NIL", ({
-  enumerable: true,
-  get: function () {
-    return _nil.default;
-  }
-}));
-Object.defineProperty(exports, "version", ({
-  enumerable: true,
-  get: function () {
-    return _version.default;
-  }
-}));
-Object.defineProperty(exports, "validate", ({
-  enumerable: true,
-  get: function () {
-    return _validate.default;
-  }
-}));
-Object.defineProperty(exports, "stringify", ({
-  enumerable: true,
-  get: function () {
-    return _stringify.default;
-  }
-}));
-Object.defineProperty(exports, "parse", ({
-  enumerable: true,
-  get: function () {
-    return _parse.default;
-  }
-}));
-
-var _v = _interopRequireDefault(__nccwpck_require__(1595));
-
-var _v2 = _interopRequireDefault(__nccwpck_require__(6993));
-
-var _v3 = _interopRequireDefault(__nccwpck_require__(1472));
-
-var _v4 = _interopRequireDefault(__nccwpck_require__(6217));
-
-var _nil = _interopRequireDefault(__nccwpck_require__(2381));
-
-var _version = _interopRequireDefault(__nccwpck_require__(427));
-
-var _validate = _interopRequireDefault(__nccwpck_require__(2609));
-
-var _stringify = _interopRequireDefault(__nccwpck_require__(1458));
-
-var _parse = _interopRequireDefault(__nccwpck_require__(6385));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/***/ }),
-
-/***/ 5842:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _crypto = _interopRequireDefault(__nccwpck_require__(6113));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function md5(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === 'string') {
-    bytes = Buffer.from(bytes, 'utf8');
-  }
-
-  return _crypto.default.createHash('md5').update(bytes).digest();
-}
-
-var _default = md5;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 2381:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-var _default = '00000000-0000-0000-0000-000000000000';
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 6385:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _validate = _interopRequireDefault(__nccwpck_require__(2609));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function parse(uuid) {
-  if (!(0, _validate.default)(uuid)) {
-    throw TypeError('Invalid UUID');
-  }
-
-  let v;
-  const arr = new Uint8Array(16); // Parse ########-....-....-....-............
-
-  arr[0] = (v = parseInt(uuid.slice(0, 8), 16)) >>> 24;
-  arr[1] = v >>> 16 & 0xff;
-  arr[2] = v >>> 8 & 0xff;
-  arr[3] = v & 0xff; // Parse ........-####-....-....-............
-
-  arr[4] = (v = parseInt(uuid.slice(9, 13), 16)) >>> 8;
-  arr[5] = v & 0xff; // Parse ........-....-####-....-............
-
-  arr[6] = (v = parseInt(uuid.slice(14, 18), 16)) >>> 8;
-  arr[7] = v & 0xff; // Parse ........-....-....-####-............
-
-  arr[8] = (v = parseInt(uuid.slice(19, 23), 16)) >>> 8;
-  arr[9] = v & 0xff; // Parse ........-....-....-....-############
-  // (Use "/" to avoid 32-bit truncation when bit-shifting high-order bytes)
-
-  arr[10] = (v = parseInt(uuid.slice(24, 36), 16)) / 0x10000000000 & 0xff;
-  arr[11] = v / 0x100000000 & 0xff;
-  arr[12] = v >>> 24 & 0xff;
-  arr[13] = v >>> 16 & 0xff;
-  arr[14] = v >>> 8 & 0xff;
-  arr[15] = v & 0xff;
-  return arr;
-}
-
-var _default = parse;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 6230:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-var _default = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000)$/i;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 9784:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = rng;
-
-var _crypto = _interopRequireDefault(__nccwpck_require__(6113));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-const rnds8Pool = new Uint8Array(256); // # of random values to pre-allocate
-
-let poolPtr = rnds8Pool.length;
-
-function rng() {
-  if (poolPtr > rnds8Pool.length - 16) {
-    _crypto.default.randomFillSync(rnds8Pool);
-
-    poolPtr = 0;
-  }
-
-  return rnds8Pool.slice(poolPtr, poolPtr += 16);
-}
-
-/***/ }),
-
-/***/ 8844:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _crypto = _interopRequireDefault(__nccwpck_require__(6113));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function sha1(bytes) {
-  if (Array.isArray(bytes)) {
-    bytes = Buffer.from(bytes);
-  } else if (typeof bytes === 'string') {
-    bytes = Buffer.from(bytes, 'utf8');
-  }
-
-  return _crypto.default.createHash('sha1').update(bytes).digest();
-}
-
-var _default = sha1;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 1458:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _validate = _interopRequireDefault(__nccwpck_require__(2609));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/**
- * Convert array of 16 byte values to UUID string format of the form:
- * XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
- */
-const byteToHex = [];
-
-for (let i = 0; i < 256; ++i) {
-  byteToHex.push((i + 0x100).toString(16).substr(1));
-}
-
-function stringify(arr, offset = 0) {
-  // Note: Be careful editing this code!  It's been tuned for performance
-  // and works in ways you may not expect. See https://github.com/uuidjs/uuid/pull/434
-  const uuid = (byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + '-' + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + '-' + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + '-' + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + '-' + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]]).toLowerCase(); // Consistency check for valid UUID.  If this throws, it's likely due to one
-  // of the following:
-  // - One or more input array values don't map to a hex octet (leading to
-  // "undefined" in the uuid)
-  // - Invalid input values for the RFC `version` or `variant` fields
-
-  if (!(0, _validate.default)(uuid)) {
-    throw TypeError('Stringified UUID is invalid');
-  }
-
-  return uuid;
-}
-
-var _default = stringify;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 1595:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _rng = _interopRequireDefault(__nccwpck_require__(9784));
-
-var _stringify = _interopRequireDefault(__nccwpck_require__(1458));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-// **`v1()` - Generate time-based UUID**
-//
-// Inspired by https://github.com/LiosK/UUID.js
-// and http://docs.python.org/library/uuid.html
-let _nodeId;
-
-let _clockseq; // Previous uuid creation time
-
-
-let _lastMSecs = 0;
-let _lastNSecs = 0; // See https://github.com/uuidjs/uuid for API details
-
-function v1(options, buf, offset) {
-  let i = buf && offset || 0;
-  const b = buf || new Array(16);
-  options = options || {};
-  let node = options.node || _nodeId;
-  let clockseq = options.clockseq !== undefined ? options.clockseq : _clockseq; // node and clockseq need to be initialized to random values if they're not
-  // specified.  We do this lazily to minimize issues related to insufficient
-  // system entropy.  See #189
-
-  if (node == null || clockseq == null) {
-    const seedBytes = options.random || (options.rng || _rng.default)();
-
-    if (node == null) {
-      // Per 4.5, create and 48-bit node id, (47 random bits + multicast bit = 1)
-      node = _nodeId = [seedBytes[0] | 0x01, seedBytes[1], seedBytes[2], seedBytes[3], seedBytes[4], seedBytes[5]];
-    }
-
-    if (clockseq == null) {
-      // Per 4.2.2, randomize (14 bit) clockseq
-      clockseq = _clockseq = (seedBytes[6] << 8 | seedBytes[7]) & 0x3fff;
-    }
-  } // UUID timestamps are 100 nano-second units since the Gregorian epoch,
-  // (1582-10-15 00:00).  JSNumbers aren't precise enough for this, so
-  // time is handled internally as 'msecs' (integer milliseconds) and 'nsecs'
-  // (100-nanoseconds offset from msecs) since unix epoch, 1970-01-01 00:00.
-
-
-  let msecs = options.msecs !== undefined ? options.msecs : Date.now(); // Per 4.2.1.2, use count of uuid's generated during the current clock
-  // cycle to simulate higher resolution clock
-
-  let nsecs = options.nsecs !== undefined ? options.nsecs : _lastNSecs + 1; // Time since last uuid creation (in msecs)
-
-  const dt = msecs - _lastMSecs + (nsecs - _lastNSecs) / 10000; // Per 4.2.1.2, Bump clockseq on clock regression
-
-  if (dt < 0 && options.clockseq === undefined) {
-    clockseq = clockseq + 1 & 0x3fff;
-  } // Reset nsecs if clock regresses (new clockseq) or we've moved onto a new
-  // time interval
-
-
-  if ((dt < 0 || msecs > _lastMSecs) && options.nsecs === undefined) {
-    nsecs = 0;
-  } // Per 4.2.1.2 Throw error if too many uuids are requested
-
-
-  if (nsecs >= 10000) {
-    throw new Error("uuid.v1(): Can't create more than 10M uuids/sec");
-  }
-
-  _lastMSecs = msecs;
-  _lastNSecs = nsecs;
-  _clockseq = clockseq; // Per 4.1.4 - Convert from unix epoch to Gregorian epoch
-
-  msecs += 12219292800000; // `time_low`
-
-  const tl = ((msecs & 0xfffffff) * 10000 + nsecs) % 0x100000000;
-  b[i++] = tl >>> 24 & 0xff;
-  b[i++] = tl >>> 16 & 0xff;
-  b[i++] = tl >>> 8 & 0xff;
-  b[i++] = tl & 0xff; // `time_mid`
-
-  const tmh = msecs / 0x100000000 * 10000 & 0xfffffff;
-  b[i++] = tmh >>> 8 & 0xff;
-  b[i++] = tmh & 0xff; // `time_high_and_version`
-
-  b[i++] = tmh >>> 24 & 0xf | 0x10; // include version
-
-  b[i++] = tmh >>> 16 & 0xff; // `clock_seq_hi_and_reserved` (Per 4.2.2 - include variant)
-
-  b[i++] = clockseq >>> 8 | 0x80; // `clock_seq_low`
-
-  b[i++] = clockseq & 0xff; // `node`
-
-  for (let n = 0; n < 6; ++n) {
-    b[i + n] = node[n];
-  }
-
-  return buf || (0, _stringify.default)(b);
-}
-
-var _default = v1;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 6993:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _v = _interopRequireDefault(__nccwpck_require__(5920));
-
-var _md = _interopRequireDefault(__nccwpck_require__(5842));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-const v3 = (0, _v.default)('v3', 0x30, _md.default);
-var _default = v3;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 5920:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = _default;
-exports.URL = exports.DNS = void 0;
-
-var _stringify = _interopRequireDefault(__nccwpck_require__(1458));
-
-var _parse = _interopRequireDefault(__nccwpck_require__(6385));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function stringToBytes(str) {
-  str = unescape(encodeURIComponent(str)); // UTF8 escape
-
-  const bytes = [];
-
-  for (let i = 0; i < str.length; ++i) {
-    bytes.push(str.charCodeAt(i));
-  }
-
-  return bytes;
-}
-
-const DNS = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
-exports.DNS = DNS;
-const URL = '6ba7b811-9dad-11d1-80b4-00c04fd430c8';
-exports.URL = URL;
-
-function _default(name, version, hashfunc) {
-  function generateUUID(value, namespace, buf, offset) {
-    if (typeof value === 'string') {
-      value = stringToBytes(value);
-    }
-
-    if (typeof namespace === 'string') {
-      namespace = (0, _parse.default)(namespace);
-    }
-
-    if (namespace.length !== 16) {
-      throw TypeError('Namespace must be array-like (16 iterable integer values, 0-255)');
-    } // Compute hash of namespace and value, Per 4.3
-    // Future: Use spread syntax when supported on all platforms, e.g. `bytes =
-    // hashfunc([...namespace, ... value])`
-
-
-    let bytes = new Uint8Array(16 + value.length);
-    bytes.set(namespace);
-    bytes.set(value, namespace.length);
-    bytes = hashfunc(bytes);
-    bytes[6] = bytes[6] & 0x0f | version;
-    bytes[8] = bytes[8] & 0x3f | 0x80;
-
-    if (buf) {
-      offset = offset || 0;
-
-      for (let i = 0; i < 16; ++i) {
-        buf[offset + i] = bytes[i];
-      }
-
-      return buf;
-    }
-
-    return (0, _stringify.default)(bytes);
-  } // Function#name is not settable on some platforms (#270)
-
-
-  try {
-    generateUUID.name = name; // eslint-disable-next-line no-empty
-  } catch (err) {} // For CommonJS default export support
-
-
-  generateUUID.DNS = DNS;
-  generateUUID.URL = URL;
-  return generateUUID;
-}
-
-/***/ }),
-
-/***/ 1472:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _rng = _interopRequireDefault(__nccwpck_require__(9784));
-
-var _stringify = _interopRequireDefault(__nccwpck_require__(1458));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function v4(options, buf, offset) {
-  options = options || {};
-
-  const rnds = options.random || (options.rng || _rng.default)(); // Per 4.4, set bits for version and `clock_seq_hi_and_reserved`
-
-
-  rnds[6] = rnds[6] & 0x0f | 0x40;
-  rnds[8] = rnds[8] & 0x3f | 0x80; // Copy bytes to buffer, if provided
-
-  if (buf) {
-    offset = offset || 0;
-
-    for (let i = 0; i < 16; ++i) {
-      buf[offset + i] = rnds[i];
-    }
-
-    return buf;
-  }
-
-  return (0, _stringify.default)(rnds);
-}
-
-var _default = v4;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 6217:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _v = _interopRequireDefault(__nccwpck_require__(5920));
-
-var _sha = _interopRequireDefault(__nccwpck_require__(8844));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-const v5 = (0, _v.default)('v5', 0x50, _sha.default);
-var _default = v5;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 2609:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _regex = _interopRequireDefault(__nccwpck_require__(6230));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function validate(uuid) {
-  return typeof uuid === 'string' && _regex.default.test(uuid);
-}
-
-var _default = validate;
-exports["default"] = _default;
-
-/***/ }),
-
-/***/ 427:
-/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({
-  value: true
-}));
-exports["default"] = void 0;
-
-var _validate = _interopRequireDefault(__nccwpck_require__(2609));
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function version(uuid) {
-  if (!(0, _validate.default)(uuid)) {
-    throw TypeError('Invalid UUID');
-  }
-
-  return parseInt(uuid.substr(14, 1), 16);
-}
-
-var _default = version;
-exports["default"] = _default;
 
 /***/ }),
 
@@ -5494,7 +4969,7 @@ module.exports = __toCommonJS(dist_src_exports);
 var import_universal_user_agent = __nccwpck_require__(5030);
 
 // pkg/dist-src/version.js
-var VERSION = "9.0.5";
+var VERSION = "9.0.6";
 
 // pkg/dist-src/defaults.js
 var userAgent = `octokit-endpoint.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`;
@@ -5599,9 +5074,9 @@ function addQueryParameters(url, parameters) {
 }
 
 // pkg/dist-src/util/extract-url-variable-names.js
-var urlVariableRegex = /\{[^}]+\}/g;
+var urlVariableRegex = /\{[^{}}]+\}/g;
 function removeNonChars(variableName) {
-  return variableName.replace(/^\W+|\W+$/g, "").split(/,/);
+  return variableName.replace(/(?:^\W+)|(?:(?<!\W)\W+$)/g, "").split(/,/);
 }
 function extractUrlVariableNames(url) {
   const matches = url.match(urlVariableRegex);
@@ -5787,7 +5262,7 @@ function parse(options) {
     }
     if (url.endsWith("/graphql")) {
       if (options.mediaType.previews?.length) {
-        const previewsFromAcceptHeader = headers.accept.match(/[\w-]+(?=-preview)/g) || [];
+        const previewsFromAcceptHeader = headers.accept.match(/(?<![\w-])[\w-]+(?=-preview)/g) || [];
         headers.accept = previewsFromAcceptHeader.concat(options.mediaType.previews).map((preview) => {
           const format = options.mediaType.format ? `.${options.mediaType.format}` : "+json";
           return `application/vnd.github.${preview}-preview${format}`;
@@ -6036,7 +5511,7 @@ __export(dist_src_exports, {
 module.exports = __toCommonJS(dist_src_exports);
 
 // pkg/dist-src/version.js
-var VERSION = "9.2.1";
+var VERSION = "9.2.2";
 
 // pkg/dist-src/normalize-paginated-list-response.js
 function normalizePaginatedListResponse(response) {
@@ -6084,7 +5559,7 @@ function iterator(octokit, route, parameters) {
           const response = await requestMethod({ method, url, headers });
           const normalizedResponse = normalizePaginatedListResponse(response);
           url = ((normalizedResponse.headers.link || "").match(
-            /<([^>]+)>;\s*rel="next"/
+            /<([^<>]+)>;\s*rel="next"/
           ) || [])[1];
           return { value: normalizedResponse };
         } catch (error) {
@@ -8636,7 +8111,7 @@ var RequestError = class extends Error {
     if (options.request.headers.authorization) {
       requestCopy.headers = Object.assign({}, options.request.headers, {
         authorization: options.request.headers.authorization.replace(
-          / .*$/,
+          /(?<! ) .*$/,
           " [REDACTED]"
         )
       });
@@ -8704,7 +8179,7 @@ var import_endpoint = __nccwpck_require__(9440);
 var import_universal_user_agent = __nccwpck_require__(5030);
 
 // pkg/dist-src/version.js
-var VERSION = "8.4.0";
+var VERSION = "8.4.1";
 
 // pkg/dist-src/is-plain-object.js
 function isPlainObject(value) {
@@ -8763,7 +8238,7 @@ function fetchWrapper(requestOptions) {
       headers[keyAndValue[0]] = keyAndValue[1];
     }
     if ("deprecation" in headers) {
-      const matches = headers.link && headers.link.match(/<([^>]+)>; rel="deprecation"/);
+      const matches = headers.link && headers.link.match(/<([^<>]+)>; rel="deprecation"/);
       const deprecationLink = matches && matches.pop();
       log.warn(
         `[@octokit/request] "${requestOptions.method} ${requestOptions.url}" is deprecated. It is scheduled to be removed on ${headers.sunset}${deprecationLink ? `. See ${deprecationLink}` : ""}`
@@ -9441,5409 +8916,5148 @@ exports.createConfig = createConfig;
 
 // This file is auto-generated by @hey-api/openapi-ts
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.appClipHeaderImagesDeleteInstance = exports.appClipHeaderImagesUpdateInstance = exports.appClipHeaderImagesGetInstance = exports.appClipHeaderImagesCreateInstance = exports.appClipDefaultExperiencesDeleteInstance = exports.appClipDefaultExperiencesUpdateInstance = exports.appClipDefaultExperiencesGetInstance = exports.appClipDefaultExperiencesCreateInstance = exports.appClipDefaultExperienceLocalizationsDeleteInstance = exports.appClipDefaultExperienceLocalizationsUpdateInstance = exports.appClipDefaultExperienceLocalizationsGetInstance = exports.appClipDefaultExperienceLocalizationsCreateInstance = exports.appClipAppStoreReviewDetailsUpdateInstance = exports.appClipAppStoreReviewDetailsGetInstance = exports.appClipAppStoreReviewDetailsCreateInstance = exports.appClipAdvancedExperiencesUpdateInstance = exports.appClipAdvancedExperiencesGetInstance = exports.appClipAdvancedExperiencesCreateInstance = exports.appClipAdvancedExperienceImagesUpdateInstance = exports.appClipAdvancedExperienceImagesGetInstance = exports.appClipAdvancedExperienceImagesCreateInstance = exports.appCategoriesGetInstance = exports.appCategoriesGetCollection = exports.appAvailabilitiesGetInstance = exports.appAvailabilitiesCreateInstance = exports.appAvailabilitiesV2GetInstance = exports.appAvailabilitiesV2CreateInstance = exports.analyticsReportsGetInstance = exports.analyticsReportSegmentsGetInstance = exports.analyticsReportRequestsDeleteInstance = exports.analyticsReportRequestsGetInstance = exports.analyticsReportRequestsCreateInstance = exports.analyticsReportInstancesGetInstance = exports.alternativeDistributionPackagesGetInstance = exports.alternativeDistributionPackagesCreateInstance = exports.alternativeDistributionPackageVersionsGetInstance = exports.alternativeDistributionPackageVariantsGetInstance = exports.alternativeDistributionPackageDeltasGetInstance = exports.alternativeDistributionKeysDeleteInstance = exports.alternativeDistributionKeysGetInstance = exports.alternativeDistributionKeysCreateInstance = exports.alternativeDistributionKeysGetCollection = exports.alternativeDistributionDomainsDeleteInstance = exports.alternativeDistributionDomainsGetInstance = exports.alternativeDistributionDomainsCreateInstance = exports.alternativeDistributionDomainsGetCollection = exports.ageRatingDeclarationsUpdateInstance = exports.actorsGetInstance = exports.actorsGetCollection = exports.client = void 0;
-exports.appPreviewsUpdateInstance = exports.appPreviewsGetInstance = exports.appPreviewsCreateInstance = exports.appPreviewSetsDeleteInstance = exports.appPreviewSetsGetInstance = exports.appPreviewSetsCreateInstance = exports.appPreOrdersDeleteInstance = exports.appPreOrdersUpdateInstance = exports.appPreOrdersGetInstance = exports.appPreOrdersCreateInstance = exports.appInfosUpdateInstance = exports.appInfosGetInstance = exports.appInfoLocalizationsDeleteInstance = exports.appInfoLocalizationsUpdateInstance = exports.appInfoLocalizationsGetInstance = exports.appInfoLocalizationsCreateInstance = exports.appEventsDeleteInstance = exports.appEventsUpdateInstance = exports.appEventsGetInstance = exports.appEventsCreateInstance = exports.appEventVideoClipsDeleteInstance = exports.appEventVideoClipsUpdateInstance = exports.appEventVideoClipsGetInstance = exports.appEventVideoClipsCreateInstance = exports.appEventScreenshotsDeleteInstance = exports.appEventScreenshotsUpdateInstance = exports.appEventScreenshotsGetInstance = exports.appEventScreenshotsCreateInstance = exports.appEventLocalizationsDeleteInstance = exports.appEventLocalizationsUpdateInstance = exports.appEventLocalizationsGetInstance = exports.appEventLocalizationsCreateInstance = exports.appEncryptionDeclarationsGetInstance = exports.appEncryptionDeclarationsCreateInstance = exports.appEncryptionDeclarationsGetCollection = exports.appEncryptionDeclarationDocumentsUpdateInstance = exports.appEncryptionDeclarationDocumentsGetInstance = exports.appEncryptionDeclarationDocumentsCreateInstance = exports.appCustomProductPagesDeleteInstance = exports.appCustomProductPagesUpdateInstance = exports.appCustomProductPagesGetInstance = exports.appCustomProductPagesCreateInstance = exports.appCustomProductPageVersionsUpdateInstance = exports.appCustomProductPageVersionsGetInstance = exports.appCustomProductPageVersionsCreateInstance = exports.appCustomProductPageLocalizationsDeleteInstance = exports.appCustomProductPageLocalizationsUpdateInstance = exports.appCustomProductPageLocalizationsGetInstance = exports.appCustomProductPageLocalizationsCreateInstance = exports.appClipsGetInstance = void 0;
-exports.appsGetInstance = exports.appsGetCollection = exports.appStoreVersionsDeleteInstance = exports.appStoreVersionsUpdateInstance = exports.appStoreVersionsGetInstance = exports.appStoreVersionsCreateInstance = exports.appStoreVersionSubmissionsDeleteInstance = exports.appStoreVersionSubmissionsCreateInstance = exports.appStoreVersionReleaseRequestsCreateInstance = exports.appStoreVersionPromotionsCreateInstance = exports.appStoreVersionPhasedReleasesDeleteInstance = exports.appStoreVersionPhasedReleasesUpdateInstance = exports.appStoreVersionPhasedReleasesCreateInstance = exports.appStoreVersionLocalizationsDeleteInstance = exports.appStoreVersionLocalizationsUpdateInstance = exports.appStoreVersionLocalizationsGetInstance = exports.appStoreVersionLocalizationsCreateInstance = exports.appStoreVersionExperimentsDeleteInstance = exports.appStoreVersionExperimentsUpdateInstance = exports.appStoreVersionExperimentsGetInstance = exports.appStoreVersionExperimentsCreateInstance = exports.appStoreVersionExperimentsV2DeleteInstance = exports.appStoreVersionExperimentsV2UpdateInstance = exports.appStoreVersionExperimentsV2GetInstance = exports.appStoreVersionExperimentsV2CreateInstance = exports.appStoreVersionExperimentTreatmentsDeleteInstance = exports.appStoreVersionExperimentTreatmentsUpdateInstance = exports.appStoreVersionExperimentTreatmentsGetInstance = exports.appStoreVersionExperimentTreatmentsCreateInstance = exports.appStoreVersionExperimentTreatmentLocalizationsDeleteInstance = exports.appStoreVersionExperimentTreatmentLocalizationsGetInstance = exports.appStoreVersionExperimentTreatmentLocalizationsCreateInstance = exports.appStoreReviewDetailsUpdateInstance = exports.appStoreReviewDetailsGetInstance = exports.appStoreReviewDetailsCreateInstance = exports.appStoreReviewAttachmentsDeleteInstance = exports.appStoreReviewAttachmentsUpdateInstance = exports.appStoreReviewAttachmentsGetInstance = exports.appStoreReviewAttachmentsCreateInstance = exports.appScreenshotsDeleteInstance = exports.appScreenshotsUpdateInstance = exports.appScreenshotsGetInstance = exports.appScreenshotsCreateInstance = exports.appScreenshotSetsDeleteInstance = exports.appScreenshotSetsGetInstance = exports.appScreenshotSetsCreateInstance = exports.appPriceSchedulesGetInstance = exports.appPriceSchedulesCreateInstance = exports.appPricePointsV3GetInstance = exports.appPreviewsDeleteInstance = void 0;
-exports.bundleIdsGetInstance = exports.bundleIdsCreateInstance = exports.bundleIdsGetCollection = exports.bundleIdCapabilitiesDeleteInstance = exports.bundleIdCapabilitiesUpdateInstance = exports.bundleIdCapabilitiesCreateInstance = exports.buildsUpdateInstance = exports.buildsGetInstance = exports.buildsGetCollection = exports.buildBetaNotificationsCreateInstance = exports.buildBetaDetailsUpdateInstance = exports.buildBetaDetailsGetInstance = exports.buildBetaDetailsGetCollection = exports.betaTestersDeleteInstance = exports.betaTestersGetInstance = exports.betaTestersCreateInstance = exports.betaTestersGetCollection = exports.betaTesterInvitationsCreateInstance = exports.betaLicenseAgreementsUpdateInstance = exports.betaLicenseAgreementsGetInstance = exports.betaLicenseAgreementsGetCollection = exports.betaGroupsDeleteInstance = exports.betaGroupsUpdateInstance = exports.betaGroupsGetInstance = exports.betaGroupsCreateInstance = exports.betaGroupsGetCollection = exports.betaBuildLocalizationsDeleteInstance = exports.betaBuildLocalizationsUpdateInstance = exports.betaBuildLocalizationsGetInstance = exports.betaBuildLocalizationsCreateInstance = exports.betaBuildLocalizationsGetCollection = exports.betaAppReviewSubmissionsGetInstance = exports.betaAppReviewSubmissionsCreateInstance = exports.betaAppReviewSubmissionsGetCollection = exports.betaAppReviewDetailsUpdateInstance = exports.betaAppReviewDetailsGetInstance = exports.betaAppReviewDetailsGetCollection = exports.betaAppLocalizationsDeleteInstance = exports.betaAppLocalizationsUpdateInstance = exports.betaAppLocalizationsGetInstance = exports.betaAppLocalizationsCreateInstance = exports.betaAppLocalizationsGetCollection = exports.betaAppClipInvocationsDeleteInstance = exports.betaAppClipInvocationsUpdateInstance = exports.betaAppClipInvocationsGetInstance = exports.betaAppClipInvocationsCreateInstance = exports.betaAppClipInvocationLocalizationsDeleteInstance = exports.betaAppClipInvocationLocalizationsUpdateInstance = exports.betaAppClipInvocationLocalizationsCreateInstance = exports.appsUpdateInstance = void 0;
-exports.gameCenterAchievementsGetInstance = exports.gameCenterAchievementsCreateInstance = exports.gameCenterAchievementReleasesDeleteInstance = exports.gameCenterAchievementReleasesGetInstance = exports.gameCenterAchievementReleasesCreateInstance = exports.gameCenterAchievementLocalizationsDeleteInstance = exports.gameCenterAchievementLocalizationsUpdateInstance = exports.gameCenterAchievementLocalizationsGetInstance = exports.gameCenterAchievementLocalizationsCreateInstance = exports.gameCenterAchievementImagesDeleteInstance = exports.gameCenterAchievementImagesUpdateInstance = exports.gameCenterAchievementImagesGetInstance = exports.gameCenterAchievementImagesCreateInstance = exports.financeReportsGetCollection = exports.endUserLicenseAgreementsDeleteInstance = exports.endUserLicenseAgreementsUpdateInstance = exports.endUserLicenseAgreementsGetInstance = exports.endUserLicenseAgreementsCreateInstance = exports.endAppAvailabilityPreOrdersCreateInstance = exports.devicesUpdateInstance = exports.devicesGetInstance = exports.devicesCreateInstance = exports.devicesGetCollection = exports.customerReviewsGetInstance = exports.customerReviewResponsesDeleteInstance = exports.customerReviewResponsesGetInstance = exports.customerReviewResponsesCreateInstance = exports.ciXcodeVersionsGetInstance = exports.ciXcodeVersionsGetCollection = exports.ciWorkflowsDeleteInstance = exports.ciWorkflowsUpdateInstance = exports.ciWorkflowsGetInstance = exports.ciWorkflowsCreateInstance = exports.ciTestResultsGetInstance = exports.ciProductsDeleteInstance = exports.ciProductsGetInstance = exports.ciProductsGetCollection = exports.ciMacOsVersionsGetInstance = exports.ciMacOsVersionsGetCollection = exports.ciIssuesGetInstance = exports.ciBuildRunsGetInstance = exports.ciBuildRunsCreateInstance = exports.ciBuildActionsGetInstance = exports.ciArtifactsGetInstance = exports.certificatesDeleteInstance = exports.certificatesGetInstance = exports.certificatesCreateInstance = exports.certificatesGetCollection = exports.bundleIdsDeleteInstance = exports.bundleIdsUpdateInstance = void 0;
-exports.gameCenterMatchmakingQueuesCreateInstance = exports.gameCenterMatchmakingQueuesGetCollection = exports.gameCenterLeaderboardsDeleteInstance = exports.gameCenterLeaderboardsUpdateInstance = exports.gameCenterLeaderboardsGetInstance = exports.gameCenterLeaderboardsCreateInstance = exports.gameCenterLeaderboardSetsDeleteInstance = exports.gameCenterLeaderboardSetsUpdateInstance = exports.gameCenterLeaderboardSetsGetInstance = exports.gameCenterLeaderboardSetsCreateInstance = exports.gameCenterLeaderboardSetReleasesDeleteInstance = exports.gameCenterLeaderboardSetReleasesGetInstance = exports.gameCenterLeaderboardSetReleasesCreateInstance = exports.gameCenterLeaderboardSetMemberLocalizationsDeleteInstance = exports.gameCenterLeaderboardSetMemberLocalizationsUpdateInstance = exports.gameCenterLeaderboardSetMemberLocalizationsCreateInstance = exports.gameCenterLeaderboardSetMemberLocalizationsGetCollection = exports.gameCenterLeaderboardSetLocalizationsDeleteInstance = exports.gameCenterLeaderboardSetLocalizationsUpdateInstance = exports.gameCenterLeaderboardSetLocalizationsGetInstance = exports.gameCenterLeaderboardSetLocalizationsCreateInstance = exports.gameCenterLeaderboardSetImagesDeleteInstance = exports.gameCenterLeaderboardSetImagesUpdateInstance = exports.gameCenterLeaderboardSetImagesGetInstance = exports.gameCenterLeaderboardSetImagesCreateInstance = exports.gameCenterLeaderboardReleasesDeleteInstance = exports.gameCenterLeaderboardReleasesGetInstance = exports.gameCenterLeaderboardReleasesCreateInstance = exports.gameCenterLeaderboardLocalizationsDeleteInstance = exports.gameCenterLeaderboardLocalizationsUpdateInstance = exports.gameCenterLeaderboardLocalizationsGetInstance = exports.gameCenterLeaderboardLocalizationsCreateInstance = exports.gameCenterLeaderboardImagesDeleteInstance = exports.gameCenterLeaderboardImagesUpdateInstance = exports.gameCenterLeaderboardImagesGetInstance = exports.gameCenterLeaderboardImagesCreateInstance = exports.gameCenterLeaderboardEntrySubmissionsCreateInstance = exports.gameCenterGroupsDeleteInstance = exports.gameCenterGroupsUpdateInstance = exports.gameCenterGroupsGetInstance = exports.gameCenterGroupsCreateInstance = exports.gameCenterGroupsGetCollection = exports.gameCenterDetailsUpdateInstance = exports.gameCenterDetailsGetInstance = exports.gameCenterDetailsCreateInstance = exports.gameCenterAppVersionsUpdateInstance = exports.gameCenterAppVersionsGetInstance = exports.gameCenterAppVersionsCreateInstance = exports.gameCenterAchievementsDeleteInstance = exports.gameCenterAchievementsUpdateInstance = void 0;
-exports.marketplaceWebhooksDeleteInstance = exports.marketplaceWebhooksUpdateInstance = exports.marketplaceWebhooksCreateInstance = exports.marketplaceWebhooksGetCollection = exports.marketplaceSearchDetailsDeleteInstance = exports.marketplaceSearchDetailsUpdateInstance = exports.marketplaceSearchDetailsCreateInstance = exports.marketplaceDomainsDeleteInstance = exports.marketplaceDomainsGetInstance = exports.marketplaceDomainsCreateInstance = exports.marketplaceDomainsGetCollection = exports.inAppPurchasesV2DeleteInstance = exports.inAppPurchasesV2UpdateInstance = exports.inAppPurchasesV2GetInstance = exports.inAppPurchasesV2CreateInstance = exports.inAppPurchasesGetInstance = exports.inAppPurchaseSubmissionsCreateInstance = exports.inAppPurchasePriceSchedulesGetInstance = exports.inAppPurchasePriceSchedulesCreateInstance = exports.inAppPurchaseLocalizationsDeleteInstance = exports.inAppPurchaseLocalizationsUpdateInstance = exports.inAppPurchaseLocalizationsGetInstance = exports.inAppPurchaseLocalizationsCreateInstance = exports.inAppPurchaseImagesDeleteInstance = exports.inAppPurchaseImagesUpdateInstance = exports.inAppPurchaseImagesGetInstance = exports.inAppPurchaseImagesCreateInstance = exports.inAppPurchaseContentsGetInstance = exports.inAppPurchaseAvailabilitiesGetInstance = exports.inAppPurchaseAvailabilitiesCreateInstance = exports.inAppPurchaseAppStoreReviewScreenshotsDeleteInstance = exports.inAppPurchaseAppStoreReviewScreenshotsUpdateInstance = exports.inAppPurchaseAppStoreReviewScreenshotsGetInstance = exports.inAppPurchaseAppStoreReviewScreenshotsCreateInstance = exports.gameCenterPlayerAchievementSubmissionsCreateInstance = exports.gameCenterMatchmakingTeamsDeleteInstance = exports.gameCenterMatchmakingTeamsUpdateInstance = exports.gameCenterMatchmakingTeamsCreateInstance = exports.gameCenterMatchmakingRulesDeleteInstance = exports.gameCenterMatchmakingRulesUpdateInstance = exports.gameCenterMatchmakingRulesCreateInstance = exports.gameCenterMatchmakingRuleSetsDeleteInstance = exports.gameCenterMatchmakingRuleSetsUpdateInstance = exports.gameCenterMatchmakingRuleSetsGetInstance = exports.gameCenterMatchmakingRuleSetsCreateInstance = exports.gameCenterMatchmakingRuleSetsGetCollection = exports.gameCenterMatchmakingRuleSetTestsCreateInstance = exports.gameCenterMatchmakingQueuesDeleteInstance = exports.gameCenterMatchmakingQueuesUpdateInstance = exports.gameCenterMatchmakingQueuesGetInstance = void 0;
-exports.subscriptionGroupsGetInstance = exports.subscriptionGroupsCreateInstance = exports.subscriptionGroupSubmissionsCreateInstance = exports.subscriptionGroupLocalizationsDeleteInstance = exports.subscriptionGroupLocalizationsUpdateInstance = exports.subscriptionGroupLocalizationsGetInstance = exports.subscriptionGroupLocalizationsCreateInstance = exports.subscriptionGracePeriodsUpdateInstance = exports.subscriptionGracePeriodsGetInstance = exports.subscriptionAvailabilitiesGetInstance = exports.subscriptionAvailabilitiesCreateInstance = exports.subscriptionAppStoreReviewScreenshotsDeleteInstance = exports.subscriptionAppStoreReviewScreenshotsUpdateInstance = exports.subscriptionAppStoreReviewScreenshotsGetInstance = exports.subscriptionAppStoreReviewScreenshotsCreateInstance = exports.scmRepositoriesGetInstance = exports.scmRepositoriesGetCollection = exports.scmPullRequestsGetInstance = exports.scmProvidersGetInstance = exports.scmProvidersGetCollection = exports.scmGitReferencesGetInstance = exports.sandboxTestersClearPurchaseHistoryRequestV2CreateInstance = exports.sandboxTestersV2UpdateInstance = exports.sandboxTestersV2GetCollection = exports.salesReportsGetCollection = exports.routingAppCoveragesDeleteInstance = exports.routingAppCoveragesUpdateInstance = exports.routingAppCoveragesGetInstance = exports.routingAppCoveragesCreateInstance = exports.reviewSubmissionsUpdateInstance = exports.reviewSubmissionsGetInstance = exports.reviewSubmissionsCreateInstance = exports.reviewSubmissionsGetCollection = exports.reviewSubmissionItemsDeleteInstance = exports.reviewSubmissionItemsUpdateInstance = exports.reviewSubmissionItemsCreateInstance = exports.promotedPurchasesDeleteInstance = exports.promotedPurchasesUpdateInstance = exports.promotedPurchasesGetInstance = exports.promotedPurchasesCreateInstance = exports.promotedPurchaseImagesDeleteInstance = exports.promotedPurchaseImagesUpdateInstance = exports.promotedPurchaseImagesGetInstance = exports.promotedPurchaseImagesCreateInstance = exports.profilesDeleteInstance = exports.profilesGetInstance = exports.profilesCreateInstance = exports.profilesGetCollection = exports.preReleaseVersionsGetInstance = exports.preReleaseVersionsGetCollection = void 0;
-exports.alternativeDistributionPackageVersionsVariantsGetToManyRelated = exports.alternativeDistributionPackageVersionsDeltasGetToManyRelated = exports.winBackOffersDeleteInstance = exports.winBackOffersUpdateInstance = exports.winBackOffersGetInstance = exports.winBackOffersCreateInstance = exports.usersDeleteInstance = exports.usersUpdateInstance = exports.usersGetInstance = exports.usersGetCollection = exports.userInvitationsDeleteInstance = exports.userInvitationsGetInstance = exports.userInvitationsCreateInstance = exports.userInvitationsGetCollection = exports.territoryAvailabilitiesUpdateInstance = exports.territoriesGetCollection = exports.subscriptionsDeleteInstance = exports.subscriptionsUpdateInstance = exports.subscriptionsGetInstance = exports.subscriptionsCreateInstance = exports.subscriptionSubmissionsCreateInstance = exports.subscriptionPromotionalOffersDeleteInstance = exports.subscriptionPromotionalOffersUpdateInstance = exports.subscriptionPromotionalOffersGetInstance = exports.subscriptionPromotionalOffersCreateInstance = exports.subscriptionPricesDeleteInstance = exports.subscriptionPricesCreateInstance = exports.subscriptionPricePointsGetInstance = exports.subscriptionOfferCodesUpdateInstance = exports.subscriptionOfferCodesGetInstance = exports.subscriptionOfferCodesCreateInstance = exports.subscriptionOfferCodeOneTimeUseCodesUpdateInstance = exports.subscriptionOfferCodeOneTimeUseCodesGetInstance = exports.subscriptionOfferCodeOneTimeUseCodesCreateInstance = exports.subscriptionOfferCodeCustomCodesUpdateInstance = exports.subscriptionOfferCodeCustomCodesGetInstance = exports.subscriptionOfferCodeCustomCodesCreateInstance = exports.subscriptionLocalizationsDeleteInstance = exports.subscriptionLocalizationsUpdateInstance = exports.subscriptionLocalizationsGetInstance = exports.subscriptionLocalizationsCreateInstance = exports.subscriptionIntroductoryOffersDeleteInstance = exports.subscriptionIntroductoryOffersUpdateInstance = exports.subscriptionIntroductoryOffersCreateInstance = exports.subscriptionImagesDeleteInstance = exports.subscriptionImagesUpdateInstance = exports.subscriptionImagesGetInstance = exports.subscriptionImagesCreateInstance = exports.subscriptionGroupsDeleteInstance = exports.subscriptionGroupsUpdateInstance = void 0;
-exports.appStoreVersionExperimentsAppStoreVersionExperimentTreatmentsGetToManyRelated = exports.appStoreVersionExperimentsV2AppStoreVersionExperimentTreatmentsGetToManyRelated = exports.appStoreVersionExperimentTreatmentsAppStoreVersionExperimentTreatmentLocalizationsGetToManyRelated = exports.appStoreVersionExperimentTreatmentLocalizationsAppScreenshotSetsGetToManyRelated = exports.appStoreVersionExperimentTreatmentLocalizationsAppPreviewSetsGetToManyRelated = exports.appStoreReviewDetailsAppStoreReviewAttachmentsGetToManyRelated = exports.appScreenshotSetsAppScreenshotsGetToManyRelated = exports.appScreenshotSetsAppScreenshotsReplaceToManyRelationship = exports.appScreenshotSetsAppScreenshotsGetToManyRelationship = exports.appPriceSchedulesManualPricesGetToManyRelated = exports.appPriceSchedulesBaseTerritoryGetToOneRelated = exports.appPriceSchedulesAutomaticPricesGetToManyRelated = exports.appPricePointsV3EqualizationsGetToManyRelated = exports.appPreviewSetsAppPreviewsGetToManyRelated = exports.appPreviewSetsAppPreviewsReplaceToManyRelationship = exports.appPreviewSetsAppPreviewsGetToManyRelationship = exports.appInfosSecondarySubcategoryTwoGetToOneRelated = exports.appInfosSecondarySubcategoryOneGetToOneRelated = exports.appInfosSecondaryCategoryGetToOneRelated = exports.appInfosPrimarySubcategoryTwoGetToOneRelated = exports.appInfosPrimarySubcategoryOneGetToOneRelated = exports.appInfosPrimaryCategoryGetToOneRelated = exports.appInfosAppInfoLocalizationsGetToManyRelated = exports.appInfosAgeRatingDeclarationGetToOneRelated = exports.appEventsLocalizationsGetToManyRelated = exports.appEventLocalizationsAppEventVideoClipsGetToManyRelated = exports.appEventLocalizationsAppEventScreenshotsGetToManyRelated = exports.appEncryptionDeclarationsBuildsCreateToManyRelationship = exports.appEncryptionDeclarationsAppEncryptionDeclarationDocumentGetToOneRelated = exports.appEncryptionDeclarationsAppGetToOneRelated = exports.appCustomProductPagesAppCustomProductPageVersionsGetToManyRelated = exports.appCustomProductPageVersionsAppCustomProductPageLocalizationsGetToManyRelated = exports.appCustomProductPageLocalizationsAppScreenshotSetsGetToManyRelated = exports.appCustomProductPageLocalizationsAppPreviewSetsGetToManyRelated = exports.appClipsAppClipDefaultExperiencesGetToManyRelated = exports.appClipsAppClipAdvancedExperiencesGetToManyRelated = exports.appClipDefaultExperiencesReleaseWithAppStoreVersionGetToOneRelated = exports.appClipDefaultExperiencesReleaseWithAppStoreVersionUpdateToOneRelationship = exports.appClipDefaultExperiencesReleaseWithAppStoreVersionGetToOneRelationship = exports.appClipDefaultExperiencesAppClipDefaultExperienceLocalizationsGetToManyRelated = exports.appClipDefaultExperiencesAppClipAppStoreReviewDetailGetToOneRelated = exports.appClipDefaultExperienceLocalizationsAppClipHeaderImageGetToOneRelated = exports.appCategoriesSubcategoriesGetToManyRelated = exports.appCategoriesParentGetToOneRelated = exports.appAvailabilitiesAvailableTerritoriesGetToManyRelated = exports.appAvailabilitiesV2TerritoryAvailabilitiesGetToManyRelated = exports.analyticsReportsInstancesGetToManyRelated = exports.analyticsReportRequestsReportsGetToManyRelated = exports.analyticsReportInstancesSegmentsGetToManyRelated = exports.alternativeDistributionPackagesVersionsGetToManyRelated = void 0;
-exports.appsPromotedPurchasesGetToManyRelationship = exports.appsPreReleaseVersionsGetToManyRelated = exports.appsPreOrderGetToOneRelated = exports.appsPerfPowerMetricsGetToManyRelated = exports.appsMarketplaceSearchDetailGetToOneRelated = exports.appsInAppPurchasesV2GetToManyRelated = exports.appsInAppPurchasesGetToManyRelated = exports.appsGameCenterEnabledVersionsGetToManyRelated = exports.appsGameCenterDetailGetToOneRelated = exports.appsEndUserLicenseAgreementGetToOneRelated = exports.appsCustomerReviewsGetToManyRelated = exports.appsCiProductGetToOneRelated = exports.appsBuildsGetToManyRelated = exports.appsBetaTestersDeleteToManyRelationship = exports.appsBetaLicenseAgreementGetToOneRelated = exports.appsBetaGroupsGetToManyRelated = exports.appsBetaAppReviewDetailGetToOneRelated = exports.appsBetaAppLocalizationsGetToManyRelated = exports.appsAppStoreVersionsGetToManyRelated = exports.appsAppStoreVersionExperimentsV2GetToManyRelated = exports.appsAppPriceScheduleGetToOneRelated = exports.appsAppPricePointsGetToManyRelated = exports.appsAppInfosGetToManyRelated = exports.appsAppEventsGetToManyRelated = exports.appsAppEncryptionDeclarationsGetToManyRelated = exports.appsAppCustomProductPagesGetToManyRelated = exports.appsAppClipsGetToManyRelated = exports.appsAppAvailabilityV2GetToOneRelated = exports.appsAppAvailabilityGetToOneRelated = exports.appsAnalyticsReportRequestsGetToManyRelated = exports.appsAlternativeDistributionKeyGetToOneRelated = exports.appStoreVersionsRoutingAppCoverageGetToOneRelated = exports.appStoreVersionsGameCenterAppVersionGetToOneRelated = exports.appStoreVersionsCustomerReviewsGetToManyRelated = exports.appStoreVersionsBuildGetToOneRelated = exports.appStoreVersionsBuildUpdateToOneRelationship = exports.appStoreVersionsBuildGetToOneRelationship = exports.appStoreVersionsAppStoreVersionSubmissionGetToOneRelated = exports.appStoreVersionsAppStoreVersionPhasedReleaseGetToOneRelated = exports.appStoreVersionsAppStoreVersionLocalizationsGetToManyRelated = exports.appStoreVersionsAppStoreVersionExperimentsV2GetToManyRelated = exports.appStoreVersionsAppStoreVersionExperimentsGetToManyRelated = exports.appStoreVersionsAppStoreReviewDetailGetToOneRelated = exports.appStoreVersionsAppClipDefaultExperienceGetToOneRelated = exports.appStoreVersionsAppClipDefaultExperienceUpdateToOneRelationship = exports.appStoreVersionsAppClipDefaultExperienceGetToOneRelationship = exports.appStoreVersionsAlternativeDistributionPackageGetToOneRelated = exports.appStoreVersionsAgeRatingDeclarationGetToOneRelated = exports.appStoreVersionLocalizationsAppScreenshotSetsGetToManyRelated = exports.appStoreVersionLocalizationsAppPreviewSetsGetToManyRelated = void 0;
-exports.buildsIndividualTestersDeleteToManyRelationship = exports.buildsIndividualTestersCreateToManyRelationship = exports.buildsIndividualTestersGetToManyRelationship = exports.buildsIconsGetToManyRelated = exports.buildsDiagnosticSignaturesGetToManyRelated = exports.buildsBuildBetaDetailGetToOneRelated = exports.buildsBetaGroupsDeleteToManyRelationship = exports.buildsBetaGroupsCreateToManyRelationship = exports.buildsBetaBuildLocalizationsGetToManyRelated = exports.buildsBetaAppReviewSubmissionGetToOneRelated = exports.buildsAppStoreVersionGetToOneRelated = exports.buildsAppEncryptionDeclarationGetToOneRelated = exports.buildsAppEncryptionDeclarationUpdateToOneRelationship = exports.buildsAppEncryptionDeclarationGetToOneRelationship = exports.buildsAppGetToOneRelated = exports.buildBundlesBuildBundleFileSizesGetToManyRelated = exports.buildBundlesBetaAppClipInvocationsGetToManyRelated = exports.buildBundlesAppClipDomainDebugStatusGetToOneRelated = exports.buildBundlesAppClipDomainCacheStatusGetToOneRelated = exports.buildBetaDetailsBuildGetToOneRelated = exports.betaTestersBuildsGetToManyRelated = exports.betaTestersBuildsDeleteToManyRelationship = exports.betaTestersBuildsCreateToManyRelationship = exports.betaTestersBuildsGetToManyRelationship = exports.betaTestersBetaGroupsGetToManyRelated = exports.betaTestersBetaGroupsDeleteToManyRelationship = exports.betaTestersBetaGroupsCreateToManyRelationship = exports.betaTestersBetaGroupsGetToManyRelationship = exports.betaTestersAppsGetToManyRelated = exports.betaTestersAppsDeleteToManyRelationship = exports.betaTestersAppsGetToManyRelationship = exports.betaLicenseAgreementsAppGetToOneRelated = exports.betaGroupsBuildsGetToManyRelated = exports.betaGroupsBuildsDeleteToManyRelationship = exports.betaGroupsBuildsCreateToManyRelationship = exports.betaGroupsBuildsGetToManyRelationship = exports.betaGroupsBetaTestersGetToManyRelated = exports.betaGroupsBetaTestersDeleteToManyRelationship = exports.betaGroupsBetaTestersCreateToManyRelationship = exports.betaGroupsBetaTestersGetToManyRelationship = exports.betaGroupsAppGetToOneRelated = exports.betaBuildLocalizationsBuildGetToOneRelated = exports.betaAppReviewSubmissionsBuildGetToOneRelated = exports.betaAppReviewDetailsAppGetToOneRelated = exports.betaAppLocalizationsAppGetToOneRelated = exports.appsSubscriptionGroupsGetToManyRelated = exports.appsSubscriptionGracePeriodGetToOneRelated = exports.appsReviewSubmissionsGetToManyRelated = exports.appsPromotedPurchasesGetToManyRelated = exports.appsPromotedPurchasesReplaceToManyRelationship = void 0;
-exports.gameCenterDetailsLeaderboardSetReleasesGetToManyRelated = exports.gameCenterDetailsLeaderboardReleasesGetToManyRelated = exports.gameCenterDetailsGameCenterLeaderboardsGetToManyRelated = exports.gameCenterDetailsGameCenterLeaderboardsReplaceToManyRelationship = exports.gameCenterDetailsGameCenterLeaderboardsGetToManyRelationship = exports.gameCenterDetailsGameCenterLeaderboardSetsGetToManyRelated = exports.gameCenterDetailsGameCenterLeaderboardSetsReplaceToManyRelationship = exports.gameCenterDetailsGameCenterLeaderboardSetsGetToManyRelationship = exports.gameCenterDetailsGameCenterGroupGetToOneRelated = exports.gameCenterDetailsGameCenterAppVersionsGetToManyRelated = exports.gameCenterDetailsGameCenterAchievementsGetToManyRelated = exports.gameCenterDetailsGameCenterAchievementsReplaceToManyRelationship = exports.gameCenterDetailsGameCenterAchievementsGetToManyRelationship = exports.gameCenterDetailsAchievementReleasesGetToManyRelated = exports.gameCenterAppVersionsCompatibilityVersionsGetToManyRelated = exports.gameCenterAppVersionsCompatibilityVersionsDeleteToManyRelationship = exports.gameCenterAppVersionsCompatibilityVersionsCreateToManyRelationship = exports.gameCenterAppVersionsCompatibilityVersionsGetToManyRelationship = exports.gameCenterAppVersionsAppStoreVersionGetToOneRelated = exports.gameCenterAchievementsReleasesGetToManyRelated = exports.gameCenterAchievementsLocalizationsGetToManyRelated = exports.gameCenterAchievementsGroupAchievementGetToOneRelated = exports.gameCenterAchievementsGroupAchievementUpdateToOneRelationship = exports.gameCenterAchievementsGroupAchievementGetToOneRelationship = exports.gameCenterAchievementLocalizationsGameCenterAchievementImageGetToOneRelated = exports.gameCenterAchievementLocalizationsGameCenterAchievementGetToOneRelated = exports.endUserLicenseAgreementsTerritoriesGetToManyRelated = exports.diagnosticSignaturesLogsGetToManyRelated = exports.customerReviewsResponseGetToOneRelated = exports.ciXcodeVersionsMacOsVersionsGetToManyRelated = exports.ciWorkflowsRepositoryGetToOneRelated = exports.ciWorkflowsBuildRunsGetToManyRelated = exports.ciProductsWorkflowsGetToManyRelated = exports.ciProductsPrimaryRepositoriesGetToManyRelated = exports.ciProductsBuildRunsGetToManyRelated = exports.ciProductsAppGetToOneRelated = exports.ciProductsAdditionalRepositoriesGetToManyRelated = exports.ciMacOsVersionsXcodeVersionsGetToManyRelated = exports.ciBuildRunsBuildsGetToManyRelated = exports.ciBuildRunsActionsGetToManyRelated = exports.ciBuildActionsTestResultsGetToManyRelated = exports.ciBuildActionsIssuesGetToManyRelated = exports.ciBuildActionsBuildRunGetToOneRelated = exports.ciBuildActionsArtifactsGetToManyRelated = exports.bundleIdsProfilesGetToManyRelated = exports.bundleIdsBundleIdCapabilitiesGetToManyRelated = exports.bundleIdsAppGetToOneRelated = exports.buildsPreReleaseVersionGetToOneRelated = exports.buildsPerfPowerMetricsGetToManyRelated = exports.buildsIndividualTestersGetToManyRelated = void 0;
-exports.preReleaseVersionsAppGetToOneRelated = exports.inAppPurchasesV2PromotedPurchaseGetToOneRelated = exports.inAppPurchasesV2PricePointsGetToManyRelated = exports.inAppPurchasesV2InAppPurchaseLocalizationsGetToManyRelated = exports.inAppPurchasesV2InAppPurchaseAvailabilityGetToOneRelated = exports.inAppPurchasesV2ImagesGetToManyRelated = exports.inAppPurchasesV2IapPriceScheduleGetToOneRelated = exports.inAppPurchasesV2ContentGetToOneRelated = exports.inAppPurchasesV2AppStoreReviewScreenshotGetToOneRelated = exports.inAppPurchasePriceSchedulesManualPricesGetToManyRelated = exports.inAppPurchasePriceSchedulesBaseTerritoryGetToOneRelated = exports.inAppPurchasePriceSchedulesAutomaticPricesGetToManyRelated = exports.inAppPurchaseAvailabilitiesAvailableTerritoriesGetToManyRelated = exports.gameCenterMatchmakingRuleSetsTeamsGetToManyRelated = exports.gameCenterMatchmakingRuleSetsRulesGetToManyRelated = exports.gameCenterMatchmakingRuleSetsMatchmakingQueuesGetToManyRelated = exports.gameCenterLeaderboardsReleasesGetToManyRelated = exports.gameCenterLeaderboardsLocalizationsGetToManyRelated = exports.gameCenterLeaderboardsGroupLeaderboardGetToOneRelated = exports.gameCenterLeaderboardsGroupLeaderboardUpdateToOneRelationship = exports.gameCenterLeaderboardsGroupLeaderboardGetToOneRelationship = exports.gameCenterLeaderboardSetsReleasesGetToManyRelated = exports.gameCenterLeaderboardSetsLocalizationsGetToManyRelated = exports.gameCenterLeaderboardSetsGroupLeaderboardSetGetToOneRelated = exports.gameCenterLeaderboardSetsGroupLeaderboardSetUpdateToOneRelationship = exports.gameCenterLeaderboardSetsGroupLeaderboardSetGetToOneRelationship = exports.gameCenterLeaderboardSetsGameCenterLeaderboardsGetToManyRelated = exports.gameCenterLeaderboardSetsGameCenterLeaderboardsDeleteToManyRelationship = exports.gameCenterLeaderboardSetsGameCenterLeaderboardsReplaceToManyRelationship = exports.gameCenterLeaderboardSetsGameCenterLeaderboardsCreateToManyRelationship = exports.gameCenterLeaderboardSetsGameCenterLeaderboardsGetToManyRelationship = exports.gameCenterLeaderboardSetMemberLocalizationsGameCenterLeaderboardSetGetToOneRelated = exports.gameCenterLeaderboardSetMemberLocalizationsGameCenterLeaderboardGetToOneRelated = exports.gameCenterLeaderboardSetLocalizationsGameCenterLeaderboardSetImageGetToOneRelated = exports.gameCenterLeaderboardLocalizationsGameCenterLeaderboardImageGetToOneRelated = exports.gameCenterGroupsGameCenterLeaderboardsGetToManyRelated = exports.gameCenterGroupsGameCenterLeaderboardsReplaceToManyRelationship = exports.gameCenterGroupsGameCenterLeaderboardsGetToManyRelationship = exports.gameCenterGroupsGameCenterLeaderboardSetsGetToManyRelated = exports.gameCenterGroupsGameCenterLeaderboardSetsReplaceToManyRelationship = exports.gameCenterGroupsGameCenterLeaderboardSetsGetToManyRelationship = exports.gameCenterGroupsGameCenterDetailsGetToManyRelated = exports.gameCenterGroupsGameCenterAchievementsGetToManyRelated = exports.gameCenterGroupsGameCenterAchievementsReplaceToManyRelationship = exports.gameCenterGroupsGameCenterAchievementsGetToManyRelationship = exports.gameCenterEnabledVersionsCompatibleVersionsGetToManyRelated = exports.gameCenterEnabledVersionsCompatibleVersionsDeleteToManyRelationship = exports.gameCenterEnabledVersionsCompatibleVersionsReplaceToManyRelationship = exports.gameCenterEnabledVersionsCompatibleVersionsCreateToManyRelationship = exports.gameCenterEnabledVersionsCompatibleVersionsGetToManyRelationship = void 0;
-exports.gameCenterMatchmakingQueuesMatchmakingRequestsGetMetrics = exports.gameCenterMatchmakingQueuesMatchmakingQueueSizesGetMetrics = exports.gameCenterMatchmakingQueuesExperimentMatchmakingRequestsGetMetrics = exports.gameCenterMatchmakingQueuesExperimentMatchmakingQueueSizesGetMetrics = exports.gameCenterDetailsRuleBasedMatchmakingRequestsGetMetrics = exports.gameCenterDetailsClassicMatchmakingRequestsGetMetrics = exports.buildsBetaBuildUsagesGetMetrics = exports.betaTestersBetaTesterUsagesGetMetrics = exports.betaGroupsBetaTesterUsagesGetMetrics = exports.appsBetaTesterUsagesGetMetrics = exports.winBackOffersPricesGetToManyRelated = exports.usersVisibleAppsGetToManyRelated = exports.usersVisibleAppsDeleteToManyRelationship = exports.usersVisibleAppsReplaceToManyRelationship = exports.usersVisibleAppsCreateToManyRelationship = exports.usersVisibleAppsGetToManyRelationship = exports.userInvitationsVisibleAppsGetToManyRelated = exports.subscriptionsWinBackOffersGetToManyRelated = exports.subscriptionsSubscriptionLocalizationsGetToManyRelated = exports.subscriptionsSubscriptionAvailabilityGetToOneRelated = exports.subscriptionsPromotionalOffersGetToManyRelated = exports.subscriptionsPromotedPurchaseGetToOneRelated = exports.subscriptionsPricesGetToManyRelated = exports.subscriptionsPricesDeleteToManyRelationship = exports.subscriptionsPricesGetToManyRelationship = exports.subscriptionsPricePointsGetToManyRelated = exports.subscriptionsOfferCodesGetToManyRelated = exports.subscriptionsIntroductoryOffersGetToManyRelated = exports.subscriptionsIntroductoryOffersDeleteToManyRelationship = exports.subscriptionsIntroductoryOffersGetToManyRelationship = exports.subscriptionsImagesGetToManyRelated = exports.subscriptionsAppStoreReviewScreenshotGetToOneRelated = exports.subscriptionPromotionalOffersPricesGetToManyRelated = exports.subscriptionPricePointsEqualizationsGetToManyRelated = exports.subscriptionOfferCodesPricesGetToManyRelated = exports.subscriptionOfferCodesOneTimeUseCodesGetToManyRelated = exports.subscriptionOfferCodesCustomCodesGetToManyRelated = exports.subscriptionOfferCodeOneTimeUseCodesValuesGetToOneRelated = exports.subscriptionGroupsSubscriptionsGetToManyRelated = exports.subscriptionGroupsSubscriptionGroupLocalizationsGetToManyRelated = exports.subscriptionAvailabilitiesAvailableTerritoriesGetToManyRelated = exports.scmRepositoriesPullRequestsGetToManyRelated = exports.scmRepositoriesGitReferencesGetToManyRelated = exports.scmProvidersRepositoriesGetToManyRelated = exports.reviewSubmissionsItemsGetToManyRelated = exports.promotedPurchasesPromotionImagesGetToManyRelated = exports.profilesDevicesGetToManyRelated = exports.profilesCertificatesGetToManyRelated = exports.profilesBundleIdGetToOneRelated = exports.preReleaseVersionsBuildsGetToManyRelated = void 0;
-exports.gameCenterMatchmakingRulesMatchmakingRuleErrorsGetMetrics = exports.gameCenterMatchmakingRulesMatchmakingNumberRuleResultsGetMetrics = exports.gameCenterMatchmakingRulesMatchmakingBooleanRuleResultsGetMetrics = exports.gameCenterMatchmakingQueuesMatchmakingSessionsGetMetrics = void 0;
+exports.AppStoreVersionsService = exports.AppStoreVersionSubmissionsService = exports.AppStoreVersionReleaseRequestsService = exports.AppStoreVersionPromotionsService = exports.AppStoreVersionPhasedReleasesService = exports.AppStoreVersionLocalizationsService = exports.AppStoreVersionExperimentsService = exports.AppStoreVersionExperimentTreatmentsService = exports.AppStoreVersionExperimentTreatmentLocalizationsService = exports.AppStoreReviewDetailsService = exports.AppStoreReviewAttachmentsService = exports.AppScreenshotsService = exports.AppScreenshotSetsService = exports.AppPriceSchedulesService = exports.AppPricePointsService = exports.AppPreviewsService = exports.AppPreviewSetsService = exports.AppInfosService = exports.AppInfoLocalizationsService = exports.AppEventsService = exports.AppEventVideoClipsService = exports.AppEventScreenshotsService = exports.AppEventLocalizationsService = exports.AppEncryptionDeclarationsService = exports.AppEncryptionDeclarationDocumentsService = exports.AppCustomProductPagesService = exports.AppCustomProductPageVersionsService = exports.AppCustomProductPageLocalizationsService = exports.AppClipsService = exports.AppClipHeaderImagesService = exports.AppClipDefaultExperiencesService = exports.AppClipDefaultExperienceLocalizationsService = exports.AppClipAppStoreReviewDetailsService = exports.AppClipAdvancedExperiencesService = exports.AppClipAdvancedExperienceImagesService = exports.AppCategoriesService = exports.AppAvailabilitiesService = exports.AnalyticsReportsService = exports.AnalyticsReportSegmentsService = exports.AnalyticsReportRequestsService = exports.AnalyticsReportInstancesService = exports.AlternativeDistributionPackagesService = exports.AlternativeDistributionPackageVersionsService = exports.AlternativeDistributionPackageVariantsService = exports.AlternativeDistributionPackageDeltasService = exports.AlternativeDistributionKeysService = exports.AlternativeDistributionDomainsService = exports.AgeRatingDeclarationsService = exports.ActorsService = exports.client = void 0;
+exports.GameCenterMatchmakingQueuesService = exports.GameCenterLeaderboardsService = exports.GameCenterLeaderboardSetsService = exports.GameCenterLeaderboardSetReleasesService = exports.GameCenterLeaderboardSetMemberLocalizationsService = exports.GameCenterLeaderboardSetLocalizationsService = exports.GameCenterLeaderboardSetImagesService = exports.GameCenterLeaderboardReleasesService = exports.GameCenterLeaderboardLocalizationsService = exports.GameCenterLeaderboardImagesService = exports.GameCenterLeaderboardEntrySubmissionsService = exports.GameCenterGroupsService = exports.GameCenterDetailsService = exports.GameCenterAppVersionsService = exports.GameCenterAchievementsService = exports.GameCenterAchievementReleasesService = exports.GameCenterAchievementLocalizationsService = exports.GameCenterAchievementImagesService = exports.FinanceReportsService = exports.EndUserLicenseAgreementsService = exports.EndAppAvailabilityPreOrdersService = exports.DevicesService = exports.CustomerReviewsService = exports.CustomerReviewResponsesService = exports.CiXcodeVersionsService = exports.CiWorkflowsService = exports.CiTestResultsService = exports.CiProductsService = exports.CiMacOsVersionsService = exports.CiIssuesService = exports.CiBuildRunsService = exports.CiBuildActionsService = exports.CiArtifactsService = exports.CertificatesService = exports.BundleIdsService = exports.BundleIdCapabilitiesService = exports.BuildsService = exports.BuildBetaNotificationsService = exports.BuildBetaDetailsService = exports.BetaTestersService = exports.BetaTesterInvitationsService = exports.BetaLicenseAgreementsService = exports.BetaGroupsService = exports.BetaBuildLocalizationsService = exports.BetaAppReviewSubmissionsService = exports.BetaAppReviewDetailsService = exports.BetaAppLocalizationsService = exports.BetaAppClipInvocationsService = exports.BetaAppClipInvocationLocalizationsService = exports.AppsService = void 0;
+exports.UserInvitationsService = exports.TerritoryAvailabilitiesService = exports.TerritoriesService = exports.SubscriptionsService = exports.SubscriptionSubmissionsService = exports.SubscriptionPromotionalOffersService = exports.SubscriptionPricesService = exports.SubscriptionPricePointsService = exports.SubscriptionOfferCodesService = exports.SubscriptionOfferCodeOneTimeUseCodesService = exports.SubscriptionOfferCodeCustomCodesService = exports.SubscriptionLocalizationsService = exports.SubscriptionIntroductoryOffersService = exports.SubscriptionImagesService = exports.SubscriptionGroupsService = exports.SubscriptionGroupSubmissionsService = exports.SubscriptionGroupLocalizationsService = exports.SubscriptionGracePeriodsService = exports.SubscriptionAvailabilitiesService = exports.SubscriptionAppStoreReviewScreenshotsService = exports.ScmRepositoriesService = exports.ScmPullRequestsService = exports.ScmProvidersService = exports.ScmGitReferencesService = exports.SandboxTestersClearPurchaseHistoryRequestService = exports.SandboxTestersService = exports.SalesReportsService = exports.RoutingAppCoveragesService = exports.ReviewSubmissionsService = exports.ReviewSubmissionItemsService = exports.PromotedPurchasesService = exports.PromotedPurchaseImagesService = exports.ProfilesService = exports.PreReleaseVersionsService = exports.MarketplaceWebhooksService = exports.MarketplaceSearchDetailsService = exports.MarketplaceDomainsService = exports.InAppPurchasesService = exports.InAppPurchaseSubmissionsService = exports.InAppPurchasePriceSchedulesService = exports.InAppPurchaseLocalizationsService = exports.InAppPurchaseImagesService = exports.InAppPurchaseContentsService = exports.InAppPurchaseAvailabilitiesService = exports.InAppPurchaseAppStoreReviewScreenshotsService = exports.GameCenterPlayerAchievementSubmissionsService = exports.GameCenterMatchmakingTeamsService = exports.GameCenterMatchmakingRulesService = exports.GameCenterMatchmakingRuleSetsService = exports.GameCenterMatchmakingRuleSetTestsService = void 0;
+exports.MetricsService = exports.InAppPurchasePricePointsService = exports.GameCenterEnabledVersionsService = exports.DiagnosticSignaturesService = exports.BuildBundlesService = exports.WinBackOffersService = exports.UsersService = void 0;
 const client_1 = __nccwpck_require__(4128);
 exports.client = (0, client_1.createClient)((0, client_1.createConfig)());
-const actorsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/actors'
-    });
-};
-exports.actorsGetCollection = actorsGetCollection;
-const actorsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/actors/{id}'
-    });
-};
-exports.actorsGetInstance = actorsGetInstance;
-const ageRatingDeclarationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/ageRatingDeclarations/{id}'
-    });
-};
-exports.ageRatingDeclarationsUpdateInstance = ageRatingDeclarationsUpdateInstance;
-const alternativeDistributionDomainsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/alternativeDistributionDomains'
-    });
-};
-exports.alternativeDistributionDomainsGetCollection = alternativeDistributionDomainsGetCollection;
-const alternativeDistributionDomainsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/alternativeDistributionDomains'
-    });
-};
-exports.alternativeDistributionDomainsCreateInstance = alternativeDistributionDomainsCreateInstance;
-const alternativeDistributionDomainsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/alternativeDistributionDomains/{id}'
-    });
-};
-exports.alternativeDistributionDomainsGetInstance = alternativeDistributionDomainsGetInstance;
-const alternativeDistributionDomainsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/alternativeDistributionDomains/{id}'
-    });
-};
-exports.alternativeDistributionDomainsDeleteInstance = alternativeDistributionDomainsDeleteInstance;
-const alternativeDistributionKeysGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/alternativeDistributionKeys'
-    });
-};
-exports.alternativeDistributionKeysGetCollection = alternativeDistributionKeysGetCollection;
-const alternativeDistributionKeysCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/alternativeDistributionKeys'
-    });
-};
-exports.alternativeDistributionKeysCreateInstance = alternativeDistributionKeysCreateInstance;
-const alternativeDistributionKeysGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/alternativeDistributionKeys/{id}'
-    });
-};
-exports.alternativeDistributionKeysGetInstance = alternativeDistributionKeysGetInstance;
-const alternativeDistributionKeysDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/alternativeDistributionKeys/{id}'
-    });
-};
-exports.alternativeDistributionKeysDeleteInstance = alternativeDistributionKeysDeleteInstance;
-const alternativeDistributionPackageDeltasGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/alternativeDistributionPackageDeltas/{id}'
-    });
-};
-exports.alternativeDistributionPackageDeltasGetInstance = alternativeDistributionPackageDeltasGetInstance;
-const alternativeDistributionPackageVariantsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/alternativeDistributionPackageVariants/{id}'
-    });
-};
-exports.alternativeDistributionPackageVariantsGetInstance = alternativeDistributionPackageVariantsGetInstance;
-const alternativeDistributionPackageVersionsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/alternativeDistributionPackageVersions/{id}'
-    });
-};
-exports.alternativeDistributionPackageVersionsGetInstance = alternativeDistributionPackageVersionsGetInstance;
-const alternativeDistributionPackagesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/alternativeDistributionPackages'
-    });
-};
-exports.alternativeDistributionPackagesCreateInstance = alternativeDistributionPackagesCreateInstance;
-const alternativeDistributionPackagesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/alternativeDistributionPackages/{id}'
-    });
-};
-exports.alternativeDistributionPackagesGetInstance = alternativeDistributionPackagesGetInstance;
-const analyticsReportInstancesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/analyticsReportInstances/{id}'
-    });
-};
-exports.analyticsReportInstancesGetInstance = analyticsReportInstancesGetInstance;
-const analyticsReportRequestsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/analyticsReportRequests'
-    });
-};
-exports.analyticsReportRequestsCreateInstance = analyticsReportRequestsCreateInstance;
-const analyticsReportRequestsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/analyticsReportRequests/{id}'
-    });
-};
-exports.analyticsReportRequestsGetInstance = analyticsReportRequestsGetInstance;
-const analyticsReportRequestsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/analyticsReportRequests/{id}'
-    });
-};
-exports.analyticsReportRequestsDeleteInstance = analyticsReportRequestsDeleteInstance;
-const analyticsReportSegmentsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/analyticsReportSegments/{id}'
-    });
-};
-exports.analyticsReportSegmentsGetInstance = analyticsReportSegmentsGetInstance;
-const analyticsReportsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/analyticsReports/{id}'
-    });
-};
-exports.analyticsReportsGetInstance = analyticsReportsGetInstance;
-const appAvailabilitiesV2CreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v2/appAvailabilities'
-    });
-};
-exports.appAvailabilitiesV2CreateInstance = appAvailabilitiesV2CreateInstance;
-const appAvailabilitiesV2GetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/appAvailabilities/{id}'
-    });
-};
-exports.appAvailabilitiesV2GetInstance = appAvailabilitiesV2GetInstance;
-/**
- * @deprecated
- */
-const appAvailabilitiesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appAvailabilities'
-    });
-};
-exports.appAvailabilitiesCreateInstance = appAvailabilitiesCreateInstance;
-/**
- * @deprecated
- */
-const appAvailabilitiesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appAvailabilities/{id}'
-    });
-};
-exports.appAvailabilitiesGetInstance = appAvailabilitiesGetInstance;
-const appCategoriesGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appCategories'
-    });
-};
-exports.appCategoriesGetCollection = appCategoriesGetCollection;
-const appCategoriesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appCategories/{id}'
-    });
-};
-exports.appCategoriesGetInstance = appCategoriesGetInstance;
-const appClipAdvancedExperienceImagesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appClipAdvancedExperienceImages'
-    });
-};
-exports.appClipAdvancedExperienceImagesCreateInstance = appClipAdvancedExperienceImagesCreateInstance;
-const appClipAdvancedExperienceImagesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClipAdvancedExperienceImages/{id}'
-    });
-};
-exports.appClipAdvancedExperienceImagesGetInstance = appClipAdvancedExperienceImagesGetInstance;
-const appClipAdvancedExperienceImagesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appClipAdvancedExperienceImages/{id}'
-    });
-};
-exports.appClipAdvancedExperienceImagesUpdateInstance = appClipAdvancedExperienceImagesUpdateInstance;
-const appClipAdvancedExperiencesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appClipAdvancedExperiences'
-    });
-};
-exports.appClipAdvancedExperiencesCreateInstance = appClipAdvancedExperiencesCreateInstance;
-const appClipAdvancedExperiencesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClipAdvancedExperiences/{id}'
-    });
-};
-exports.appClipAdvancedExperiencesGetInstance = appClipAdvancedExperiencesGetInstance;
-const appClipAdvancedExperiencesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appClipAdvancedExperiences/{id}'
-    });
-};
-exports.appClipAdvancedExperiencesUpdateInstance = appClipAdvancedExperiencesUpdateInstance;
-const appClipAppStoreReviewDetailsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appClipAppStoreReviewDetails'
-    });
-};
-exports.appClipAppStoreReviewDetailsCreateInstance = appClipAppStoreReviewDetailsCreateInstance;
-const appClipAppStoreReviewDetailsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClipAppStoreReviewDetails/{id}'
-    });
-};
-exports.appClipAppStoreReviewDetailsGetInstance = appClipAppStoreReviewDetailsGetInstance;
-const appClipAppStoreReviewDetailsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appClipAppStoreReviewDetails/{id}'
-    });
-};
-exports.appClipAppStoreReviewDetailsUpdateInstance = appClipAppStoreReviewDetailsUpdateInstance;
-const appClipDefaultExperienceLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appClipDefaultExperienceLocalizations'
-    });
-};
-exports.appClipDefaultExperienceLocalizationsCreateInstance = appClipDefaultExperienceLocalizationsCreateInstance;
-const appClipDefaultExperienceLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClipDefaultExperienceLocalizations/{id}'
-    });
-};
-exports.appClipDefaultExperienceLocalizationsGetInstance = appClipDefaultExperienceLocalizationsGetInstance;
-const appClipDefaultExperienceLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appClipDefaultExperienceLocalizations/{id}'
-    });
-};
-exports.appClipDefaultExperienceLocalizationsUpdateInstance = appClipDefaultExperienceLocalizationsUpdateInstance;
-const appClipDefaultExperienceLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appClipDefaultExperienceLocalizations/{id}'
-    });
-};
-exports.appClipDefaultExperienceLocalizationsDeleteInstance = appClipDefaultExperienceLocalizationsDeleteInstance;
-const appClipDefaultExperiencesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appClipDefaultExperiences'
-    });
-};
-exports.appClipDefaultExperiencesCreateInstance = appClipDefaultExperiencesCreateInstance;
-const appClipDefaultExperiencesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClipDefaultExperiences/{id}'
-    });
-};
-exports.appClipDefaultExperiencesGetInstance = appClipDefaultExperiencesGetInstance;
-const appClipDefaultExperiencesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appClipDefaultExperiences/{id}'
-    });
-};
-exports.appClipDefaultExperiencesUpdateInstance = appClipDefaultExperiencesUpdateInstance;
-const appClipDefaultExperiencesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appClipDefaultExperiences/{id}'
-    });
-};
-exports.appClipDefaultExperiencesDeleteInstance = appClipDefaultExperiencesDeleteInstance;
-const appClipHeaderImagesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appClipHeaderImages'
-    });
-};
-exports.appClipHeaderImagesCreateInstance = appClipHeaderImagesCreateInstance;
-const appClipHeaderImagesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClipHeaderImages/{id}'
-    });
-};
-exports.appClipHeaderImagesGetInstance = appClipHeaderImagesGetInstance;
-const appClipHeaderImagesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appClipHeaderImages/{id}'
-    });
-};
-exports.appClipHeaderImagesUpdateInstance = appClipHeaderImagesUpdateInstance;
-const appClipHeaderImagesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appClipHeaderImages/{id}'
-    });
-};
-exports.appClipHeaderImagesDeleteInstance = appClipHeaderImagesDeleteInstance;
-const appClipsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClips/{id}'
-    });
-};
-exports.appClipsGetInstance = appClipsGetInstance;
-const appCustomProductPageLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appCustomProductPageLocalizations'
-    });
-};
-exports.appCustomProductPageLocalizationsCreateInstance = appCustomProductPageLocalizationsCreateInstance;
-const appCustomProductPageLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appCustomProductPageLocalizations/{id}'
-    });
-};
-exports.appCustomProductPageLocalizationsGetInstance = appCustomProductPageLocalizationsGetInstance;
-const appCustomProductPageLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appCustomProductPageLocalizations/{id}'
-    });
-};
-exports.appCustomProductPageLocalizationsUpdateInstance = appCustomProductPageLocalizationsUpdateInstance;
-const appCustomProductPageLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appCustomProductPageLocalizations/{id}'
-    });
-};
-exports.appCustomProductPageLocalizationsDeleteInstance = appCustomProductPageLocalizationsDeleteInstance;
-const appCustomProductPageVersionsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appCustomProductPageVersions'
-    });
-};
-exports.appCustomProductPageVersionsCreateInstance = appCustomProductPageVersionsCreateInstance;
-const appCustomProductPageVersionsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appCustomProductPageVersions/{id}'
-    });
-};
-exports.appCustomProductPageVersionsGetInstance = appCustomProductPageVersionsGetInstance;
-const appCustomProductPageVersionsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appCustomProductPageVersions/{id}'
-    });
-};
-exports.appCustomProductPageVersionsUpdateInstance = appCustomProductPageVersionsUpdateInstance;
-const appCustomProductPagesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appCustomProductPages'
-    });
-};
-exports.appCustomProductPagesCreateInstance = appCustomProductPagesCreateInstance;
-const appCustomProductPagesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appCustomProductPages/{id}'
-    });
-};
-exports.appCustomProductPagesGetInstance = appCustomProductPagesGetInstance;
-const appCustomProductPagesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appCustomProductPages/{id}'
-    });
-};
-exports.appCustomProductPagesUpdateInstance = appCustomProductPagesUpdateInstance;
-const appCustomProductPagesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appCustomProductPages/{id}'
-    });
-};
-exports.appCustomProductPagesDeleteInstance = appCustomProductPagesDeleteInstance;
-const appEncryptionDeclarationDocumentsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appEncryptionDeclarationDocuments'
-    });
-};
-exports.appEncryptionDeclarationDocumentsCreateInstance = appEncryptionDeclarationDocumentsCreateInstance;
-const appEncryptionDeclarationDocumentsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appEncryptionDeclarationDocuments/{id}'
-    });
-};
-exports.appEncryptionDeclarationDocumentsGetInstance = appEncryptionDeclarationDocumentsGetInstance;
-const appEncryptionDeclarationDocumentsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appEncryptionDeclarationDocuments/{id}'
-    });
-};
-exports.appEncryptionDeclarationDocumentsUpdateInstance = appEncryptionDeclarationDocumentsUpdateInstance;
-const appEncryptionDeclarationsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appEncryptionDeclarations'
-    });
-};
-exports.appEncryptionDeclarationsGetCollection = appEncryptionDeclarationsGetCollection;
-const appEncryptionDeclarationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appEncryptionDeclarations'
-    });
-};
-exports.appEncryptionDeclarationsCreateInstance = appEncryptionDeclarationsCreateInstance;
-const appEncryptionDeclarationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appEncryptionDeclarations/{id}'
-    });
-};
-exports.appEncryptionDeclarationsGetInstance = appEncryptionDeclarationsGetInstance;
-const appEventLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appEventLocalizations'
-    });
-};
-exports.appEventLocalizationsCreateInstance = appEventLocalizationsCreateInstance;
-const appEventLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appEventLocalizations/{id}'
-    });
-};
-exports.appEventLocalizationsGetInstance = appEventLocalizationsGetInstance;
-const appEventLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appEventLocalizations/{id}'
-    });
-};
-exports.appEventLocalizationsUpdateInstance = appEventLocalizationsUpdateInstance;
-const appEventLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appEventLocalizations/{id}'
-    });
-};
-exports.appEventLocalizationsDeleteInstance = appEventLocalizationsDeleteInstance;
-const appEventScreenshotsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appEventScreenshots'
-    });
-};
-exports.appEventScreenshotsCreateInstance = appEventScreenshotsCreateInstance;
-const appEventScreenshotsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appEventScreenshots/{id}'
-    });
-};
-exports.appEventScreenshotsGetInstance = appEventScreenshotsGetInstance;
-const appEventScreenshotsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appEventScreenshots/{id}'
-    });
-};
-exports.appEventScreenshotsUpdateInstance = appEventScreenshotsUpdateInstance;
-const appEventScreenshotsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appEventScreenshots/{id}'
-    });
-};
-exports.appEventScreenshotsDeleteInstance = appEventScreenshotsDeleteInstance;
-const appEventVideoClipsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appEventVideoClips'
-    });
-};
-exports.appEventVideoClipsCreateInstance = appEventVideoClipsCreateInstance;
-const appEventVideoClipsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appEventVideoClips/{id}'
-    });
-};
-exports.appEventVideoClipsGetInstance = appEventVideoClipsGetInstance;
-const appEventVideoClipsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appEventVideoClips/{id}'
-    });
-};
-exports.appEventVideoClipsUpdateInstance = appEventVideoClipsUpdateInstance;
-const appEventVideoClipsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appEventVideoClips/{id}'
-    });
-};
-exports.appEventVideoClipsDeleteInstance = appEventVideoClipsDeleteInstance;
-const appEventsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appEvents'
-    });
-};
-exports.appEventsCreateInstance = appEventsCreateInstance;
-const appEventsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appEvents/{id}'
-    });
-};
-exports.appEventsGetInstance = appEventsGetInstance;
-const appEventsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appEvents/{id}'
-    });
-};
-exports.appEventsUpdateInstance = appEventsUpdateInstance;
-const appEventsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appEvents/{id}'
-    });
-};
-exports.appEventsDeleteInstance = appEventsDeleteInstance;
-const appInfoLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appInfoLocalizations'
-    });
-};
-exports.appInfoLocalizationsCreateInstance = appInfoLocalizationsCreateInstance;
-const appInfoLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appInfoLocalizations/{id}'
-    });
-};
-exports.appInfoLocalizationsGetInstance = appInfoLocalizationsGetInstance;
-const appInfoLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appInfoLocalizations/{id}'
-    });
-};
-exports.appInfoLocalizationsUpdateInstance = appInfoLocalizationsUpdateInstance;
-const appInfoLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appInfoLocalizations/{id}'
-    });
-};
-exports.appInfoLocalizationsDeleteInstance = appInfoLocalizationsDeleteInstance;
-const appInfosGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appInfos/{id}'
-    });
-};
-exports.appInfosGetInstance = appInfosGetInstance;
-const appInfosUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appInfos/{id}'
-    });
-};
-exports.appInfosUpdateInstance = appInfosUpdateInstance;
-/**
- * @deprecated
- */
-const appPreOrdersCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appPreOrders'
-    });
-};
-exports.appPreOrdersCreateInstance = appPreOrdersCreateInstance;
-/**
- * @deprecated
- */
-const appPreOrdersGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appPreOrders/{id}'
-    });
-};
-exports.appPreOrdersGetInstance = appPreOrdersGetInstance;
-/**
- * @deprecated
- */
-const appPreOrdersUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appPreOrders/{id}'
-    });
-};
-exports.appPreOrdersUpdateInstance = appPreOrdersUpdateInstance;
-/**
- * @deprecated
- */
-const appPreOrdersDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appPreOrders/{id}'
-    });
-};
-exports.appPreOrdersDeleteInstance = appPreOrdersDeleteInstance;
-const appPreviewSetsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appPreviewSets'
-    });
-};
-exports.appPreviewSetsCreateInstance = appPreviewSetsCreateInstance;
-const appPreviewSetsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appPreviewSets/{id}'
-    });
-};
-exports.appPreviewSetsGetInstance = appPreviewSetsGetInstance;
-const appPreviewSetsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appPreviewSets/{id}'
-    });
-};
-exports.appPreviewSetsDeleteInstance = appPreviewSetsDeleteInstance;
-const appPreviewsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appPreviews'
-    });
-};
-exports.appPreviewsCreateInstance = appPreviewsCreateInstance;
-const appPreviewsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appPreviews/{id}'
-    });
-};
-exports.appPreviewsGetInstance = appPreviewsGetInstance;
-const appPreviewsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appPreviews/{id}'
-    });
-};
-exports.appPreviewsUpdateInstance = appPreviewsUpdateInstance;
-const appPreviewsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appPreviews/{id}'
-    });
-};
-exports.appPreviewsDeleteInstance = appPreviewsDeleteInstance;
-const appPricePointsV3GetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v3/appPricePoints/{id}'
-    });
-};
-exports.appPricePointsV3GetInstance = appPricePointsV3GetInstance;
-const appPriceSchedulesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appPriceSchedules'
-    });
-};
-exports.appPriceSchedulesCreateInstance = appPriceSchedulesCreateInstance;
-const appPriceSchedulesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appPriceSchedules/{id}'
-    });
-};
-exports.appPriceSchedulesGetInstance = appPriceSchedulesGetInstance;
-const appScreenshotSetsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appScreenshotSets'
-    });
-};
-exports.appScreenshotSetsCreateInstance = appScreenshotSetsCreateInstance;
-const appScreenshotSetsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appScreenshotSets/{id}'
-    });
-};
-exports.appScreenshotSetsGetInstance = appScreenshotSetsGetInstance;
-const appScreenshotSetsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appScreenshotSets/{id}'
-    });
-};
-exports.appScreenshotSetsDeleteInstance = appScreenshotSetsDeleteInstance;
-const appScreenshotsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appScreenshots'
-    });
-};
-exports.appScreenshotsCreateInstance = appScreenshotsCreateInstance;
-const appScreenshotsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appScreenshots/{id}'
-    });
-};
-exports.appScreenshotsGetInstance = appScreenshotsGetInstance;
-const appScreenshotsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appScreenshots/{id}'
-    });
-};
-exports.appScreenshotsUpdateInstance = appScreenshotsUpdateInstance;
-const appScreenshotsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appScreenshots/{id}'
-    });
-};
-exports.appScreenshotsDeleteInstance = appScreenshotsDeleteInstance;
-const appStoreReviewAttachmentsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appStoreReviewAttachments'
-    });
-};
-exports.appStoreReviewAttachmentsCreateInstance = appStoreReviewAttachmentsCreateInstance;
-const appStoreReviewAttachmentsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreReviewAttachments/{id}'
-    });
-};
-exports.appStoreReviewAttachmentsGetInstance = appStoreReviewAttachmentsGetInstance;
-const appStoreReviewAttachmentsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appStoreReviewAttachments/{id}'
-    });
-};
-exports.appStoreReviewAttachmentsUpdateInstance = appStoreReviewAttachmentsUpdateInstance;
-const appStoreReviewAttachmentsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appStoreReviewAttachments/{id}'
-    });
-};
-exports.appStoreReviewAttachmentsDeleteInstance = appStoreReviewAttachmentsDeleteInstance;
-const appStoreReviewDetailsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appStoreReviewDetails'
-    });
-};
-exports.appStoreReviewDetailsCreateInstance = appStoreReviewDetailsCreateInstance;
-const appStoreReviewDetailsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreReviewDetails/{id}'
-    });
-};
-exports.appStoreReviewDetailsGetInstance = appStoreReviewDetailsGetInstance;
-const appStoreReviewDetailsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appStoreReviewDetails/{id}'
-    });
-};
-exports.appStoreReviewDetailsUpdateInstance = appStoreReviewDetailsUpdateInstance;
-const appStoreVersionExperimentTreatmentLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appStoreVersionExperimentTreatmentLocalizations'
-    });
-};
-exports.appStoreVersionExperimentTreatmentLocalizationsCreateInstance = appStoreVersionExperimentTreatmentLocalizationsCreateInstance;
-const appStoreVersionExperimentTreatmentLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersionExperimentTreatmentLocalizations/{id}'
-    });
-};
-exports.appStoreVersionExperimentTreatmentLocalizationsGetInstance = appStoreVersionExperimentTreatmentLocalizationsGetInstance;
-const appStoreVersionExperimentTreatmentLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appStoreVersionExperimentTreatmentLocalizations/{id}'
-    });
-};
-exports.appStoreVersionExperimentTreatmentLocalizationsDeleteInstance = appStoreVersionExperimentTreatmentLocalizationsDeleteInstance;
-const appStoreVersionExperimentTreatmentsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appStoreVersionExperimentTreatments'
-    });
-};
-exports.appStoreVersionExperimentTreatmentsCreateInstance = appStoreVersionExperimentTreatmentsCreateInstance;
-const appStoreVersionExperimentTreatmentsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersionExperimentTreatments/{id}'
-    });
-};
-exports.appStoreVersionExperimentTreatmentsGetInstance = appStoreVersionExperimentTreatmentsGetInstance;
-const appStoreVersionExperimentTreatmentsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appStoreVersionExperimentTreatments/{id}'
-    });
-};
-exports.appStoreVersionExperimentTreatmentsUpdateInstance = appStoreVersionExperimentTreatmentsUpdateInstance;
-const appStoreVersionExperimentTreatmentsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appStoreVersionExperimentTreatments/{id}'
-    });
-};
-exports.appStoreVersionExperimentTreatmentsDeleteInstance = appStoreVersionExperimentTreatmentsDeleteInstance;
-const appStoreVersionExperimentsV2CreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v2/appStoreVersionExperiments'
-    });
-};
-exports.appStoreVersionExperimentsV2CreateInstance = appStoreVersionExperimentsV2CreateInstance;
-const appStoreVersionExperimentsV2GetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/appStoreVersionExperiments/{id}'
-    });
-};
-exports.appStoreVersionExperimentsV2GetInstance = appStoreVersionExperimentsV2GetInstance;
-const appStoreVersionExperimentsV2UpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v2/appStoreVersionExperiments/{id}'
-    });
-};
-exports.appStoreVersionExperimentsV2UpdateInstance = appStoreVersionExperimentsV2UpdateInstance;
-const appStoreVersionExperimentsV2DeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v2/appStoreVersionExperiments/{id}'
-    });
-};
-exports.appStoreVersionExperimentsV2DeleteInstance = appStoreVersionExperimentsV2DeleteInstance;
-/**
- * @deprecated
- */
-const appStoreVersionExperimentsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appStoreVersionExperiments'
-    });
-};
-exports.appStoreVersionExperimentsCreateInstance = appStoreVersionExperimentsCreateInstance;
-/**
- * @deprecated
- */
-const appStoreVersionExperimentsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersionExperiments/{id}'
-    });
-};
-exports.appStoreVersionExperimentsGetInstance = appStoreVersionExperimentsGetInstance;
-/**
- * @deprecated
- */
-const appStoreVersionExperimentsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appStoreVersionExperiments/{id}'
-    });
-};
-exports.appStoreVersionExperimentsUpdateInstance = appStoreVersionExperimentsUpdateInstance;
-/**
- * @deprecated
- */
-const appStoreVersionExperimentsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appStoreVersionExperiments/{id}'
-    });
-};
-exports.appStoreVersionExperimentsDeleteInstance = appStoreVersionExperimentsDeleteInstance;
-const appStoreVersionLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appStoreVersionLocalizations'
-    });
-};
-exports.appStoreVersionLocalizationsCreateInstance = appStoreVersionLocalizationsCreateInstance;
-const appStoreVersionLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersionLocalizations/{id}'
-    });
-};
-exports.appStoreVersionLocalizationsGetInstance = appStoreVersionLocalizationsGetInstance;
-const appStoreVersionLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appStoreVersionLocalizations/{id}'
-    });
-};
-exports.appStoreVersionLocalizationsUpdateInstance = appStoreVersionLocalizationsUpdateInstance;
-const appStoreVersionLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appStoreVersionLocalizations/{id}'
-    });
-};
-exports.appStoreVersionLocalizationsDeleteInstance = appStoreVersionLocalizationsDeleteInstance;
-const appStoreVersionPhasedReleasesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appStoreVersionPhasedReleases'
-    });
-};
-exports.appStoreVersionPhasedReleasesCreateInstance = appStoreVersionPhasedReleasesCreateInstance;
-const appStoreVersionPhasedReleasesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appStoreVersionPhasedReleases/{id}'
-    });
-};
-exports.appStoreVersionPhasedReleasesUpdateInstance = appStoreVersionPhasedReleasesUpdateInstance;
-const appStoreVersionPhasedReleasesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appStoreVersionPhasedReleases/{id}'
-    });
-};
-exports.appStoreVersionPhasedReleasesDeleteInstance = appStoreVersionPhasedReleasesDeleteInstance;
-const appStoreVersionPromotionsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appStoreVersionPromotions'
-    });
-};
-exports.appStoreVersionPromotionsCreateInstance = appStoreVersionPromotionsCreateInstance;
-const appStoreVersionReleaseRequestsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appStoreVersionReleaseRequests'
-    });
-};
-exports.appStoreVersionReleaseRequestsCreateInstance = appStoreVersionReleaseRequestsCreateInstance;
-/**
- * @deprecated
- */
-const appStoreVersionSubmissionsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appStoreVersionSubmissions'
-    });
-};
-exports.appStoreVersionSubmissionsCreateInstance = appStoreVersionSubmissionsCreateInstance;
-/**
- * @deprecated
- */
-const appStoreVersionSubmissionsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appStoreVersionSubmissions/{id}'
-    });
-};
-exports.appStoreVersionSubmissionsDeleteInstance = appStoreVersionSubmissionsDeleteInstance;
-const appStoreVersionsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appStoreVersions'
-    });
-};
-exports.appStoreVersionsCreateInstance = appStoreVersionsCreateInstance;
-const appStoreVersionsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}'
-    });
-};
-exports.appStoreVersionsGetInstance = appStoreVersionsGetInstance;
-const appStoreVersionsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appStoreVersions/{id}'
-    });
-};
-exports.appStoreVersionsUpdateInstance = appStoreVersionsUpdateInstance;
-const appStoreVersionsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/appStoreVersions/{id}'
-    });
-};
-exports.appStoreVersionsDeleteInstance = appStoreVersionsDeleteInstance;
-const appsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps'
-    });
-};
-exports.appsGetCollection = appsGetCollection;
-const appsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}'
-    });
-};
-exports.appsGetInstance = appsGetInstance;
-const appsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/apps/{id}'
-    });
-};
-exports.appsUpdateInstance = appsUpdateInstance;
-const betaAppClipInvocationLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/betaAppClipInvocationLocalizations'
-    });
-};
-exports.betaAppClipInvocationLocalizationsCreateInstance = betaAppClipInvocationLocalizationsCreateInstance;
-const betaAppClipInvocationLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/betaAppClipInvocationLocalizations/{id}'
-    });
-};
-exports.betaAppClipInvocationLocalizationsUpdateInstance = betaAppClipInvocationLocalizationsUpdateInstance;
-const betaAppClipInvocationLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/betaAppClipInvocationLocalizations/{id}'
-    });
-};
-exports.betaAppClipInvocationLocalizationsDeleteInstance = betaAppClipInvocationLocalizationsDeleteInstance;
-const betaAppClipInvocationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/betaAppClipInvocations'
-    });
-};
-exports.betaAppClipInvocationsCreateInstance = betaAppClipInvocationsCreateInstance;
-const betaAppClipInvocationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaAppClipInvocations/{id}'
-    });
-};
-exports.betaAppClipInvocationsGetInstance = betaAppClipInvocationsGetInstance;
-const betaAppClipInvocationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/betaAppClipInvocations/{id}'
-    });
-};
-exports.betaAppClipInvocationsUpdateInstance = betaAppClipInvocationsUpdateInstance;
-const betaAppClipInvocationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/betaAppClipInvocations/{id}'
-    });
-};
-exports.betaAppClipInvocationsDeleteInstance = betaAppClipInvocationsDeleteInstance;
-const betaAppLocalizationsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaAppLocalizations'
-    });
-};
-exports.betaAppLocalizationsGetCollection = betaAppLocalizationsGetCollection;
-const betaAppLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/betaAppLocalizations'
-    });
-};
-exports.betaAppLocalizationsCreateInstance = betaAppLocalizationsCreateInstance;
-const betaAppLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaAppLocalizations/{id}'
-    });
-};
-exports.betaAppLocalizationsGetInstance = betaAppLocalizationsGetInstance;
-const betaAppLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/betaAppLocalizations/{id}'
-    });
-};
-exports.betaAppLocalizationsUpdateInstance = betaAppLocalizationsUpdateInstance;
-const betaAppLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/betaAppLocalizations/{id}'
-    });
-};
-exports.betaAppLocalizationsDeleteInstance = betaAppLocalizationsDeleteInstance;
-const betaAppReviewDetailsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaAppReviewDetails'
-    });
-};
-exports.betaAppReviewDetailsGetCollection = betaAppReviewDetailsGetCollection;
-const betaAppReviewDetailsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaAppReviewDetails/{id}'
-    });
-};
-exports.betaAppReviewDetailsGetInstance = betaAppReviewDetailsGetInstance;
-const betaAppReviewDetailsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/betaAppReviewDetails/{id}'
-    });
-};
-exports.betaAppReviewDetailsUpdateInstance = betaAppReviewDetailsUpdateInstance;
-const betaAppReviewSubmissionsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaAppReviewSubmissions'
-    });
-};
-exports.betaAppReviewSubmissionsGetCollection = betaAppReviewSubmissionsGetCollection;
-const betaAppReviewSubmissionsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/betaAppReviewSubmissions'
-    });
-};
-exports.betaAppReviewSubmissionsCreateInstance = betaAppReviewSubmissionsCreateInstance;
-const betaAppReviewSubmissionsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaAppReviewSubmissions/{id}'
-    });
-};
-exports.betaAppReviewSubmissionsGetInstance = betaAppReviewSubmissionsGetInstance;
-const betaBuildLocalizationsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaBuildLocalizations'
-    });
-};
-exports.betaBuildLocalizationsGetCollection = betaBuildLocalizationsGetCollection;
-const betaBuildLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/betaBuildLocalizations'
-    });
-};
-exports.betaBuildLocalizationsCreateInstance = betaBuildLocalizationsCreateInstance;
-const betaBuildLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaBuildLocalizations/{id}'
-    });
-};
-exports.betaBuildLocalizationsGetInstance = betaBuildLocalizationsGetInstance;
-const betaBuildLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/betaBuildLocalizations/{id}'
-    });
-};
-exports.betaBuildLocalizationsUpdateInstance = betaBuildLocalizationsUpdateInstance;
-const betaBuildLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/betaBuildLocalizations/{id}'
-    });
-};
-exports.betaBuildLocalizationsDeleteInstance = betaBuildLocalizationsDeleteInstance;
-const betaGroupsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaGroups'
-    });
-};
-exports.betaGroupsGetCollection = betaGroupsGetCollection;
-const betaGroupsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/betaGroups'
-    });
-};
-exports.betaGroupsCreateInstance = betaGroupsCreateInstance;
-const betaGroupsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaGroups/{id}'
-    });
-};
-exports.betaGroupsGetInstance = betaGroupsGetInstance;
-const betaGroupsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/betaGroups/{id}'
-    });
-};
-exports.betaGroupsUpdateInstance = betaGroupsUpdateInstance;
-const betaGroupsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/betaGroups/{id}'
-    });
-};
-exports.betaGroupsDeleteInstance = betaGroupsDeleteInstance;
-const betaLicenseAgreementsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaLicenseAgreements'
-    });
-};
-exports.betaLicenseAgreementsGetCollection = betaLicenseAgreementsGetCollection;
-const betaLicenseAgreementsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaLicenseAgreements/{id}'
-    });
-};
-exports.betaLicenseAgreementsGetInstance = betaLicenseAgreementsGetInstance;
-const betaLicenseAgreementsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/betaLicenseAgreements/{id}'
-    });
-};
-exports.betaLicenseAgreementsUpdateInstance = betaLicenseAgreementsUpdateInstance;
-const betaTesterInvitationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/betaTesterInvitations'
-    });
-};
-exports.betaTesterInvitationsCreateInstance = betaTesterInvitationsCreateInstance;
-const betaTestersGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaTesters'
-    });
-};
-exports.betaTestersGetCollection = betaTestersGetCollection;
-const betaTestersCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/betaTesters'
-    });
-};
-exports.betaTestersCreateInstance = betaTestersCreateInstance;
-const betaTestersGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaTesters/{id}'
-    });
-};
-exports.betaTestersGetInstance = betaTestersGetInstance;
-const betaTestersDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/betaTesters/{id}'
-    });
-};
-exports.betaTestersDeleteInstance = betaTestersDeleteInstance;
-const buildBetaDetailsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/buildBetaDetails'
-    });
-};
-exports.buildBetaDetailsGetCollection = buildBetaDetailsGetCollection;
-const buildBetaDetailsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/buildBetaDetails/{id}'
-    });
-};
-exports.buildBetaDetailsGetInstance = buildBetaDetailsGetInstance;
-const buildBetaDetailsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/buildBetaDetails/{id}'
-    });
-};
-exports.buildBetaDetailsUpdateInstance = buildBetaDetailsUpdateInstance;
-const buildBetaNotificationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/buildBetaNotifications'
-    });
-};
-exports.buildBetaNotificationsCreateInstance = buildBetaNotificationsCreateInstance;
-const buildsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds'
-    });
-};
-exports.buildsGetCollection = buildsGetCollection;
-const buildsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}'
-    });
-};
-exports.buildsGetInstance = buildsGetInstance;
-const buildsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/builds/{id}'
-    });
-};
-exports.buildsUpdateInstance = buildsUpdateInstance;
-const bundleIdCapabilitiesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/bundleIdCapabilities'
-    });
-};
-exports.bundleIdCapabilitiesCreateInstance = bundleIdCapabilitiesCreateInstance;
-const bundleIdCapabilitiesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/bundleIdCapabilities/{id}'
-    });
-};
-exports.bundleIdCapabilitiesUpdateInstance = bundleIdCapabilitiesUpdateInstance;
-const bundleIdCapabilitiesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/bundleIdCapabilities/{id}'
-    });
-};
-exports.bundleIdCapabilitiesDeleteInstance = bundleIdCapabilitiesDeleteInstance;
-const bundleIdsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/bundleIds'
-    });
-};
-exports.bundleIdsGetCollection = bundleIdsGetCollection;
-const bundleIdsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/bundleIds'
-    });
-};
-exports.bundleIdsCreateInstance = bundleIdsCreateInstance;
-const bundleIdsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/bundleIds/{id}'
-    });
-};
-exports.bundleIdsGetInstance = bundleIdsGetInstance;
-const bundleIdsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/bundleIds/{id}'
-    });
-};
-exports.bundleIdsUpdateInstance = bundleIdsUpdateInstance;
-const bundleIdsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/bundleIds/{id}'
-    });
-};
-exports.bundleIdsDeleteInstance = bundleIdsDeleteInstance;
-const certificatesGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/certificates'
-    });
-};
-exports.certificatesGetCollection = certificatesGetCollection;
-const certificatesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/certificates'
-    });
-};
-exports.certificatesCreateInstance = certificatesCreateInstance;
-const certificatesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/certificates/{id}'
-    });
-};
-exports.certificatesGetInstance = certificatesGetInstance;
-const certificatesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/certificates/{id}'
-    });
-};
-exports.certificatesDeleteInstance = certificatesDeleteInstance;
-const ciArtifactsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciArtifacts/{id}'
-    });
-};
-exports.ciArtifactsGetInstance = ciArtifactsGetInstance;
-const ciBuildActionsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciBuildActions/{id}'
-    });
-};
-exports.ciBuildActionsGetInstance = ciBuildActionsGetInstance;
-const ciBuildRunsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/ciBuildRuns'
-    });
-};
-exports.ciBuildRunsCreateInstance = ciBuildRunsCreateInstance;
-const ciBuildRunsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciBuildRuns/{id}'
-    });
-};
-exports.ciBuildRunsGetInstance = ciBuildRunsGetInstance;
-const ciIssuesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciIssues/{id}'
-    });
-};
-exports.ciIssuesGetInstance = ciIssuesGetInstance;
-const ciMacOsVersionsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciMacOsVersions'
-    });
-};
-exports.ciMacOsVersionsGetCollection = ciMacOsVersionsGetCollection;
-const ciMacOsVersionsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciMacOsVersions/{id}'
-    });
-};
-exports.ciMacOsVersionsGetInstance = ciMacOsVersionsGetInstance;
-const ciProductsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciProducts'
-    });
-};
-exports.ciProductsGetCollection = ciProductsGetCollection;
-const ciProductsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciProducts/{id}'
-    });
-};
-exports.ciProductsGetInstance = ciProductsGetInstance;
-const ciProductsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/ciProducts/{id}'
-    });
-};
-exports.ciProductsDeleteInstance = ciProductsDeleteInstance;
-const ciTestResultsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciTestResults/{id}'
-    });
-};
-exports.ciTestResultsGetInstance = ciTestResultsGetInstance;
-const ciWorkflowsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/ciWorkflows'
-    });
-};
-exports.ciWorkflowsCreateInstance = ciWorkflowsCreateInstance;
-const ciWorkflowsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciWorkflows/{id}'
-    });
-};
-exports.ciWorkflowsGetInstance = ciWorkflowsGetInstance;
-const ciWorkflowsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/ciWorkflows/{id}'
-    });
-};
-exports.ciWorkflowsUpdateInstance = ciWorkflowsUpdateInstance;
-const ciWorkflowsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/ciWorkflows/{id}'
-    });
-};
-exports.ciWorkflowsDeleteInstance = ciWorkflowsDeleteInstance;
-const ciXcodeVersionsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciXcodeVersions'
-    });
-};
-exports.ciXcodeVersionsGetCollection = ciXcodeVersionsGetCollection;
-const ciXcodeVersionsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciXcodeVersions/{id}'
-    });
-};
-exports.ciXcodeVersionsGetInstance = ciXcodeVersionsGetInstance;
-const customerReviewResponsesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/customerReviewResponses'
-    });
-};
-exports.customerReviewResponsesCreateInstance = customerReviewResponsesCreateInstance;
-const customerReviewResponsesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/customerReviewResponses/{id}'
-    });
-};
-exports.customerReviewResponsesGetInstance = customerReviewResponsesGetInstance;
-const customerReviewResponsesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/customerReviewResponses/{id}'
-    });
-};
-exports.customerReviewResponsesDeleteInstance = customerReviewResponsesDeleteInstance;
-const customerReviewsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/customerReviews/{id}'
-    });
-};
-exports.customerReviewsGetInstance = customerReviewsGetInstance;
-const devicesGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/devices'
-    });
-};
-exports.devicesGetCollection = devicesGetCollection;
-const devicesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/devices'
-    });
-};
-exports.devicesCreateInstance = devicesCreateInstance;
-const devicesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/devices/{id}'
-    });
-};
-exports.devicesGetInstance = devicesGetInstance;
-const devicesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/devices/{id}'
-    });
-};
-exports.devicesUpdateInstance = devicesUpdateInstance;
-const endAppAvailabilityPreOrdersCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/endAppAvailabilityPreOrders'
-    });
-};
-exports.endAppAvailabilityPreOrdersCreateInstance = endAppAvailabilityPreOrdersCreateInstance;
-const endUserLicenseAgreementsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/endUserLicenseAgreements'
-    });
-};
-exports.endUserLicenseAgreementsCreateInstance = endUserLicenseAgreementsCreateInstance;
-const endUserLicenseAgreementsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/endUserLicenseAgreements/{id}'
-    });
-};
-exports.endUserLicenseAgreementsGetInstance = endUserLicenseAgreementsGetInstance;
-const endUserLicenseAgreementsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/endUserLicenseAgreements/{id}'
-    });
-};
-exports.endUserLicenseAgreementsUpdateInstance = endUserLicenseAgreementsUpdateInstance;
-const endUserLicenseAgreementsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/endUserLicenseAgreements/{id}'
-    });
-};
-exports.endUserLicenseAgreementsDeleteInstance = endUserLicenseAgreementsDeleteInstance;
-const financeReportsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/financeReports'
-    });
-};
-exports.financeReportsGetCollection = financeReportsGetCollection;
-const gameCenterAchievementImagesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterAchievementImages'
-    });
-};
-exports.gameCenterAchievementImagesCreateInstance = gameCenterAchievementImagesCreateInstance;
-const gameCenterAchievementImagesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAchievementImages/{id}'
-    });
-};
-exports.gameCenterAchievementImagesGetInstance = gameCenterAchievementImagesGetInstance;
-const gameCenterAchievementImagesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterAchievementImages/{id}'
-    });
-};
-exports.gameCenterAchievementImagesUpdateInstance = gameCenterAchievementImagesUpdateInstance;
-const gameCenterAchievementImagesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterAchievementImages/{id}'
-    });
-};
-exports.gameCenterAchievementImagesDeleteInstance = gameCenterAchievementImagesDeleteInstance;
-const gameCenterAchievementLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterAchievementLocalizations'
-    });
-};
-exports.gameCenterAchievementLocalizationsCreateInstance = gameCenterAchievementLocalizationsCreateInstance;
-const gameCenterAchievementLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAchievementLocalizations/{id}'
-    });
-};
-exports.gameCenterAchievementLocalizationsGetInstance = gameCenterAchievementLocalizationsGetInstance;
-const gameCenterAchievementLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterAchievementLocalizations/{id}'
-    });
-};
-exports.gameCenterAchievementLocalizationsUpdateInstance = gameCenterAchievementLocalizationsUpdateInstance;
-const gameCenterAchievementLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterAchievementLocalizations/{id}'
-    });
-};
-exports.gameCenterAchievementLocalizationsDeleteInstance = gameCenterAchievementLocalizationsDeleteInstance;
-const gameCenterAchievementReleasesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterAchievementReleases'
-    });
-};
-exports.gameCenterAchievementReleasesCreateInstance = gameCenterAchievementReleasesCreateInstance;
-const gameCenterAchievementReleasesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAchievementReleases/{id}'
-    });
-};
-exports.gameCenterAchievementReleasesGetInstance = gameCenterAchievementReleasesGetInstance;
-const gameCenterAchievementReleasesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterAchievementReleases/{id}'
-    });
-};
-exports.gameCenterAchievementReleasesDeleteInstance = gameCenterAchievementReleasesDeleteInstance;
-const gameCenterAchievementsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterAchievements'
-    });
-};
-exports.gameCenterAchievementsCreateInstance = gameCenterAchievementsCreateInstance;
-const gameCenterAchievementsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAchievements/{id}'
-    });
-};
-exports.gameCenterAchievementsGetInstance = gameCenterAchievementsGetInstance;
-const gameCenterAchievementsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterAchievements/{id}'
-    });
-};
-exports.gameCenterAchievementsUpdateInstance = gameCenterAchievementsUpdateInstance;
-const gameCenterAchievementsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterAchievements/{id}'
-    });
-};
-exports.gameCenterAchievementsDeleteInstance = gameCenterAchievementsDeleteInstance;
-const gameCenterAppVersionsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterAppVersions'
-    });
-};
-exports.gameCenterAppVersionsCreateInstance = gameCenterAppVersionsCreateInstance;
-const gameCenterAppVersionsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAppVersions/{id}'
-    });
-};
-exports.gameCenterAppVersionsGetInstance = gameCenterAppVersionsGetInstance;
-const gameCenterAppVersionsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterAppVersions/{id}'
-    });
-};
-exports.gameCenterAppVersionsUpdateInstance = gameCenterAppVersionsUpdateInstance;
-const gameCenterDetailsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterDetails'
-    });
-};
-exports.gameCenterDetailsCreateInstance = gameCenterDetailsCreateInstance;
-const gameCenterDetailsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}'
-    });
-};
-exports.gameCenterDetailsGetInstance = gameCenterDetailsGetInstance;
-const gameCenterDetailsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}'
-    });
-};
-exports.gameCenterDetailsUpdateInstance = gameCenterDetailsUpdateInstance;
-const gameCenterGroupsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterGroups'
-    });
-};
-exports.gameCenterGroupsGetCollection = gameCenterGroupsGetCollection;
-const gameCenterGroupsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterGroups'
-    });
-};
-exports.gameCenterGroupsCreateInstance = gameCenterGroupsCreateInstance;
-const gameCenterGroupsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterGroups/{id}'
-    });
-};
-exports.gameCenterGroupsGetInstance = gameCenterGroupsGetInstance;
-const gameCenterGroupsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterGroups/{id}'
-    });
-};
-exports.gameCenterGroupsUpdateInstance = gameCenterGroupsUpdateInstance;
-const gameCenterGroupsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterGroups/{id}'
-    });
-};
-exports.gameCenterGroupsDeleteInstance = gameCenterGroupsDeleteInstance;
-const gameCenterLeaderboardEntrySubmissionsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterLeaderboardEntrySubmissions'
-    });
-};
-exports.gameCenterLeaderboardEntrySubmissionsCreateInstance = gameCenterLeaderboardEntrySubmissionsCreateInstance;
-const gameCenterLeaderboardImagesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterLeaderboardImages'
-    });
-};
-exports.gameCenterLeaderboardImagesCreateInstance = gameCenterLeaderboardImagesCreateInstance;
-const gameCenterLeaderboardImagesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardImages/{id}'
-    });
-};
-exports.gameCenterLeaderboardImagesGetInstance = gameCenterLeaderboardImagesGetInstance;
-const gameCenterLeaderboardImagesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterLeaderboardImages/{id}'
-    });
-};
-exports.gameCenterLeaderboardImagesUpdateInstance = gameCenterLeaderboardImagesUpdateInstance;
-const gameCenterLeaderboardImagesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterLeaderboardImages/{id}'
-    });
-};
-exports.gameCenterLeaderboardImagesDeleteInstance = gameCenterLeaderboardImagesDeleteInstance;
-const gameCenterLeaderboardLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterLeaderboardLocalizations'
-    });
-};
-exports.gameCenterLeaderboardLocalizationsCreateInstance = gameCenterLeaderboardLocalizationsCreateInstance;
-const gameCenterLeaderboardLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardLocalizations/{id}'
-    });
-};
-exports.gameCenterLeaderboardLocalizationsGetInstance = gameCenterLeaderboardLocalizationsGetInstance;
-const gameCenterLeaderboardLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterLeaderboardLocalizations/{id}'
-    });
-};
-exports.gameCenterLeaderboardLocalizationsUpdateInstance = gameCenterLeaderboardLocalizationsUpdateInstance;
-const gameCenterLeaderboardLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterLeaderboardLocalizations/{id}'
-    });
-};
-exports.gameCenterLeaderboardLocalizationsDeleteInstance = gameCenterLeaderboardLocalizationsDeleteInstance;
-const gameCenterLeaderboardReleasesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterLeaderboardReleases'
-    });
-};
-exports.gameCenterLeaderboardReleasesCreateInstance = gameCenterLeaderboardReleasesCreateInstance;
-const gameCenterLeaderboardReleasesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardReleases/{id}'
-    });
-};
-exports.gameCenterLeaderboardReleasesGetInstance = gameCenterLeaderboardReleasesGetInstance;
-const gameCenterLeaderboardReleasesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterLeaderboardReleases/{id}'
-    });
-};
-exports.gameCenterLeaderboardReleasesDeleteInstance = gameCenterLeaderboardReleasesDeleteInstance;
-const gameCenterLeaderboardSetImagesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetImages'
-    });
-};
-exports.gameCenterLeaderboardSetImagesCreateInstance = gameCenterLeaderboardSetImagesCreateInstance;
-const gameCenterLeaderboardSetImagesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetImages/{id}'
-    });
-};
-exports.gameCenterLeaderboardSetImagesGetInstance = gameCenterLeaderboardSetImagesGetInstance;
-const gameCenterLeaderboardSetImagesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetImages/{id}'
-    });
-};
-exports.gameCenterLeaderboardSetImagesUpdateInstance = gameCenterLeaderboardSetImagesUpdateInstance;
-const gameCenterLeaderboardSetImagesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetImages/{id}'
-    });
-};
-exports.gameCenterLeaderboardSetImagesDeleteInstance = gameCenterLeaderboardSetImagesDeleteInstance;
-const gameCenterLeaderboardSetLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetLocalizations'
-    });
-};
-exports.gameCenterLeaderboardSetLocalizationsCreateInstance = gameCenterLeaderboardSetLocalizationsCreateInstance;
-const gameCenterLeaderboardSetLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetLocalizations/{id}'
-    });
-};
-exports.gameCenterLeaderboardSetLocalizationsGetInstance = gameCenterLeaderboardSetLocalizationsGetInstance;
-const gameCenterLeaderboardSetLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetLocalizations/{id}'
-    });
-};
-exports.gameCenterLeaderboardSetLocalizationsUpdateInstance = gameCenterLeaderboardSetLocalizationsUpdateInstance;
-const gameCenterLeaderboardSetLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetLocalizations/{id}'
-    });
-};
-exports.gameCenterLeaderboardSetLocalizationsDeleteInstance = gameCenterLeaderboardSetLocalizationsDeleteInstance;
-const gameCenterLeaderboardSetMemberLocalizationsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetMemberLocalizations'
-    });
-};
-exports.gameCenterLeaderboardSetMemberLocalizationsGetCollection = gameCenterLeaderboardSetMemberLocalizationsGetCollection;
-const gameCenterLeaderboardSetMemberLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetMemberLocalizations'
-    });
-};
-exports.gameCenterLeaderboardSetMemberLocalizationsCreateInstance = gameCenterLeaderboardSetMemberLocalizationsCreateInstance;
-const gameCenterLeaderboardSetMemberLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetMemberLocalizations/{id}'
-    });
-};
-exports.gameCenterLeaderboardSetMemberLocalizationsUpdateInstance = gameCenterLeaderboardSetMemberLocalizationsUpdateInstance;
-const gameCenterLeaderboardSetMemberLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetMemberLocalizations/{id}'
-    });
-};
-exports.gameCenterLeaderboardSetMemberLocalizationsDeleteInstance = gameCenterLeaderboardSetMemberLocalizationsDeleteInstance;
-const gameCenterLeaderboardSetReleasesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetReleases'
-    });
-};
-exports.gameCenterLeaderboardSetReleasesCreateInstance = gameCenterLeaderboardSetReleasesCreateInstance;
-const gameCenterLeaderboardSetReleasesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetReleases/{id}'
-    });
-};
-exports.gameCenterLeaderboardSetReleasesGetInstance = gameCenterLeaderboardSetReleasesGetInstance;
-const gameCenterLeaderboardSetReleasesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetReleases/{id}'
-    });
-};
-exports.gameCenterLeaderboardSetReleasesDeleteInstance = gameCenterLeaderboardSetReleasesDeleteInstance;
-const gameCenterLeaderboardSetsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets'
-    });
-};
-exports.gameCenterLeaderboardSetsCreateInstance = gameCenterLeaderboardSetsCreateInstance;
-const gameCenterLeaderboardSetsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets/{id}'
-    });
-};
-exports.gameCenterLeaderboardSetsGetInstance = gameCenterLeaderboardSetsGetInstance;
-const gameCenterLeaderboardSetsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets/{id}'
-    });
-};
-exports.gameCenterLeaderboardSetsUpdateInstance = gameCenterLeaderboardSetsUpdateInstance;
-const gameCenterLeaderboardSetsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets/{id}'
-    });
-};
-exports.gameCenterLeaderboardSetsDeleteInstance = gameCenterLeaderboardSetsDeleteInstance;
-const gameCenterLeaderboardsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterLeaderboards'
-    });
-};
-exports.gameCenterLeaderboardsCreateInstance = gameCenterLeaderboardsCreateInstance;
-const gameCenterLeaderboardsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboards/{id}'
-    });
-};
-exports.gameCenterLeaderboardsGetInstance = gameCenterLeaderboardsGetInstance;
-const gameCenterLeaderboardsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterLeaderboards/{id}'
-    });
-};
-exports.gameCenterLeaderboardsUpdateInstance = gameCenterLeaderboardsUpdateInstance;
-const gameCenterLeaderboardsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterLeaderboards/{id}'
-    });
-};
-exports.gameCenterLeaderboardsDeleteInstance = gameCenterLeaderboardsDeleteInstance;
-const gameCenterMatchmakingQueuesGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingQueues'
-    });
-};
-exports.gameCenterMatchmakingQueuesGetCollection = gameCenterMatchmakingQueuesGetCollection;
-const gameCenterMatchmakingQueuesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterMatchmakingQueues'
-    });
-};
-exports.gameCenterMatchmakingQueuesCreateInstance = gameCenterMatchmakingQueuesCreateInstance;
-const gameCenterMatchmakingQueuesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingQueues/{id}'
-    });
-};
-exports.gameCenterMatchmakingQueuesGetInstance = gameCenterMatchmakingQueuesGetInstance;
-const gameCenterMatchmakingQueuesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterMatchmakingQueues/{id}'
-    });
-};
-exports.gameCenterMatchmakingQueuesUpdateInstance = gameCenterMatchmakingQueuesUpdateInstance;
-const gameCenterMatchmakingQueuesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterMatchmakingQueues/{id}'
-    });
-};
-exports.gameCenterMatchmakingQueuesDeleteInstance = gameCenterMatchmakingQueuesDeleteInstance;
-const gameCenterMatchmakingRuleSetTestsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRuleSetTests'
-    });
-};
-exports.gameCenterMatchmakingRuleSetTestsCreateInstance = gameCenterMatchmakingRuleSetTestsCreateInstance;
-const gameCenterMatchmakingRuleSetsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRuleSets'
-    });
-};
-exports.gameCenterMatchmakingRuleSetsGetCollection = gameCenterMatchmakingRuleSetsGetCollection;
-const gameCenterMatchmakingRuleSetsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRuleSets'
-    });
-};
-exports.gameCenterMatchmakingRuleSetsCreateInstance = gameCenterMatchmakingRuleSetsCreateInstance;
-const gameCenterMatchmakingRuleSetsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRuleSets/{id}'
-    });
-};
-exports.gameCenterMatchmakingRuleSetsGetInstance = gameCenterMatchmakingRuleSetsGetInstance;
-const gameCenterMatchmakingRuleSetsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRuleSets/{id}'
-    });
-};
-exports.gameCenterMatchmakingRuleSetsUpdateInstance = gameCenterMatchmakingRuleSetsUpdateInstance;
-const gameCenterMatchmakingRuleSetsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRuleSets/{id}'
-    });
-};
-exports.gameCenterMatchmakingRuleSetsDeleteInstance = gameCenterMatchmakingRuleSetsDeleteInstance;
-const gameCenterMatchmakingRulesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRules'
-    });
-};
-exports.gameCenterMatchmakingRulesCreateInstance = gameCenterMatchmakingRulesCreateInstance;
-const gameCenterMatchmakingRulesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRules/{id}'
-    });
-};
-exports.gameCenterMatchmakingRulesUpdateInstance = gameCenterMatchmakingRulesUpdateInstance;
-const gameCenterMatchmakingRulesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRules/{id}'
-    });
-};
-exports.gameCenterMatchmakingRulesDeleteInstance = gameCenterMatchmakingRulesDeleteInstance;
-const gameCenterMatchmakingTeamsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterMatchmakingTeams'
-    });
-};
-exports.gameCenterMatchmakingTeamsCreateInstance = gameCenterMatchmakingTeamsCreateInstance;
-const gameCenterMatchmakingTeamsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterMatchmakingTeams/{id}'
-    });
-};
-exports.gameCenterMatchmakingTeamsUpdateInstance = gameCenterMatchmakingTeamsUpdateInstance;
-const gameCenterMatchmakingTeamsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterMatchmakingTeams/{id}'
-    });
-};
-exports.gameCenterMatchmakingTeamsDeleteInstance = gameCenterMatchmakingTeamsDeleteInstance;
-const gameCenterPlayerAchievementSubmissionsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterPlayerAchievementSubmissions'
-    });
-};
-exports.gameCenterPlayerAchievementSubmissionsCreateInstance = gameCenterPlayerAchievementSubmissionsCreateInstance;
-const inAppPurchaseAppStoreReviewScreenshotsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/inAppPurchaseAppStoreReviewScreenshots'
-    });
-};
-exports.inAppPurchaseAppStoreReviewScreenshotsCreateInstance = inAppPurchaseAppStoreReviewScreenshotsCreateInstance;
-const inAppPurchaseAppStoreReviewScreenshotsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/inAppPurchaseAppStoreReviewScreenshots/{id}'
-    });
-};
-exports.inAppPurchaseAppStoreReviewScreenshotsGetInstance = inAppPurchaseAppStoreReviewScreenshotsGetInstance;
-const inAppPurchaseAppStoreReviewScreenshotsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/inAppPurchaseAppStoreReviewScreenshots/{id}'
-    });
-};
-exports.inAppPurchaseAppStoreReviewScreenshotsUpdateInstance = inAppPurchaseAppStoreReviewScreenshotsUpdateInstance;
-const inAppPurchaseAppStoreReviewScreenshotsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/inAppPurchaseAppStoreReviewScreenshots/{id}'
-    });
-};
-exports.inAppPurchaseAppStoreReviewScreenshotsDeleteInstance = inAppPurchaseAppStoreReviewScreenshotsDeleteInstance;
-const inAppPurchaseAvailabilitiesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/inAppPurchaseAvailabilities'
-    });
-};
-exports.inAppPurchaseAvailabilitiesCreateInstance = inAppPurchaseAvailabilitiesCreateInstance;
-const inAppPurchaseAvailabilitiesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/inAppPurchaseAvailabilities/{id}'
-    });
-};
-exports.inAppPurchaseAvailabilitiesGetInstance = inAppPurchaseAvailabilitiesGetInstance;
-const inAppPurchaseContentsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/inAppPurchaseContents/{id}'
-    });
-};
-exports.inAppPurchaseContentsGetInstance = inAppPurchaseContentsGetInstance;
-const inAppPurchaseImagesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/inAppPurchaseImages'
-    });
-};
-exports.inAppPurchaseImagesCreateInstance = inAppPurchaseImagesCreateInstance;
-const inAppPurchaseImagesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/inAppPurchaseImages/{id}'
-    });
-};
-exports.inAppPurchaseImagesGetInstance = inAppPurchaseImagesGetInstance;
-const inAppPurchaseImagesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/inAppPurchaseImages/{id}'
-    });
-};
-exports.inAppPurchaseImagesUpdateInstance = inAppPurchaseImagesUpdateInstance;
-const inAppPurchaseImagesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/inAppPurchaseImages/{id}'
-    });
-};
-exports.inAppPurchaseImagesDeleteInstance = inAppPurchaseImagesDeleteInstance;
-const inAppPurchaseLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/inAppPurchaseLocalizations'
-    });
-};
-exports.inAppPurchaseLocalizationsCreateInstance = inAppPurchaseLocalizationsCreateInstance;
-const inAppPurchaseLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/inAppPurchaseLocalizations/{id}'
-    });
-};
-exports.inAppPurchaseLocalizationsGetInstance = inAppPurchaseLocalizationsGetInstance;
-const inAppPurchaseLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/inAppPurchaseLocalizations/{id}'
-    });
-};
-exports.inAppPurchaseLocalizationsUpdateInstance = inAppPurchaseLocalizationsUpdateInstance;
-const inAppPurchaseLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/inAppPurchaseLocalizations/{id}'
-    });
-};
-exports.inAppPurchaseLocalizationsDeleteInstance = inAppPurchaseLocalizationsDeleteInstance;
-const inAppPurchasePriceSchedulesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/inAppPurchasePriceSchedules'
-    });
-};
-exports.inAppPurchasePriceSchedulesCreateInstance = inAppPurchasePriceSchedulesCreateInstance;
-const inAppPurchasePriceSchedulesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/inAppPurchasePriceSchedules/{id}'
-    });
-};
-exports.inAppPurchasePriceSchedulesGetInstance = inAppPurchasePriceSchedulesGetInstance;
-const inAppPurchaseSubmissionsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/inAppPurchaseSubmissions'
-    });
-};
-exports.inAppPurchaseSubmissionsCreateInstance = inAppPurchaseSubmissionsCreateInstance;
-/**
- * @deprecated
- */
-const inAppPurchasesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/inAppPurchases/{id}'
-    });
-};
-exports.inAppPurchasesGetInstance = inAppPurchasesGetInstance;
-const inAppPurchasesV2CreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v2/inAppPurchases'
-    });
-};
-exports.inAppPurchasesV2CreateInstance = inAppPurchasesV2CreateInstance;
-const inAppPurchasesV2GetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/inAppPurchases/{id}'
-    });
-};
-exports.inAppPurchasesV2GetInstance = inAppPurchasesV2GetInstance;
-const inAppPurchasesV2UpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v2/inAppPurchases/{id}'
-    });
-};
-exports.inAppPurchasesV2UpdateInstance = inAppPurchasesV2UpdateInstance;
-const inAppPurchasesV2DeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v2/inAppPurchases/{id}'
-    });
-};
-exports.inAppPurchasesV2DeleteInstance = inAppPurchasesV2DeleteInstance;
-/**
- * @deprecated
- */
-const marketplaceDomainsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/marketplaceDomains'
-    });
-};
-exports.marketplaceDomainsGetCollection = marketplaceDomainsGetCollection;
-/**
- * @deprecated
- */
-const marketplaceDomainsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/marketplaceDomains'
-    });
-};
-exports.marketplaceDomainsCreateInstance = marketplaceDomainsCreateInstance;
-/**
- * @deprecated
- */
-const marketplaceDomainsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/marketplaceDomains/{id}'
-    });
-};
-exports.marketplaceDomainsGetInstance = marketplaceDomainsGetInstance;
-/**
- * @deprecated
- */
-const marketplaceDomainsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/marketplaceDomains/{id}'
-    });
-};
-exports.marketplaceDomainsDeleteInstance = marketplaceDomainsDeleteInstance;
-const marketplaceSearchDetailsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/marketplaceSearchDetails'
-    });
-};
-exports.marketplaceSearchDetailsCreateInstance = marketplaceSearchDetailsCreateInstance;
-const marketplaceSearchDetailsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/marketplaceSearchDetails/{id}'
-    });
-};
-exports.marketplaceSearchDetailsUpdateInstance = marketplaceSearchDetailsUpdateInstance;
-const marketplaceSearchDetailsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/marketplaceSearchDetails/{id}'
-    });
-};
-exports.marketplaceSearchDetailsDeleteInstance = marketplaceSearchDetailsDeleteInstance;
-const marketplaceWebhooksGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/marketplaceWebhooks'
-    });
-};
-exports.marketplaceWebhooksGetCollection = marketplaceWebhooksGetCollection;
-const marketplaceWebhooksCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/marketplaceWebhooks'
-    });
-};
-exports.marketplaceWebhooksCreateInstance = marketplaceWebhooksCreateInstance;
-const marketplaceWebhooksUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/marketplaceWebhooks/{id}'
-    });
-};
-exports.marketplaceWebhooksUpdateInstance = marketplaceWebhooksUpdateInstance;
-const marketplaceWebhooksDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/marketplaceWebhooks/{id}'
-    });
-};
-exports.marketplaceWebhooksDeleteInstance = marketplaceWebhooksDeleteInstance;
-const preReleaseVersionsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/preReleaseVersions'
-    });
-};
-exports.preReleaseVersionsGetCollection = preReleaseVersionsGetCollection;
-const preReleaseVersionsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/preReleaseVersions/{id}'
-    });
-};
-exports.preReleaseVersionsGetInstance = preReleaseVersionsGetInstance;
-const profilesGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/profiles'
-    });
-};
-exports.profilesGetCollection = profilesGetCollection;
-const profilesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/profiles'
-    });
-};
-exports.profilesCreateInstance = profilesCreateInstance;
-const profilesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/profiles/{id}'
-    });
-};
-exports.profilesGetInstance = profilesGetInstance;
-const profilesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/profiles/{id}'
-    });
-};
-exports.profilesDeleteInstance = profilesDeleteInstance;
-/**
- * @deprecated
- */
-const promotedPurchaseImagesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/promotedPurchaseImages'
-    });
-};
-exports.promotedPurchaseImagesCreateInstance = promotedPurchaseImagesCreateInstance;
-/**
- * @deprecated
- */
-const promotedPurchaseImagesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/promotedPurchaseImages/{id}'
-    });
-};
-exports.promotedPurchaseImagesGetInstance = promotedPurchaseImagesGetInstance;
-/**
- * @deprecated
- */
-const promotedPurchaseImagesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/promotedPurchaseImages/{id}'
-    });
-};
-exports.promotedPurchaseImagesUpdateInstance = promotedPurchaseImagesUpdateInstance;
-/**
- * @deprecated
- */
-const promotedPurchaseImagesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/promotedPurchaseImages/{id}'
-    });
-};
-exports.promotedPurchaseImagesDeleteInstance = promotedPurchaseImagesDeleteInstance;
-const promotedPurchasesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/promotedPurchases'
-    });
-};
-exports.promotedPurchasesCreateInstance = promotedPurchasesCreateInstance;
-const promotedPurchasesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/promotedPurchases/{id}'
-    });
-};
-exports.promotedPurchasesGetInstance = promotedPurchasesGetInstance;
-const promotedPurchasesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/promotedPurchases/{id}'
-    });
-};
-exports.promotedPurchasesUpdateInstance = promotedPurchasesUpdateInstance;
-const promotedPurchasesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/promotedPurchases/{id}'
-    });
-};
-exports.promotedPurchasesDeleteInstance = promotedPurchasesDeleteInstance;
-const reviewSubmissionItemsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/reviewSubmissionItems'
-    });
-};
-exports.reviewSubmissionItemsCreateInstance = reviewSubmissionItemsCreateInstance;
-const reviewSubmissionItemsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/reviewSubmissionItems/{id}'
-    });
-};
-exports.reviewSubmissionItemsUpdateInstance = reviewSubmissionItemsUpdateInstance;
-const reviewSubmissionItemsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/reviewSubmissionItems/{id}'
-    });
-};
-exports.reviewSubmissionItemsDeleteInstance = reviewSubmissionItemsDeleteInstance;
-const reviewSubmissionsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/reviewSubmissions'
-    });
-};
-exports.reviewSubmissionsGetCollection = reviewSubmissionsGetCollection;
-const reviewSubmissionsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/reviewSubmissions'
-    });
-};
-exports.reviewSubmissionsCreateInstance = reviewSubmissionsCreateInstance;
-const reviewSubmissionsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/reviewSubmissions/{id}'
-    });
-};
-exports.reviewSubmissionsGetInstance = reviewSubmissionsGetInstance;
-const reviewSubmissionsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/reviewSubmissions/{id}'
-    });
-};
-exports.reviewSubmissionsUpdateInstance = reviewSubmissionsUpdateInstance;
-const routingAppCoveragesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/routingAppCoverages'
-    });
-};
-exports.routingAppCoveragesCreateInstance = routingAppCoveragesCreateInstance;
-const routingAppCoveragesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/routingAppCoverages/{id}'
-    });
-};
-exports.routingAppCoveragesGetInstance = routingAppCoveragesGetInstance;
-const routingAppCoveragesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/routingAppCoverages/{id}'
-    });
-};
-exports.routingAppCoveragesUpdateInstance = routingAppCoveragesUpdateInstance;
-const routingAppCoveragesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/routingAppCoverages/{id}'
-    });
-};
-exports.routingAppCoveragesDeleteInstance = routingAppCoveragesDeleteInstance;
-const salesReportsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/salesReports'
-    });
-};
-exports.salesReportsGetCollection = salesReportsGetCollection;
-const sandboxTestersV2GetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/sandboxTesters'
-    });
-};
-exports.sandboxTestersV2GetCollection = sandboxTestersV2GetCollection;
-const sandboxTestersV2UpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v2/sandboxTesters/{id}'
-    });
-};
-exports.sandboxTestersV2UpdateInstance = sandboxTestersV2UpdateInstance;
-const sandboxTestersClearPurchaseHistoryRequestV2CreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v2/sandboxTestersClearPurchaseHistoryRequest'
-    });
-};
-exports.sandboxTestersClearPurchaseHistoryRequestV2CreateInstance = sandboxTestersClearPurchaseHistoryRequestV2CreateInstance;
-const scmGitReferencesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/scmGitReferences/{id}'
-    });
-};
-exports.scmGitReferencesGetInstance = scmGitReferencesGetInstance;
-const scmProvidersGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/scmProviders'
-    });
-};
-exports.scmProvidersGetCollection = scmProvidersGetCollection;
-const scmProvidersGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/scmProviders/{id}'
-    });
-};
-exports.scmProvidersGetInstance = scmProvidersGetInstance;
-const scmPullRequestsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/scmPullRequests/{id}'
-    });
-};
-exports.scmPullRequestsGetInstance = scmPullRequestsGetInstance;
-const scmRepositoriesGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/scmRepositories'
-    });
-};
-exports.scmRepositoriesGetCollection = scmRepositoriesGetCollection;
-const scmRepositoriesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/scmRepositories/{id}'
-    });
-};
-exports.scmRepositoriesGetInstance = scmRepositoriesGetInstance;
-const subscriptionAppStoreReviewScreenshotsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionAppStoreReviewScreenshots'
-    });
-};
-exports.subscriptionAppStoreReviewScreenshotsCreateInstance = subscriptionAppStoreReviewScreenshotsCreateInstance;
-const subscriptionAppStoreReviewScreenshotsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionAppStoreReviewScreenshots/{id}'
-    });
-};
-exports.subscriptionAppStoreReviewScreenshotsGetInstance = subscriptionAppStoreReviewScreenshotsGetInstance;
-const subscriptionAppStoreReviewScreenshotsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/subscriptionAppStoreReviewScreenshots/{id}'
-    });
-};
-exports.subscriptionAppStoreReviewScreenshotsUpdateInstance = subscriptionAppStoreReviewScreenshotsUpdateInstance;
-const subscriptionAppStoreReviewScreenshotsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/subscriptionAppStoreReviewScreenshots/{id}'
-    });
-};
-exports.subscriptionAppStoreReviewScreenshotsDeleteInstance = subscriptionAppStoreReviewScreenshotsDeleteInstance;
-const subscriptionAvailabilitiesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionAvailabilities'
-    });
-};
-exports.subscriptionAvailabilitiesCreateInstance = subscriptionAvailabilitiesCreateInstance;
-const subscriptionAvailabilitiesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionAvailabilities/{id}'
-    });
-};
-exports.subscriptionAvailabilitiesGetInstance = subscriptionAvailabilitiesGetInstance;
-const subscriptionGracePeriodsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionGracePeriods/{id}'
-    });
-};
-exports.subscriptionGracePeriodsGetInstance = subscriptionGracePeriodsGetInstance;
-const subscriptionGracePeriodsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/subscriptionGracePeriods/{id}'
-    });
-};
-exports.subscriptionGracePeriodsUpdateInstance = subscriptionGracePeriodsUpdateInstance;
-const subscriptionGroupLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionGroupLocalizations'
-    });
-};
-exports.subscriptionGroupLocalizationsCreateInstance = subscriptionGroupLocalizationsCreateInstance;
-const subscriptionGroupLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionGroupLocalizations/{id}'
-    });
-};
-exports.subscriptionGroupLocalizationsGetInstance = subscriptionGroupLocalizationsGetInstance;
-const subscriptionGroupLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/subscriptionGroupLocalizations/{id}'
-    });
-};
-exports.subscriptionGroupLocalizationsUpdateInstance = subscriptionGroupLocalizationsUpdateInstance;
-const subscriptionGroupLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/subscriptionGroupLocalizations/{id}'
-    });
-};
-exports.subscriptionGroupLocalizationsDeleteInstance = subscriptionGroupLocalizationsDeleteInstance;
-const subscriptionGroupSubmissionsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionGroupSubmissions'
-    });
-};
-exports.subscriptionGroupSubmissionsCreateInstance = subscriptionGroupSubmissionsCreateInstance;
-const subscriptionGroupsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionGroups'
-    });
-};
-exports.subscriptionGroupsCreateInstance = subscriptionGroupsCreateInstance;
-const subscriptionGroupsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionGroups/{id}'
-    });
-};
-exports.subscriptionGroupsGetInstance = subscriptionGroupsGetInstance;
-const subscriptionGroupsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/subscriptionGroups/{id}'
-    });
-};
-exports.subscriptionGroupsUpdateInstance = subscriptionGroupsUpdateInstance;
-const subscriptionGroupsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/subscriptionGroups/{id}'
-    });
-};
-exports.subscriptionGroupsDeleteInstance = subscriptionGroupsDeleteInstance;
-const subscriptionImagesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionImages'
-    });
-};
-exports.subscriptionImagesCreateInstance = subscriptionImagesCreateInstance;
-const subscriptionImagesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionImages/{id}'
-    });
-};
-exports.subscriptionImagesGetInstance = subscriptionImagesGetInstance;
-const subscriptionImagesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/subscriptionImages/{id}'
-    });
-};
-exports.subscriptionImagesUpdateInstance = subscriptionImagesUpdateInstance;
-const subscriptionImagesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/subscriptionImages/{id}'
-    });
-};
-exports.subscriptionImagesDeleteInstance = subscriptionImagesDeleteInstance;
-const subscriptionIntroductoryOffersCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionIntroductoryOffers'
-    });
-};
-exports.subscriptionIntroductoryOffersCreateInstance = subscriptionIntroductoryOffersCreateInstance;
-const subscriptionIntroductoryOffersUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/subscriptionIntroductoryOffers/{id}'
-    });
-};
-exports.subscriptionIntroductoryOffersUpdateInstance = subscriptionIntroductoryOffersUpdateInstance;
-const subscriptionIntroductoryOffersDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/subscriptionIntroductoryOffers/{id}'
-    });
-};
-exports.subscriptionIntroductoryOffersDeleteInstance = subscriptionIntroductoryOffersDeleteInstance;
-const subscriptionLocalizationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionLocalizations'
-    });
-};
-exports.subscriptionLocalizationsCreateInstance = subscriptionLocalizationsCreateInstance;
-const subscriptionLocalizationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionLocalizations/{id}'
-    });
-};
-exports.subscriptionLocalizationsGetInstance = subscriptionLocalizationsGetInstance;
-const subscriptionLocalizationsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/subscriptionLocalizations/{id}'
-    });
-};
-exports.subscriptionLocalizationsUpdateInstance = subscriptionLocalizationsUpdateInstance;
-const subscriptionLocalizationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/subscriptionLocalizations/{id}'
-    });
-};
-exports.subscriptionLocalizationsDeleteInstance = subscriptionLocalizationsDeleteInstance;
-const subscriptionOfferCodeCustomCodesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionOfferCodeCustomCodes'
-    });
-};
-exports.subscriptionOfferCodeCustomCodesCreateInstance = subscriptionOfferCodeCustomCodesCreateInstance;
-const subscriptionOfferCodeCustomCodesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionOfferCodeCustomCodes/{id}'
-    });
-};
-exports.subscriptionOfferCodeCustomCodesGetInstance = subscriptionOfferCodeCustomCodesGetInstance;
-const subscriptionOfferCodeCustomCodesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/subscriptionOfferCodeCustomCodes/{id}'
-    });
-};
-exports.subscriptionOfferCodeCustomCodesUpdateInstance = subscriptionOfferCodeCustomCodesUpdateInstance;
-const subscriptionOfferCodeOneTimeUseCodesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionOfferCodeOneTimeUseCodes'
-    });
-};
-exports.subscriptionOfferCodeOneTimeUseCodesCreateInstance = subscriptionOfferCodeOneTimeUseCodesCreateInstance;
-const subscriptionOfferCodeOneTimeUseCodesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionOfferCodeOneTimeUseCodes/{id}'
-    });
-};
-exports.subscriptionOfferCodeOneTimeUseCodesGetInstance = subscriptionOfferCodeOneTimeUseCodesGetInstance;
-const subscriptionOfferCodeOneTimeUseCodesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/subscriptionOfferCodeOneTimeUseCodes/{id}'
-    });
-};
-exports.subscriptionOfferCodeOneTimeUseCodesUpdateInstance = subscriptionOfferCodeOneTimeUseCodesUpdateInstance;
-const subscriptionOfferCodesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionOfferCodes'
-    });
-};
-exports.subscriptionOfferCodesCreateInstance = subscriptionOfferCodesCreateInstance;
-const subscriptionOfferCodesGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionOfferCodes/{id}'
-    });
-};
-exports.subscriptionOfferCodesGetInstance = subscriptionOfferCodesGetInstance;
-const subscriptionOfferCodesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/subscriptionOfferCodes/{id}'
-    });
-};
-exports.subscriptionOfferCodesUpdateInstance = subscriptionOfferCodesUpdateInstance;
-const subscriptionPricePointsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionPricePoints/{id}'
-    });
-};
-exports.subscriptionPricePointsGetInstance = subscriptionPricePointsGetInstance;
-const subscriptionPricesCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionPrices'
-    });
-};
-exports.subscriptionPricesCreateInstance = subscriptionPricesCreateInstance;
-const subscriptionPricesDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/subscriptionPrices/{id}'
-    });
-};
-exports.subscriptionPricesDeleteInstance = subscriptionPricesDeleteInstance;
-const subscriptionPromotionalOffersCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionPromotionalOffers'
-    });
-};
-exports.subscriptionPromotionalOffersCreateInstance = subscriptionPromotionalOffersCreateInstance;
-const subscriptionPromotionalOffersGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionPromotionalOffers/{id}'
-    });
-};
-exports.subscriptionPromotionalOffersGetInstance = subscriptionPromotionalOffersGetInstance;
-const subscriptionPromotionalOffersUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/subscriptionPromotionalOffers/{id}'
-    });
-};
-exports.subscriptionPromotionalOffersUpdateInstance = subscriptionPromotionalOffersUpdateInstance;
-const subscriptionPromotionalOffersDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/subscriptionPromotionalOffers/{id}'
-    });
-};
-exports.subscriptionPromotionalOffersDeleteInstance = subscriptionPromotionalOffersDeleteInstance;
-const subscriptionSubmissionsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptionSubmissions'
-    });
-};
-exports.subscriptionSubmissionsCreateInstance = subscriptionSubmissionsCreateInstance;
-const subscriptionsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/subscriptions'
-    });
-};
-exports.subscriptionsCreateInstance = subscriptionsCreateInstance;
-const subscriptionsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}'
-    });
-};
-exports.subscriptionsGetInstance = subscriptionsGetInstance;
-const subscriptionsUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/subscriptions/{id}'
-    });
-};
-exports.subscriptionsUpdateInstance = subscriptionsUpdateInstance;
-const subscriptionsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/subscriptions/{id}'
-    });
-};
-exports.subscriptionsDeleteInstance = subscriptionsDeleteInstance;
-const territoriesGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/territories'
-    });
-};
-exports.territoriesGetCollection = territoriesGetCollection;
-const territoryAvailabilitiesUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/territoryAvailabilities/{id}'
-    });
-};
-exports.territoryAvailabilitiesUpdateInstance = territoryAvailabilitiesUpdateInstance;
-const userInvitationsGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/userInvitations'
-    });
-};
-exports.userInvitationsGetCollection = userInvitationsGetCollection;
-const userInvitationsCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/userInvitations'
-    });
-};
-exports.userInvitationsCreateInstance = userInvitationsCreateInstance;
-const userInvitationsGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/userInvitations/{id}'
-    });
-};
-exports.userInvitationsGetInstance = userInvitationsGetInstance;
-const userInvitationsDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/userInvitations/{id}'
-    });
-};
-exports.userInvitationsDeleteInstance = userInvitationsDeleteInstance;
-const usersGetCollection = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/users'
-    });
-};
-exports.usersGetCollection = usersGetCollection;
-const usersGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/users/{id}'
-    });
-};
-exports.usersGetInstance = usersGetInstance;
-const usersUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/users/{id}'
-    });
-};
-exports.usersUpdateInstance = usersUpdateInstance;
-const usersDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/users/{id}'
-    });
-};
-exports.usersDeleteInstance = usersDeleteInstance;
-const winBackOffersCreateInstance = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/winBackOffers'
-    });
-};
-exports.winBackOffersCreateInstance = winBackOffersCreateInstance;
-const winBackOffersGetInstance = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/winBackOffers/{id}'
-    });
-};
-exports.winBackOffersGetInstance = winBackOffersGetInstance;
-const winBackOffersUpdateInstance = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/winBackOffers/{id}'
-    });
-};
-exports.winBackOffersUpdateInstance = winBackOffersUpdateInstance;
-const winBackOffersDeleteInstance = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/winBackOffers/{id}'
-    });
-};
-exports.winBackOffersDeleteInstance = winBackOffersDeleteInstance;
-const alternativeDistributionPackageVersionsDeltasGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/alternativeDistributionPackageVersions/{id}/deltas'
-    });
-};
-exports.alternativeDistributionPackageVersionsDeltasGetToManyRelated = alternativeDistributionPackageVersionsDeltasGetToManyRelated;
-const alternativeDistributionPackageVersionsVariantsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/alternativeDistributionPackageVersions/{id}/variants'
-    });
-};
-exports.alternativeDistributionPackageVersionsVariantsGetToManyRelated = alternativeDistributionPackageVersionsVariantsGetToManyRelated;
-const alternativeDistributionPackagesVersionsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/alternativeDistributionPackages/{id}/versions'
-    });
-};
-exports.alternativeDistributionPackagesVersionsGetToManyRelated = alternativeDistributionPackagesVersionsGetToManyRelated;
-const analyticsReportInstancesSegmentsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/analyticsReportInstances/{id}/segments'
-    });
-};
-exports.analyticsReportInstancesSegmentsGetToManyRelated = analyticsReportInstancesSegmentsGetToManyRelated;
-const analyticsReportRequestsReportsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/analyticsReportRequests/{id}/reports'
-    });
-};
-exports.analyticsReportRequestsReportsGetToManyRelated = analyticsReportRequestsReportsGetToManyRelated;
-const analyticsReportsInstancesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/analyticsReports/{id}/instances'
-    });
-};
-exports.analyticsReportsInstancesGetToManyRelated = analyticsReportsInstancesGetToManyRelated;
-const appAvailabilitiesV2TerritoryAvailabilitiesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/appAvailabilities/{id}/territoryAvailabilities'
-    });
-};
-exports.appAvailabilitiesV2TerritoryAvailabilitiesGetToManyRelated = appAvailabilitiesV2TerritoryAvailabilitiesGetToManyRelated;
-/**
- * @deprecated
- */
-const appAvailabilitiesAvailableTerritoriesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appAvailabilities/{id}/availableTerritories'
-    });
-};
-exports.appAvailabilitiesAvailableTerritoriesGetToManyRelated = appAvailabilitiesAvailableTerritoriesGetToManyRelated;
-const appCategoriesParentGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appCategories/{id}/parent'
-    });
-};
-exports.appCategoriesParentGetToOneRelated = appCategoriesParentGetToOneRelated;
-const appCategoriesSubcategoriesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appCategories/{id}/subcategories'
-    });
-};
-exports.appCategoriesSubcategoriesGetToManyRelated = appCategoriesSubcategoriesGetToManyRelated;
-const appClipDefaultExperienceLocalizationsAppClipHeaderImageGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClipDefaultExperienceLocalizations/{id}/appClipHeaderImage'
-    });
-};
-exports.appClipDefaultExperienceLocalizationsAppClipHeaderImageGetToOneRelated = appClipDefaultExperienceLocalizationsAppClipHeaderImageGetToOneRelated;
-const appClipDefaultExperiencesAppClipAppStoreReviewDetailGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClipDefaultExperiences/{id}/appClipAppStoreReviewDetail'
-    });
-};
-exports.appClipDefaultExperiencesAppClipAppStoreReviewDetailGetToOneRelated = appClipDefaultExperiencesAppClipAppStoreReviewDetailGetToOneRelated;
-const appClipDefaultExperiencesAppClipDefaultExperienceLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClipDefaultExperiences/{id}/appClipDefaultExperienceLocalizations'
-    });
-};
-exports.appClipDefaultExperiencesAppClipDefaultExperienceLocalizationsGetToManyRelated = appClipDefaultExperiencesAppClipDefaultExperienceLocalizationsGetToManyRelated;
-const appClipDefaultExperiencesReleaseWithAppStoreVersionGetToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClipDefaultExperiences/{id}/relationships/releaseWithAppStoreVersion'
-    });
-};
-exports.appClipDefaultExperiencesReleaseWithAppStoreVersionGetToOneRelationship = appClipDefaultExperiencesReleaseWithAppStoreVersionGetToOneRelationship;
-const appClipDefaultExperiencesReleaseWithAppStoreVersionUpdateToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appClipDefaultExperiences/{id}/relationships/releaseWithAppStoreVersion'
-    });
-};
-exports.appClipDefaultExperiencesReleaseWithAppStoreVersionUpdateToOneRelationship = appClipDefaultExperiencesReleaseWithAppStoreVersionUpdateToOneRelationship;
-const appClipDefaultExperiencesReleaseWithAppStoreVersionGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClipDefaultExperiences/{id}/releaseWithAppStoreVersion'
-    });
-};
-exports.appClipDefaultExperiencesReleaseWithAppStoreVersionGetToOneRelated = appClipDefaultExperiencesReleaseWithAppStoreVersionGetToOneRelated;
-const appClipsAppClipAdvancedExperiencesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClips/{id}/appClipAdvancedExperiences'
-    });
-};
-exports.appClipsAppClipAdvancedExperiencesGetToManyRelated = appClipsAppClipAdvancedExperiencesGetToManyRelated;
-const appClipsAppClipDefaultExperiencesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appClips/{id}/appClipDefaultExperiences'
-    });
-};
-exports.appClipsAppClipDefaultExperiencesGetToManyRelated = appClipsAppClipDefaultExperiencesGetToManyRelated;
-const appCustomProductPageLocalizationsAppPreviewSetsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appCustomProductPageLocalizations/{id}/appPreviewSets'
-    });
-};
-exports.appCustomProductPageLocalizationsAppPreviewSetsGetToManyRelated = appCustomProductPageLocalizationsAppPreviewSetsGetToManyRelated;
-const appCustomProductPageLocalizationsAppScreenshotSetsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appCustomProductPageLocalizations/{id}/appScreenshotSets'
-    });
-};
-exports.appCustomProductPageLocalizationsAppScreenshotSetsGetToManyRelated = appCustomProductPageLocalizationsAppScreenshotSetsGetToManyRelated;
-const appCustomProductPageVersionsAppCustomProductPageLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appCustomProductPageVersions/{id}/appCustomProductPageLocalizations'
-    });
-};
-exports.appCustomProductPageVersionsAppCustomProductPageLocalizationsGetToManyRelated = appCustomProductPageVersionsAppCustomProductPageLocalizationsGetToManyRelated;
-const appCustomProductPagesAppCustomProductPageVersionsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appCustomProductPages/{id}/appCustomProductPageVersions'
-    });
-};
-exports.appCustomProductPagesAppCustomProductPageVersionsGetToManyRelated = appCustomProductPagesAppCustomProductPageVersionsGetToManyRelated;
-/**
- * @deprecated
- */
-const appEncryptionDeclarationsAppGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appEncryptionDeclarations/{id}/app'
-    });
-};
-exports.appEncryptionDeclarationsAppGetToOneRelated = appEncryptionDeclarationsAppGetToOneRelated;
-const appEncryptionDeclarationsAppEncryptionDeclarationDocumentGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appEncryptionDeclarations/{id}/appEncryptionDeclarationDocument'
-    });
-};
-exports.appEncryptionDeclarationsAppEncryptionDeclarationDocumentGetToOneRelated = appEncryptionDeclarationsAppEncryptionDeclarationDocumentGetToOneRelated;
-/**
- * @deprecated
- */
-const appEncryptionDeclarationsBuildsCreateToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/appEncryptionDeclarations/{id}/relationships/builds'
-    });
-};
-exports.appEncryptionDeclarationsBuildsCreateToManyRelationship = appEncryptionDeclarationsBuildsCreateToManyRelationship;
-const appEventLocalizationsAppEventScreenshotsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appEventLocalizations/{id}/appEventScreenshots'
-    });
-};
-exports.appEventLocalizationsAppEventScreenshotsGetToManyRelated = appEventLocalizationsAppEventScreenshotsGetToManyRelated;
-const appEventLocalizationsAppEventVideoClipsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appEventLocalizations/{id}/appEventVideoClips'
-    });
-};
-exports.appEventLocalizationsAppEventVideoClipsGetToManyRelated = appEventLocalizationsAppEventVideoClipsGetToManyRelated;
-const appEventsLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appEvents/{id}/localizations'
-    });
-};
-exports.appEventsLocalizationsGetToManyRelated = appEventsLocalizationsGetToManyRelated;
-const appInfosAgeRatingDeclarationGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appInfos/{id}/ageRatingDeclaration'
-    });
-};
-exports.appInfosAgeRatingDeclarationGetToOneRelated = appInfosAgeRatingDeclarationGetToOneRelated;
-const appInfosAppInfoLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appInfos/{id}/appInfoLocalizations'
-    });
-};
-exports.appInfosAppInfoLocalizationsGetToManyRelated = appInfosAppInfoLocalizationsGetToManyRelated;
-const appInfosPrimaryCategoryGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appInfos/{id}/primaryCategory'
-    });
-};
-exports.appInfosPrimaryCategoryGetToOneRelated = appInfosPrimaryCategoryGetToOneRelated;
-const appInfosPrimarySubcategoryOneGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appInfos/{id}/primarySubcategoryOne'
-    });
-};
-exports.appInfosPrimarySubcategoryOneGetToOneRelated = appInfosPrimarySubcategoryOneGetToOneRelated;
-const appInfosPrimarySubcategoryTwoGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appInfos/{id}/primarySubcategoryTwo'
-    });
-};
-exports.appInfosPrimarySubcategoryTwoGetToOneRelated = appInfosPrimarySubcategoryTwoGetToOneRelated;
-const appInfosSecondaryCategoryGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appInfos/{id}/secondaryCategory'
-    });
-};
-exports.appInfosSecondaryCategoryGetToOneRelated = appInfosSecondaryCategoryGetToOneRelated;
-const appInfosSecondarySubcategoryOneGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appInfos/{id}/secondarySubcategoryOne'
-    });
-};
-exports.appInfosSecondarySubcategoryOneGetToOneRelated = appInfosSecondarySubcategoryOneGetToOneRelated;
-const appInfosSecondarySubcategoryTwoGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appInfos/{id}/secondarySubcategoryTwo'
-    });
-};
-exports.appInfosSecondarySubcategoryTwoGetToOneRelated = appInfosSecondarySubcategoryTwoGetToOneRelated;
-const appPreviewSetsAppPreviewsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appPreviewSets/{id}/relationships/appPreviews'
-    });
-};
-exports.appPreviewSetsAppPreviewsGetToManyRelationship = appPreviewSetsAppPreviewsGetToManyRelationship;
-const appPreviewSetsAppPreviewsReplaceToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appPreviewSets/{id}/relationships/appPreviews'
-    });
-};
-exports.appPreviewSetsAppPreviewsReplaceToManyRelationship = appPreviewSetsAppPreviewsReplaceToManyRelationship;
-const appPreviewSetsAppPreviewsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appPreviewSets/{id}/appPreviews'
-    });
-};
-exports.appPreviewSetsAppPreviewsGetToManyRelated = appPreviewSetsAppPreviewsGetToManyRelated;
-const appPricePointsV3EqualizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v3/appPricePoints/{id}/equalizations'
-    });
-};
-exports.appPricePointsV3EqualizationsGetToManyRelated = appPricePointsV3EqualizationsGetToManyRelated;
-const appPriceSchedulesAutomaticPricesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appPriceSchedules/{id}/automaticPrices'
-    });
-};
-exports.appPriceSchedulesAutomaticPricesGetToManyRelated = appPriceSchedulesAutomaticPricesGetToManyRelated;
-const appPriceSchedulesBaseTerritoryGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appPriceSchedules/{id}/baseTerritory'
-    });
-};
-exports.appPriceSchedulesBaseTerritoryGetToOneRelated = appPriceSchedulesBaseTerritoryGetToOneRelated;
-const appPriceSchedulesManualPricesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appPriceSchedules/{id}/manualPrices'
-    });
-};
-exports.appPriceSchedulesManualPricesGetToManyRelated = appPriceSchedulesManualPricesGetToManyRelated;
-const appScreenshotSetsAppScreenshotsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appScreenshotSets/{id}/relationships/appScreenshots'
-    });
-};
-exports.appScreenshotSetsAppScreenshotsGetToManyRelationship = appScreenshotSetsAppScreenshotsGetToManyRelationship;
-const appScreenshotSetsAppScreenshotsReplaceToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appScreenshotSets/{id}/relationships/appScreenshots'
-    });
-};
-exports.appScreenshotSetsAppScreenshotsReplaceToManyRelationship = appScreenshotSetsAppScreenshotsReplaceToManyRelationship;
-const appScreenshotSetsAppScreenshotsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appScreenshotSets/{id}/appScreenshots'
-    });
-};
-exports.appScreenshotSetsAppScreenshotsGetToManyRelated = appScreenshotSetsAppScreenshotsGetToManyRelated;
-const appStoreReviewDetailsAppStoreReviewAttachmentsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreReviewDetails/{id}/appStoreReviewAttachments'
-    });
-};
-exports.appStoreReviewDetailsAppStoreReviewAttachmentsGetToManyRelated = appStoreReviewDetailsAppStoreReviewAttachmentsGetToManyRelated;
-const appStoreVersionExperimentTreatmentLocalizationsAppPreviewSetsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersionExperimentTreatmentLocalizations/{id}/appPreviewSets'
-    });
-};
-exports.appStoreVersionExperimentTreatmentLocalizationsAppPreviewSetsGetToManyRelated = appStoreVersionExperimentTreatmentLocalizationsAppPreviewSetsGetToManyRelated;
-const appStoreVersionExperimentTreatmentLocalizationsAppScreenshotSetsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersionExperimentTreatmentLocalizations/{id}/appScreenshotSets'
-    });
-};
-exports.appStoreVersionExperimentTreatmentLocalizationsAppScreenshotSetsGetToManyRelated = appStoreVersionExperimentTreatmentLocalizationsAppScreenshotSetsGetToManyRelated;
-const appStoreVersionExperimentTreatmentsAppStoreVersionExperimentTreatmentLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersionExperimentTreatments/{id}/appStoreVersionExperimentTreatmentLocalizations'
-    });
-};
-exports.appStoreVersionExperimentTreatmentsAppStoreVersionExperimentTreatmentLocalizationsGetToManyRelated = appStoreVersionExperimentTreatmentsAppStoreVersionExperimentTreatmentLocalizationsGetToManyRelated;
-const appStoreVersionExperimentsV2AppStoreVersionExperimentTreatmentsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/appStoreVersionExperiments/{id}/appStoreVersionExperimentTreatments'
-    });
-};
-exports.appStoreVersionExperimentsV2AppStoreVersionExperimentTreatmentsGetToManyRelated = appStoreVersionExperimentsV2AppStoreVersionExperimentTreatmentsGetToManyRelated;
-/**
- * @deprecated
- */
-const appStoreVersionExperimentsAppStoreVersionExperimentTreatmentsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersionExperiments/{id}/appStoreVersionExperimentTreatments'
-    });
-};
-exports.appStoreVersionExperimentsAppStoreVersionExperimentTreatmentsGetToManyRelated = appStoreVersionExperimentsAppStoreVersionExperimentTreatmentsGetToManyRelated;
-const appStoreVersionLocalizationsAppPreviewSetsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersionLocalizations/{id}/appPreviewSets'
-    });
-};
-exports.appStoreVersionLocalizationsAppPreviewSetsGetToManyRelated = appStoreVersionLocalizationsAppPreviewSetsGetToManyRelated;
-const appStoreVersionLocalizationsAppScreenshotSetsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersionLocalizations/{id}/appScreenshotSets'
-    });
-};
-exports.appStoreVersionLocalizationsAppScreenshotSetsGetToManyRelated = appStoreVersionLocalizationsAppScreenshotSetsGetToManyRelated;
-/**
- * @deprecated
- */
-const appStoreVersionsAgeRatingDeclarationGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/ageRatingDeclaration'
-    });
-};
-exports.appStoreVersionsAgeRatingDeclarationGetToOneRelated = appStoreVersionsAgeRatingDeclarationGetToOneRelated;
-const appStoreVersionsAlternativeDistributionPackageGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/alternativeDistributionPackage'
-    });
-};
-exports.appStoreVersionsAlternativeDistributionPackageGetToOneRelated = appStoreVersionsAlternativeDistributionPackageGetToOneRelated;
-const appStoreVersionsAppClipDefaultExperienceGetToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/relationships/appClipDefaultExperience'
-    });
-};
-exports.appStoreVersionsAppClipDefaultExperienceGetToOneRelationship = appStoreVersionsAppClipDefaultExperienceGetToOneRelationship;
-const appStoreVersionsAppClipDefaultExperienceUpdateToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/relationships/appClipDefaultExperience'
-    });
-};
-exports.appStoreVersionsAppClipDefaultExperienceUpdateToOneRelationship = appStoreVersionsAppClipDefaultExperienceUpdateToOneRelationship;
-const appStoreVersionsAppClipDefaultExperienceGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/appClipDefaultExperience'
-    });
-};
-exports.appStoreVersionsAppClipDefaultExperienceGetToOneRelated = appStoreVersionsAppClipDefaultExperienceGetToOneRelated;
-const appStoreVersionsAppStoreReviewDetailGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/appStoreReviewDetail'
-    });
-};
-exports.appStoreVersionsAppStoreReviewDetailGetToOneRelated = appStoreVersionsAppStoreReviewDetailGetToOneRelated;
-/**
- * @deprecated
- */
-const appStoreVersionsAppStoreVersionExperimentsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/appStoreVersionExperiments'
-    });
-};
-exports.appStoreVersionsAppStoreVersionExperimentsGetToManyRelated = appStoreVersionsAppStoreVersionExperimentsGetToManyRelated;
-const appStoreVersionsAppStoreVersionExperimentsV2GetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/appStoreVersionExperimentsV2'
-    });
-};
-exports.appStoreVersionsAppStoreVersionExperimentsV2GetToManyRelated = appStoreVersionsAppStoreVersionExperimentsV2GetToManyRelated;
-const appStoreVersionsAppStoreVersionLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/appStoreVersionLocalizations'
-    });
-};
-exports.appStoreVersionsAppStoreVersionLocalizationsGetToManyRelated = appStoreVersionsAppStoreVersionLocalizationsGetToManyRelated;
-const appStoreVersionsAppStoreVersionPhasedReleaseGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/appStoreVersionPhasedRelease'
-    });
-};
-exports.appStoreVersionsAppStoreVersionPhasedReleaseGetToOneRelated = appStoreVersionsAppStoreVersionPhasedReleaseGetToOneRelated;
-/**
- * @deprecated
- */
-const appStoreVersionsAppStoreVersionSubmissionGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/appStoreVersionSubmission'
-    });
-};
-exports.appStoreVersionsAppStoreVersionSubmissionGetToOneRelated = appStoreVersionsAppStoreVersionSubmissionGetToOneRelated;
-const appStoreVersionsBuildGetToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/relationships/build'
-    });
-};
-exports.appStoreVersionsBuildGetToOneRelationship = appStoreVersionsBuildGetToOneRelationship;
-const appStoreVersionsBuildUpdateToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/relationships/build'
-    });
-};
-exports.appStoreVersionsBuildUpdateToOneRelationship = appStoreVersionsBuildUpdateToOneRelationship;
-const appStoreVersionsBuildGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/build'
-    });
-};
-exports.appStoreVersionsBuildGetToOneRelated = appStoreVersionsBuildGetToOneRelated;
-const appStoreVersionsCustomerReviewsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/customerReviews'
-    });
-};
-exports.appStoreVersionsCustomerReviewsGetToManyRelated = appStoreVersionsCustomerReviewsGetToManyRelated;
-const appStoreVersionsGameCenterAppVersionGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/gameCenterAppVersion'
-    });
-};
-exports.appStoreVersionsGameCenterAppVersionGetToOneRelated = appStoreVersionsGameCenterAppVersionGetToOneRelated;
-const appStoreVersionsRoutingAppCoverageGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/appStoreVersions/{id}/routingAppCoverage'
-    });
-};
-exports.appStoreVersionsRoutingAppCoverageGetToOneRelated = appStoreVersionsRoutingAppCoverageGetToOneRelated;
-const appsAlternativeDistributionKeyGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/alternativeDistributionKey'
-    });
-};
-exports.appsAlternativeDistributionKeyGetToOneRelated = appsAlternativeDistributionKeyGetToOneRelated;
-const appsAnalyticsReportRequestsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/analyticsReportRequests'
-    });
-};
-exports.appsAnalyticsReportRequestsGetToManyRelated = appsAnalyticsReportRequestsGetToManyRelated;
-/**
- * @deprecated
- */
-const appsAppAvailabilityGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/appAvailability'
-    });
-};
-exports.appsAppAvailabilityGetToOneRelated = appsAppAvailabilityGetToOneRelated;
-const appsAppAvailabilityV2GetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/appAvailabilityV2'
-    });
-};
-exports.appsAppAvailabilityV2GetToOneRelated = appsAppAvailabilityV2GetToOneRelated;
-const appsAppClipsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/appClips'
-    });
-};
-exports.appsAppClipsGetToManyRelated = appsAppClipsGetToManyRelated;
-const appsAppCustomProductPagesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/appCustomProductPages'
-    });
-};
-exports.appsAppCustomProductPagesGetToManyRelated = appsAppCustomProductPagesGetToManyRelated;
-const appsAppEncryptionDeclarationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/appEncryptionDeclarations'
-    });
-};
-exports.appsAppEncryptionDeclarationsGetToManyRelated = appsAppEncryptionDeclarationsGetToManyRelated;
-const appsAppEventsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/appEvents'
-    });
-};
-exports.appsAppEventsGetToManyRelated = appsAppEventsGetToManyRelated;
-const appsAppInfosGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/appInfos'
-    });
-};
-exports.appsAppInfosGetToManyRelated = appsAppInfosGetToManyRelated;
-const appsAppPricePointsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/appPricePoints'
-    });
-};
-exports.appsAppPricePointsGetToManyRelated = appsAppPricePointsGetToManyRelated;
-const appsAppPriceScheduleGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/appPriceSchedule'
-    });
-};
-exports.appsAppPriceScheduleGetToOneRelated = appsAppPriceScheduleGetToOneRelated;
-const appsAppStoreVersionExperimentsV2GetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/appStoreVersionExperimentsV2'
-    });
-};
-exports.appsAppStoreVersionExperimentsV2GetToManyRelated = appsAppStoreVersionExperimentsV2GetToManyRelated;
-const appsAppStoreVersionsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/appStoreVersions'
-    });
-};
-exports.appsAppStoreVersionsGetToManyRelated = appsAppStoreVersionsGetToManyRelated;
-const appsBetaAppLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/betaAppLocalizations'
-    });
-};
-exports.appsBetaAppLocalizationsGetToManyRelated = appsBetaAppLocalizationsGetToManyRelated;
-const appsBetaAppReviewDetailGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/betaAppReviewDetail'
-    });
-};
-exports.appsBetaAppReviewDetailGetToOneRelated = appsBetaAppReviewDetailGetToOneRelated;
-const appsBetaGroupsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/betaGroups'
-    });
-};
-exports.appsBetaGroupsGetToManyRelated = appsBetaGroupsGetToManyRelated;
-const appsBetaLicenseAgreementGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/betaLicenseAgreement'
-    });
-};
-exports.appsBetaLicenseAgreementGetToOneRelated = appsBetaLicenseAgreementGetToOneRelated;
-const appsBetaTestersDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/apps/{id}/relationships/betaTesters'
-    });
-};
-exports.appsBetaTestersDeleteToManyRelationship = appsBetaTestersDeleteToManyRelationship;
-const appsBuildsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/builds'
-    });
-};
-exports.appsBuildsGetToManyRelated = appsBuildsGetToManyRelated;
-const appsCiProductGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/ciProduct'
-    });
-};
-exports.appsCiProductGetToOneRelated = appsCiProductGetToOneRelated;
-const appsCustomerReviewsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/customerReviews'
-    });
-};
-exports.appsCustomerReviewsGetToManyRelated = appsCustomerReviewsGetToManyRelated;
-const appsEndUserLicenseAgreementGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/endUserLicenseAgreement'
-    });
-};
-exports.appsEndUserLicenseAgreementGetToOneRelated = appsEndUserLicenseAgreementGetToOneRelated;
-const appsGameCenterDetailGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/gameCenterDetail'
-    });
-};
-exports.appsGameCenterDetailGetToOneRelated = appsGameCenterDetailGetToOneRelated;
-/**
- * @deprecated
- */
-const appsGameCenterEnabledVersionsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/gameCenterEnabledVersions'
-    });
-};
-exports.appsGameCenterEnabledVersionsGetToManyRelated = appsGameCenterEnabledVersionsGetToManyRelated;
-/**
- * @deprecated
- */
-const appsInAppPurchasesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/inAppPurchases'
-    });
-};
-exports.appsInAppPurchasesGetToManyRelated = appsInAppPurchasesGetToManyRelated;
-const appsInAppPurchasesV2GetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/inAppPurchasesV2'
-    });
-};
-exports.appsInAppPurchasesV2GetToManyRelated = appsInAppPurchasesV2GetToManyRelated;
-const appsMarketplaceSearchDetailGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/marketplaceSearchDetail'
-    });
-};
-exports.appsMarketplaceSearchDetailGetToOneRelated = appsMarketplaceSearchDetailGetToOneRelated;
-const appsPerfPowerMetricsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/perfPowerMetrics'
-    });
-};
-exports.appsPerfPowerMetricsGetToManyRelated = appsPerfPowerMetricsGetToManyRelated;
-/**
- * @deprecated
- */
-const appsPreOrderGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/preOrder'
-    });
-};
-exports.appsPreOrderGetToOneRelated = appsPreOrderGetToOneRelated;
-const appsPreReleaseVersionsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/preReleaseVersions'
-    });
-};
-exports.appsPreReleaseVersionsGetToManyRelated = appsPreReleaseVersionsGetToManyRelated;
-const appsPromotedPurchasesGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/relationships/promotedPurchases'
-    });
-};
-exports.appsPromotedPurchasesGetToManyRelationship = appsPromotedPurchasesGetToManyRelationship;
-const appsPromotedPurchasesReplaceToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/apps/{id}/relationships/promotedPurchases'
-    });
-};
-exports.appsPromotedPurchasesReplaceToManyRelationship = appsPromotedPurchasesReplaceToManyRelationship;
-const appsPromotedPurchasesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/promotedPurchases'
-    });
-};
-exports.appsPromotedPurchasesGetToManyRelated = appsPromotedPurchasesGetToManyRelated;
-const appsReviewSubmissionsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/reviewSubmissions'
-    });
-};
-exports.appsReviewSubmissionsGetToManyRelated = appsReviewSubmissionsGetToManyRelated;
-const appsSubscriptionGracePeriodGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/subscriptionGracePeriod'
-    });
-};
-exports.appsSubscriptionGracePeriodGetToOneRelated = appsSubscriptionGracePeriodGetToOneRelated;
-const appsSubscriptionGroupsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/subscriptionGroups'
-    });
-};
-exports.appsSubscriptionGroupsGetToManyRelated = appsSubscriptionGroupsGetToManyRelated;
-const betaAppLocalizationsAppGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaAppLocalizations/{id}/app'
-    });
-};
-exports.betaAppLocalizationsAppGetToOneRelated = betaAppLocalizationsAppGetToOneRelated;
-const betaAppReviewDetailsAppGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaAppReviewDetails/{id}/app'
-    });
-};
-exports.betaAppReviewDetailsAppGetToOneRelated = betaAppReviewDetailsAppGetToOneRelated;
-const betaAppReviewSubmissionsBuildGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaAppReviewSubmissions/{id}/build'
-    });
-};
-exports.betaAppReviewSubmissionsBuildGetToOneRelated = betaAppReviewSubmissionsBuildGetToOneRelated;
-const betaBuildLocalizationsBuildGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaBuildLocalizations/{id}/build'
-    });
-};
-exports.betaBuildLocalizationsBuildGetToOneRelated = betaBuildLocalizationsBuildGetToOneRelated;
-const betaGroupsAppGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaGroups/{id}/app'
-    });
-};
-exports.betaGroupsAppGetToOneRelated = betaGroupsAppGetToOneRelated;
-const betaGroupsBetaTestersGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaGroups/{id}/relationships/betaTesters'
-    });
-};
-exports.betaGroupsBetaTestersGetToManyRelationship = betaGroupsBetaTestersGetToManyRelationship;
-const betaGroupsBetaTestersCreateToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/betaGroups/{id}/relationships/betaTesters'
-    });
-};
-exports.betaGroupsBetaTestersCreateToManyRelationship = betaGroupsBetaTestersCreateToManyRelationship;
-const betaGroupsBetaTestersDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/betaGroups/{id}/relationships/betaTesters'
-    });
-};
-exports.betaGroupsBetaTestersDeleteToManyRelationship = betaGroupsBetaTestersDeleteToManyRelationship;
-const betaGroupsBetaTestersGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaGroups/{id}/betaTesters'
-    });
-};
-exports.betaGroupsBetaTestersGetToManyRelated = betaGroupsBetaTestersGetToManyRelated;
-const betaGroupsBuildsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaGroups/{id}/relationships/builds'
-    });
-};
-exports.betaGroupsBuildsGetToManyRelationship = betaGroupsBuildsGetToManyRelationship;
-const betaGroupsBuildsCreateToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/betaGroups/{id}/relationships/builds'
-    });
-};
-exports.betaGroupsBuildsCreateToManyRelationship = betaGroupsBuildsCreateToManyRelationship;
-const betaGroupsBuildsDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/betaGroups/{id}/relationships/builds'
-    });
-};
-exports.betaGroupsBuildsDeleteToManyRelationship = betaGroupsBuildsDeleteToManyRelationship;
-const betaGroupsBuildsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaGroups/{id}/builds'
-    });
-};
-exports.betaGroupsBuildsGetToManyRelated = betaGroupsBuildsGetToManyRelated;
-const betaLicenseAgreementsAppGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaLicenseAgreements/{id}/app'
-    });
-};
-exports.betaLicenseAgreementsAppGetToOneRelated = betaLicenseAgreementsAppGetToOneRelated;
-const betaTestersAppsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaTesters/{id}/relationships/apps'
-    });
-};
-exports.betaTestersAppsGetToManyRelationship = betaTestersAppsGetToManyRelationship;
-const betaTestersAppsDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/betaTesters/{id}/relationships/apps'
-    });
-};
-exports.betaTestersAppsDeleteToManyRelationship = betaTestersAppsDeleteToManyRelationship;
-const betaTestersAppsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaTesters/{id}/apps'
-    });
-};
-exports.betaTestersAppsGetToManyRelated = betaTestersAppsGetToManyRelated;
-const betaTestersBetaGroupsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaTesters/{id}/relationships/betaGroups'
-    });
-};
-exports.betaTestersBetaGroupsGetToManyRelationship = betaTestersBetaGroupsGetToManyRelationship;
-const betaTestersBetaGroupsCreateToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/betaTesters/{id}/relationships/betaGroups'
-    });
-};
-exports.betaTestersBetaGroupsCreateToManyRelationship = betaTestersBetaGroupsCreateToManyRelationship;
-const betaTestersBetaGroupsDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/betaTesters/{id}/relationships/betaGroups'
-    });
-};
-exports.betaTestersBetaGroupsDeleteToManyRelationship = betaTestersBetaGroupsDeleteToManyRelationship;
-const betaTestersBetaGroupsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaTesters/{id}/betaGroups'
-    });
-};
-exports.betaTestersBetaGroupsGetToManyRelated = betaTestersBetaGroupsGetToManyRelated;
-const betaTestersBuildsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaTesters/{id}/relationships/builds'
-    });
-};
-exports.betaTestersBuildsGetToManyRelationship = betaTestersBuildsGetToManyRelationship;
-const betaTestersBuildsCreateToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/betaTesters/{id}/relationships/builds'
-    });
-};
-exports.betaTestersBuildsCreateToManyRelationship = betaTestersBuildsCreateToManyRelationship;
-const betaTestersBuildsDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/betaTesters/{id}/relationships/builds'
-    });
-};
-exports.betaTestersBuildsDeleteToManyRelationship = betaTestersBuildsDeleteToManyRelationship;
-const betaTestersBuildsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaTesters/{id}/builds'
-    });
-};
-exports.betaTestersBuildsGetToManyRelated = betaTestersBuildsGetToManyRelated;
-const buildBetaDetailsBuildGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/buildBetaDetails/{id}/build'
-    });
-};
-exports.buildBetaDetailsBuildGetToOneRelated = buildBetaDetailsBuildGetToOneRelated;
-const buildBundlesAppClipDomainCacheStatusGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/buildBundles/{id}/appClipDomainCacheStatus'
-    });
-};
-exports.buildBundlesAppClipDomainCacheStatusGetToOneRelated = buildBundlesAppClipDomainCacheStatusGetToOneRelated;
-const buildBundlesAppClipDomainDebugStatusGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/buildBundles/{id}/appClipDomainDebugStatus'
-    });
-};
-exports.buildBundlesAppClipDomainDebugStatusGetToOneRelated = buildBundlesAppClipDomainDebugStatusGetToOneRelated;
-const buildBundlesBetaAppClipInvocationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/buildBundles/{id}/betaAppClipInvocations'
-    });
-};
-exports.buildBundlesBetaAppClipInvocationsGetToManyRelated = buildBundlesBetaAppClipInvocationsGetToManyRelated;
-const buildBundlesBuildBundleFileSizesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/buildBundles/{id}/buildBundleFileSizes'
-    });
-};
-exports.buildBundlesBuildBundleFileSizesGetToManyRelated = buildBundlesBuildBundleFileSizesGetToManyRelated;
-const buildsAppGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/app'
-    });
-};
-exports.buildsAppGetToOneRelated = buildsAppGetToOneRelated;
-const buildsAppEncryptionDeclarationGetToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/relationships/appEncryptionDeclaration'
-    });
-};
-exports.buildsAppEncryptionDeclarationGetToOneRelationship = buildsAppEncryptionDeclarationGetToOneRelationship;
-const buildsAppEncryptionDeclarationUpdateToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/builds/{id}/relationships/appEncryptionDeclaration'
-    });
-};
-exports.buildsAppEncryptionDeclarationUpdateToOneRelationship = buildsAppEncryptionDeclarationUpdateToOneRelationship;
-const buildsAppEncryptionDeclarationGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/appEncryptionDeclaration'
-    });
-};
-exports.buildsAppEncryptionDeclarationGetToOneRelated = buildsAppEncryptionDeclarationGetToOneRelated;
-const buildsAppStoreVersionGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/appStoreVersion'
-    });
-};
-exports.buildsAppStoreVersionGetToOneRelated = buildsAppStoreVersionGetToOneRelated;
-const buildsBetaAppReviewSubmissionGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/betaAppReviewSubmission'
-    });
-};
-exports.buildsBetaAppReviewSubmissionGetToOneRelated = buildsBetaAppReviewSubmissionGetToOneRelated;
-const buildsBetaBuildLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/betaBuildLocalizations'
-    });
-};
-exports.buildsBetaBuildLocalizationsGetToManyRelated = buildsBetaBuildLocalizationsGetToManyRelated;
-const buildsBetaGroupsCreateToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/builds/{id}/relationships/betaGroups'
-    });
-};
-exports.buildsBetaGroupsCreateToManyRelationship = buildsBetaGroupsCreateToManyRelationship;
-const buildsBetaGroupsDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/builds/{id}/relationships/betaGroups'
-    });
-};
-exports.buildsBetaGroupsDeleteToManyRelationship = buildsBetaGroupsDeleteToManyRelationship;
-const buildsBuildBetaDetailGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/buildBetaDetail'
-    });
-};
-exports.buildsBuildBetaDetailGetToOneRelated = buildsBuildBetaDetailGetToOneRelated;
-const buildsDiagnosticSignaturesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/diagnosticSignatures'
-    });
-};
-exports.buildsDiagnosticSignaturesGetToManyRelated = buildsDiagnosticSignaturesGetToManyRelated;
-const buildsIconsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/icons'
-    });
-};
-exports.buildsIconsGetToManyRelated = buildsIconsGetToManyRelated;
-const buildsIndividualTestersGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/relationships/individualTesters'
-    });
-};
-exports.buildsIndividualTestersGetToManyRelationship = buildsIndividualTestersGetToManyRelationship;
-const buildsIndividualTestersCreateToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/builds/{id}/relationships/individualTesters'
-    });
-};
-exports.buildsIndividualTestersCreateToManyRelationship = buildsIndividualTestersCreateToManyRelationship;
-const buildsIndividualTestersDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/builds/{id}/relationships/individualTesters'
-    });
-};
-exports.buildsIndividualTestersDeleteToManyRelationship = buildsIndividualTestersDeleteToManyRelationship;
-const buildsIndividualTestersGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/individualTesters'
-    });
-};
-exports.buildsIndividualTestersGetToManyRelated = buildsIndividualTestersGetToManyRelated;
-const buildsPerfPowerMetricsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/perfPowerMetrics'
-    });
-};
-exports.buildsPerfPowerMetricsGetToManyRelated = buildsPerfPowerMetricsGetToManyRelated;
-const buildsPreReleaseVersionGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/preReleaseVersion'
-    });
-};
-exports.buildsPreReleaseVersionGetToOneRelated = buildsPreReleaseVersionGetToOneRelated;
-const bundleIdsAppGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/bundleIds/{id}/app'
-    });
-};
-exports.bundleIdsAppGetToOneRelated = bundleIdsAppGetToOneRelated;
-const bundleIdsBundleIdCapabilitiesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/bundleIds/{id}/bundleIdCapabilities'
-    });
-};
-exports.bundleIdsBundleIdCapabilitiesGetToManyRelated = bundleIdsBundleIdCapabilitiesGetToManyRelated;
-const bundleIdsProfilesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/bundleIds/{id}/profiles'
-    });
-};
-exports.bundleIdsProfilesGetToManyRelated = bundleIdsProfilesGetToManyRelated;
-const ciBuildActionsArtifactsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciBuildActions/{id}/artifacts'
-    });
-};
-exports.ciBuildActionsArtifactsGetToManyRelated = ciBuildActionsArtifactsGetToManyRelated;
-const ciBuildActionsBuildRunGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciBuildActions/{id}/buildRun'
-    });
-};
-exports.ciBuildActionsBuildRunGetToOneRelated = ciBuildActionsBuildRunGetToOneRelated;
-const ciBuildActionsIssuesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciBuildActions/{id}/issues'
-    });
-};
-exports.ciBuildActionsIssuesGetToManyRelated = ciBuildActionsIssuesGetToManyRelated;
-const ciBuildActionsTestResultsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciBuildActions/{id}/testResults'
-    });
-};
-exports.ciBuildActionsTestResultsGetToManyRelated = ciBuildActionsTestResultsGetToManyRelated;
-const ciBuildRunsActionsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciBuildRuns/{id}/actions'
-    });
-};
-exports.ciBuildRunsActionsGetToManyRelated = ciBuildRunsActionsGetToManyRelated;
-const ciBuildRunsBuildsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciBuildRuns/{id}/builds'
-    });
-};
-exports.ciBuildRunsBuildsGetToManyRelated = ciBuildRunsBuildsGetToManyRelated;
-const ciMacOsVersionsXcodeVersionsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciMacOsVersions/{id}/xcodeVersions'
-    });
-};
-exports.ciMacOsVersionsXcodeVersionsGetToManyRelated = ciMacOsVersionsXcodeVersionsGetToManyRelated;
-const ciProductsAdditionalRepositoriesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciProducts/{id}/additionalRepositories'
-    });
-};
-exports.ciProductsAdditionalRepositoriesGetToManyRelated = ciProductsAdditionalRepositoriesGetToManyRelated;
-const ciProductsAppGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciProducts/{id}/app'
-    });
-};
-exports.ciProductsAppGetToOneRelated = ciProductsAppGetToOneRelated;
-const ciProductsBuildRunsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciProducts/{id}/buildRuns'
-    });
-};
-exports.ciProductsBuildRunsGetToManyRelated = ciProductsBuildRunsGetToManyRelated;
-const ciProductsPrimaryRepositoriesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciProducts/{id}/primaryRepositories'
-    });
-};
-exports.ciProductsPrimaryRepositoriesGetToManyRelated = ciProductsPrimaryRepositoriesGetToManyRelated;
-const ciProductsWorkflowsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciProducts/{id}/workflows'
-    });
-};
-exports.ciProductsWorkflowsGetToManyRelated = ciProductsWorkflowsGetToManyRelated;
-const ciWorkflowsBuildRunsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciWorkflows/{id}/buildRuns'
-    });
-};
-exports.ciWorkflowsBuildRunsGetToManyRelated = ciWorkflowsBuildRunsGetToManyRelated;
-const ciWorkflowsRepositoryGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciWorkflows/{id}/repository'
-    });
-};
-exports.ciWorkflowsRepositoryGetToOneRelated = ciWorkflowsRepositoryGetToOneRelated;
-const ciXcodeVersionsMacOsVersionsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/ciXcodeVersions/{id}/macOsVersions'
-    });
-};
-exports.ciXcodeVersionsMacOsVersionsGetToManyRelated = ciXcodeVersionsMacOsVersionsGetToManyRelated;
-const customerReviewsResponseGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/customerReviews/{id}/response'
-    });
-};
-exports.customerReviewsResponseGetToOneRelated = customerReviewsResponseGetToOneRelated;
-const diagnosticSignaturesLogsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/diagnosticSignatures/{id}/logs'
-    });
-};
-exports.diagnosticSignaturesLogsGetToManyRelated = diagnosticSignaturesLogsGetToManyRelated;
-const endUserLicenseAgreementsTerritoriesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/endUserLicenseAgreements/{id}/territories'
-    });
-};
-exports.endUserLicenseAgreementsTerritoriesGetToManyRelated = endUserLicenseAgreementsTerritoriesGetToManyRelated;
-const gameCenterAchievementLocalizationsGameCenterAchievementGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAchievementLocalizations/{id}/gameCenterAchievement'
-    });
-};
-exports.gameCenterAchievementLocalizationsGameCenterAchievementGetToOneRelated = gameCenterAchievementLocalizationsGameCenterAchievementGetToOneRelated;
-const gameCenterAchievementLocalizationsGameCenterAchievementImageGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAchievementLocalizations/{id}/gameCenterAchievementImage'
-    });
-};
-exports.gameCenterAchievementLocalizationsGameCenterAchievementImageGetToOneRelated = gameCenterAchievementLocalizationsGameCenterAchievementImageGetToOneRelated;
-const gameCenterAchievementsGroupAchievementGetToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAchievements/{id}/relationships/groupAchievement'
-    });
-};
-exports.gameCenterAchievementsGroupAchievementGetToOneRelationship = gameCenterAchievementsGroupAchievementGetToOneRelationship;
-const gameCenterAchievementsGroupAchievementUpdateToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterAchievements/{id}/relationships/groupAchievement'
-    });
-};
-exports.gameCenterAchievementsGroupAchievementUpdateToOneRelationship = gameCenterAchievementsGroupAchievementUpdateToOneRelationship;
-const gameCenterAchievementsGroupAchievementGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAchievements/{id}/groupAchievement'
-    });
-};
-exports.gameCenterAchievementsGroupAchievementGetToOneRelated = gameCenterAchievementsGroupAchievementGetToOneRelated;
-const gameCenterAchievementsLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAchievements/{id}/localizations'
-    });
-};
-exports.gameCenterAchievementsLocalizationsGetToManyRelated = gameCenterAchievementsLocalizationsGetToManyRelated;
-const gameCenterAchievementsReleasesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAchievements/{id}/releases'
-    });
-};
-exports.gameCenterAchievementsReleasesGetToManyRelated = gameCenterAchievementsReleasesGetToManyRelated;
-const gameCenterAppVersionsAppStoreVersionGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAppVersions/{id}/appStoreVersion'
-    });
-};
-exports.gameCenterAppVersionsAppStoreVersionGetToOneRelated = gameCenterAppVersionsAppStoreVersionGetToOneRelated;
-const gameCenterAppVersionsCompatibilityVersionsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAppVersions/{id}/relationships/compatibilityVersions'
-    });
-};
-exports.gameCenterAppVersionsCompatibilityVersionsGetToManyRelationship = gameCenterAppVersionsCompatibilityVersionsGetToManyRelationship;
-const gameCenterAppVersionsCompatibilityVersionsCreateToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterAppVersions/{id}/relationships/compatibilityVersions'
-    });
-};
-exports.gameCenterAppVersionsCompatibilityVersionsCreateToManyRelationship = gameCenterAppVersionsCompatibilityVersionsCreateToManyRelationship;
-const gameCenterAppVersionsCompatibilityVersionsDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterAppVersions/{id}/relationships/compatibilityVersions'
-    });
-};
-exports.gameCenterAppVersionsCompatibilityVersionsDeleteToManyRelationship = gameCenterAppVersionsCompatibilityVersionsDeleteToManyRelationship;
-const gameCenterAppVersionsCompatibilityVersionsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterAppVersions/{id}/compatibilityVersions'
-    });
-};
-exports.gameCenterAppVersionsCompatibilityVersionsGetToManyRelated = gameCenterAppVersionsCompatibilityVersionsGetToManyRelated;
-const gameCenterDetailsAchievementReleasesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/achievementReleases'
-    });
-};
-exports.gameCenterDetailsAchievementReleasesGetToManyRelated = gameCenterDetailsAchievementReleasesGetToManyRelated;
-const gameCenterDetailsGameCenterAchievementsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/relationships/gameCenterAchievements'
-    });
-};
-exports.gameCenterDetailsGameCenterAchievementsGetToManyRelationship = gameCenterDetailsGameCenterAchievementsGetToManyRelationship;
-const gameCenterDetailsGameCenterAchievementsReplaceToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/relationships/gameCenterAchievements'
-    });
-};
-exports.gameCenterDetailsGameCenterAchievementsReplaceToManyRelationship = gameCenterDetailsGameCenterAchievementsReplaceToManyRelationship;
-const gameCenterDetailsGameCenterAchievementsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/gameCenterAchievements'
-    });
-};
-exports.gameCenterDetailsGameCenterAchievementsGetToManyRelated = gameCenterDetailsGameCenterAchievementsGetToManyRelated;
-const gameCenterDetailsGameCenterAppVersionsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/gameCenterAppVersions'
-    });
-};
-exports.gameCenterDetailsGameCenterAppVersionsGetToManyRelated = gameCenterDetailsGameCenterAppVersionsGetToManyRelated;
-const gameCenterDetailsGameCenterGroupGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/gameCenterGroup'
-    });
-};
-exports.gameCenterDetailsGameCenterGroupGetToOneRelated = gameCenterDetailsGameCenterGroupGetToOneRelated;
-const gameCenterDetailsGameCenterLeaderboardSetsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/relationships/gameCenterLeaderboardSets'
-    });
-};
-exports.gameCenterDetailsGameCenterLeaderboardSetsGetToManyRelationship = gameCenterDetailsGameCenterLeaderboardSetsGetToManyRelationship;
-const gameCenterDetailsGameCenterLeaderboardSetsReplaceToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/relationships/gameCenterLeaderboardSets'
-    });
-};
-exports.gameCenterDetailsGameCenterLeaderboardSetsReplaceToManyRelationship = gameCenterDetailsGameCenterLeaderboardSetsReplaceToManyRelationship;
-const gameCenterDetailsGameCenterLeaderboardSetsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/gameCenterLeaderboardSets'
-    });
-};
-exports.gameCenterDetailsGameCenterLeaderboardSetsGetToManyRelated = gameCenterDetailsGameCenterLeaderboardSetsGetToManyRelated;
-const gameCenterDetailsGameCenterLeaderboardsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/relationships/gameCenterLeaderboards'
-    });
-};
-exports.gameCenterDetailsGameCenterLeaderboardsGetToManyRelationship = gameCenterDetailsGameCenterLeaderboardsGetToManyRelationship;
-const gameCenterDetailsGameCenterLeaderboardsReplaceToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/relationships/gameCenterLeaderboards'
-    });
-};
-exports.gameCenterDetailsGameCenterLeaderboardsReplaceToManyRelationship = gameCenterDetailsGameCenterLeaderboardsReplaceToManyRelationship;
-const gameCenterDetailsGameCenterLeaderboardsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/gameCenterLeaderboards'
-    });
-};
-exports.gameCenterDetailsGameCenterLeaderboardsGetToManyRelated = gameCenterDetailsGameCenterLeaderboardsGetToManyRelated;
-const gameCenterDetailsLeaderboardReleasesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/leaderboardReleases'
-    });
-};
-exports.gameCenterDetailsLeaderboardReleasesGetToManyRelated = gameCenterDetailsLeaderboardReleasesGetToManyRelated;
-const gameCenterDetailsLeaderboardSetReleasesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/leaderboardSetReleases'
-    });
-};
-exports.gameCenterDetailsLeaderboardSetReleasesGetToManyRelated = gameCenterDetailsLeaderboardSetReleasesGetToManyRelated;
-/**
- * @deprecated
- */
-const gameCenterEnabledVersionsCompatibleVersionsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterEnabledVersions/{id}/relationships/compatibleVersions'
-    });
-};
-exports.gameCenterEnabledVersionsCompatibleVersionsGetToManyRelationship = gameCenterEnabledVersionsCompatibleVersionsGetToManyRelationship;
-/**
- * @deprecated
- */
-const gameCenterEnabledVersionsCompatibleVersionsCreateToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterEnabledVersions/{id}/relationships/compatibleVersions'
-    });
-};
-exports.gameCenterEnabledVersionsCompatibleVersionsCreateToManyRelationship = gameCenterEnabledVersionsCompatibleVersionsCreateToManyRelationship;
-/**
- * @deprecated
- */
-const gameCenterEnabledVersionsCompatibleVersionsReplaceToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterEnabledVersions/{id}/relationships/compatibleVersions'
-    });
-};
-exports.gameCenterEnabledVersionsCompatibleVersionsReplaceToManyRelationship = gameCenterEnabledVersionsCompatibleVersionsReplaceToManyRelationship;
-/**
- * @deprecated
- */
-const gameCenterEnabledVersionsCompatibleVersionsDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterEnabledVersions/{id}/relationships/compatibleVersions'
-    });
-};
-exports.gameCenterEnabledVersionsCompatibleVersionsDeleteToManyRelationship = gameCenterEnabledVersionsCompatibleVersionsDeleteToManyRelationship;
-/**
- * @deprecated
- */
-const gameCenterEnabledVersionsCompatibleVersionsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterEnabledVersions/{id}/compatibleVersions'
-    });
-};
-exports.gameCenterEnabledVersionsCompatibleVersionsGetToManyRelated = gameCenterEnabledVersionsCompatibleVersionsGetToManyRelated;
-const gameCenterGroupsGameCenterAchievementsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterGroups/{id}/relationships/gameCenterAchievements'
-    });
-};
-exports.gameCenterGroupsGameCenterAchievementsGetToManyRelationship = gameCenterGroupsGameCenterAchievementsGetToManyRelationship;
-const gameCenterGroupsGameCenterAchievementsReplaceToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterGroups/{id}/relationships/gameCenterAchievements'
-    });
-};
-exports.gameCenterGroupsGameCenterAchievementsReplaceToManyRelationship = gameCenterGroupsGameCenterAchievementsReplaceToManyRelationship;
-const gameCenterGroupsGameCenterAchievementsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterGroups/{id}/gameCenterAchievements'
-    });
-};
-exports.gameCenterGroupsGameCenterAchievementsGetToManyRelated = gameCenterGroupsGameCenterAchievementsGetToManyRelated;
-const gameCenterGroupsGameCenterDetailsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterGroups/{id}/gameCenterDetails'
-    });
-};
-exports.gameCenterGroupsGameCenterDetailsGetToManyRelated = gameCenterGroupsGameCenterDetailsGetToManyRelated;
-const gameCenterGroupsGameCenterLeaderboardSetsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterGroups/{id}/relationships/gameCenterLeaderboardSets'
-    });
-};
-exports.gameCenterGroupsGameCenterLeaderboardSetsGetToManyRelationship = gameCenterGroupsGameCenterLeaderboardSetsGetToManyRelationship;
-const gameCenterGroupsGameCenterLeaderboardSetsReplaceToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterGroups/{id}/relationships/gameCenterLeaderboardSets'
-    });
-};
-exports.gameCenterGroupsGameCenterLeaderboardSetsReplaceToManyRelationship = gameCenterGroupsGameCenterLeaderboardSetsReplaceToManyRelationship;
-const gameCenterGroupsGameCenterLeaderboardSetsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterGroups/{id}/gameCenterLeaderboardSets'
-    });
-};
-exports.gameCenterGroupsGameCenterLeaderboardSetsGetToManyRelated = gameCenterGroupsGameCenterLeaderboardSetsGetToManyRelated;
-const gameCenterGroupsGameCenterLeaderboardsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterGroups/{id}/relationships/gameCenterLeaderboards'
-    });
-};
-exports.gameCenterGroupsGameCenterLeaderboardsGetToManyRelationship = gameCenterGroupsGameCenterLeaderboardsGetToManyRelationship;
-const gameCenterGroupsGameCenterLeaderboardsReplaceToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterGroups/{id}/relationships/gameCenterLeaderboards'
-    });
-};
-exports.gameCenterGroupsGameCenterLeaderboardsReplaceToManyRelationship = gameCenterGroupsGameCenterLeaderboardsReplaceToManyRelationship;
-const gameCenterGroupsGameCenterLeaderboardsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterGroups/{id}/gameCenterLeaderboards'
-    });
-};
-exports.gameCenterGroupsGameCenterLeaderboardsGetToManyRelated = gameCenterGroupsGameCenterLeaderboardsGetToManyRelated;
-const gameCenterLeaderboardLocalizationsGameCenterLeaderboardImageGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardLocalizations/{id}/gameCenterLeaderboardImage'
-    });
-};
-exports.gameCenterLeaderboardLocalizationsGameCenterLeaderboardImageGetToOneRelated = gameCenterLeaderboardLocalizationsGameCenterLeaderboardImageGetToOneRelated;
-const gameCenterLeaderboardSetLocalizationsGameCenterLeaderboardSetImageGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetLocalizations/{id}/gameCenterLeaderboardSetImage'
-    });
-};
-exports.gameCenterLeaderboardSetLocalizationsGameCenterLeaderboardSetImageGetToOneRelated = gameCenterLeaderboardSetLocalizationsGameCenterLeaderboardSetImageGetToOneRelated;
-const gameCenterLeaderboardSetMemberLocalizationsGameCenterLeaderboardGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetMemberLocalizations/{id}/gameCenterLeaderboard'
-    });
-};
-exports.gameCenterLeaderboardSetMemberLocalizationsGameCenterLeaderboardGetToOneRelated = gameCenterLeaderboardSetMemberLocalizationsGameCenterLeaderboardGetToOneRelated;
-const gameCenterLeaderboardSetMemberLocalizationsGameCenterLeaderboardSetGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSetMemberLocalizations/{id}/gameCenterLeaderboardSet'
-    });
-};
-exports.gameCenterLeaderboardSetMemberLocalizationsGameCenterLeaderboardSetGetToOneRelated = gameCenterLeaderboardSetMemberLocalizationsGameCenterLeaderboardSetGetToOneRelated;
-const gameCenterLeaderboardSetsGameCenterLeaderboardsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets/{id}/relationships/gameCenterLeaderboards'
-    });
-};
-exports.gameCenterLeaderboardSetsGameCenterLeaderboardsGetToManyRelationship = gameCenterLeaderboardSetsGameCenterLeaderboardsGetToManyRelationship;
-const gameCenterLeaderboardSetsGameCenterLeaderboardsCreateToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets/{id}/relationships/gameCenterLeaderboards'
-    });
-};
-exports.gameCenterLeaderboardSetsGameCenterLeaderboardsCreateToManyRelationship = gameCenterLeaderboardSetsGameCenterLeaderboardsCreateToManyRelationship;
-const gameCenterLeaderboardSetsGameCenterLeaderboardsReplaceToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets/{id}/relationships/gameCenterLeaderboards'
-    });
-};
-exports.gameCenterLeaderboardSetsGameCenterLeaderboardsReplaceToManyRelationship = gameCenterLeaderboardSetsGameCenterLeaderboardsReplaceToManyRelationship;
-const gameCenterLeaderboardSetsGameCenterLeaderboardsDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets/{id}/relationships/gameCenterLeaderboards'
-    });
-};
-exports.gameCenterLeaderboardSetsGameCenterLeaderboardsDeleteToManyRelationship = gameCenterLeaderboardSetsGameCenterLeaderboardsDeleteToManyRelationship;
-const gameCenterLeaderboardSetsGameCenterLeaderboardsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets/{id}/gameCenterLeaderboards'
-    });
-};
-exports.gameCenterLeaderboardSetsGameCenterLeaderboardsGetToManyRelated = gameCenterLeaderboardSetsGameCenterLeaderboardsGetToManyRelated;
-const gameCenterLeaderboardSetsGroupLeaderboardSetGetToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets/{id}/relationships/groupLeaderboardSet'
-    });
-};
-exports.gameCenterLeaderboardSetsGroupLeaderboardSetGetToOneRelationship = gameCenterLeaderboardSetsGroupLeaderboardSetGetToOneRelationship;
-const gameCenterLeaderboardSetsGroupLeaderboardSetUpdateToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets/{id}/relationships/groupLeaderboardSet'
-    });
-};
-exports.gameCenterLeaderboardSetsGroupLeaderboardSetUpdateToOneRelationship = gameCenterLeaderboardSetsGroupLeaderboardSetUpdateToOneRelationship;
-const gameCenterLeaderboardSetsGroupLeaderboardSetGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets/{id}/groupLeaderboardSet'
-    });
-};
-exports.gameCenterLeaderboardSetsGroupLeaderboardSetGetToOneRelated = gameCenterLeaderboardSetsGroupLeaderboardSetGetToOneRelated;
-const gameCenterLeaderboardSetsLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets/{id}/localizations'
-    });
-};
-exports.gameCenterLeaderboardSetsLocalizationsGetToManyRelated = gameCenterLeaderboardSetsLocalizationsGetToManyRelated;
-const gameCenterLeaderboardSetsReleasesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboardSets/{id}/releases'
-    });
-};
-exports.gameCenterLeaderboardSetsReleasesGetToManyRelated = gameCenterLeaderboardSetsReleasesGetToManyRelated;
-const gameCenterLeaderboardsGroupLeaderboardGetToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboards/{id}/relationships/groupLeaderboard'
-    });
-};
-exports.gameCenterLeaderboardsGroupLeaderboardGetToOneRelationship = gameCenterLeaderboardsGroupLeaderboardGetToOneRelationship;
-const gameCenterLeaderboardsGroupLeaderboardUpdateToOneRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/gameCenterLeaderboards/{id}/relationships/groupLeaderboard'
-    });
-};
-exports.gameCenterLeaderboardsGroupLeaderboardUpdateToOneRelationship = gameCenterLeaderboardsGroupLeaderboardUpdateToOneRelationship;
-const gameCenterLeaderboardsGroupLeaderboardGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboards/{id}/groupLeaderboard'
-    });
-};
-exports.gameCenterLeaderboardsGroupLeaderboardGetToOneRelated = gameCenterLeaderboardsGroupLeaderboardGetToOneRelated;
-const gameCenterLeaderboardsLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboards/{id}/localizations'
-    });
-};
-exports.gameCenterLeaderboardsLocalizationsGetToManyRelated = gameCenterLeaderboardsLocalizationsGetToManyRelated;
-const gameCenterLeaderboardsReleasesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterLeaderboards/{id}/releases'
-    });
-};
-exports.gameCenterLeaderboardsReleasesGetToManyRelated = gameCenterLeaderboardsReleasesGetToManyRelated;
-const gameCenterMatchmakingRuleSetsMatchmakingQueuesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRuleSets/{id}/matchmakingQueues'
-    });
-};
-exports.gameCenterMatchmakingRuleSetsMatchmakingQueuesGetToManyRelated = gameCenterMatchmakingRuleSetsMatchmakingQueuesGetToManyRelated;
-const gameCenterMatchmakingRuleSetsRulesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRuleSets/{id}/rules'
-    });
-};
-exports.gameCenterMatchmakingRuleSetsRulesGetToManyRelated = gameCenterMatchmakingRuleSetsRulesGetToManyRelated;
-const gameCenterMatchmakingRuleSetsTeamsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRuleSets/{id}/teams'
-    });
-};
-exports.gameCenterMatchmakingRuleSetsTeamsGetToManyRelated = gameCenterMatchmakingRuleSetsTeamsGetToManyRelated;
-const inAppPurchaseAvailabilitiesAvailableTerritoriesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/inAppPurchaseAvailabilities/{id}/availableTerritories'
-    });
-};
-exports.inAppPurchaseAvailabilitiesAvailableTerritoriesGetToManyRelated = inAppPurchaseAvailabilitiesAvailableTerritoriesGetToManyRelated;
-const inAppPurchasePriceSchedulesAutomaticPricesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/inAppPurchasePriceSchedules/{id}/automaticPrices'
-    });
-};
-exports.inAppPurchasePriceSchedulesAutomaticPricesGetToManyRelated = inAppPurchasePriceSchedulesAutomaticPricesGetToManyRelated;
-const inAppPurchasePriceSchedulesBaseTerritoryGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/inAppPurchasePriceSchedules/{id}/baseTerritory'
-    });
-};
-exports.inAppPurchasePriceSchedulesBaseTerritoryGetToOneRelated = inAppPurchasePriceSchedulesBaseTerritoryGetToOneRelated;
-const inAppPurchasePriceSchedulesManualPricesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/inAppPurchasePriceSchedules/{id}/manualPrices'
-    });
-};
-exports.inAppPurchasePriceSchedulesManualPricesGetToManyRelated = inAppPurchasePriceSchedulesManualPricesGetToManyRelated;
-const inAppPurchasesV2AppStoreReviewScreenshotGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/inAppPurchases/{id}/appStoreReviewScreenshot'
-    });
-};
-exports.inAppPurchasesV2AppStoreReviewScreenshotGetToOneRelated = inAppPurchasesV2AppStoreReviewScreenshotGetToOneRelated;
-const inAppPurchasesV2ContentGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/inAppPurchases/{id}/content'
-    });
-};
-exports.inAppPurchasesV2ContentGetToOneRelated = inAppPurchasesV2ContentGetToOneRelated;
-const inAppPurchasesV2IapPriceScheduleGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/inAppPurchases/{id}/iapPriceSchedule'
-    });
-};
-exports.inAppPurchasesV2IapPriceScheduleGetToOneRelated = inAppPurchasesV2IapPriceScheduleGetToOneRelated;
-const inAppPurchasesV2ImagesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/inAppPurchases/{id}/images'
-    });
-};
-exports.inAppPurchasesV2ImagesGetToManyRelated = inAppPurchasesV2ImagesGetToManyRelated;
-const inAppPurchasesV2InAppPurchaseAvailabilityGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/inAppPurchases/{id}/inAppPurchaseAvailability'
-    });
-};
-exports.inAppPurchasesV2InAppPurchaseAvailabilityGetToOneRelated = inAppPurchasesV2InAppPurchaseAvailabilityGetToOneRelated;
-const inAppPurchasesV2InAppPurchaseLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/inAppPurchases/{id}/inAppPurchaseLocalizations'
-    });
-};
-exports.inAppPurchasesV2InAppPurchaseLocalizationsGetToManyRelated = inAppPurchasesV2InAppPurchaseLocalizationsGetToManyRelated;
-const inAppPurchasesV2PricePointsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/inAppPurchases/{id}/pricePoints'
-    });
-};
-exports.inAppPurchasesV2PricePointsGetToManyRelated = inAppPurchasesV2PricePointsGetToManyRelated;
-const inAppPurchasesV2PromotedPurchaseGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v2/inAppPurchases/{id}/promotedPurchase'
-    });
-};
-exports.inAppPurchasesV2PromotedPurchaseGetToOneRelated = inAppPurchasesV2PromotedPurchaseGetToOneRelated;
-const preReleaseVersionsAppGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/preReleaseVersions/{id}/app'
-    });
-};
-exports.preReleaseVersionsAppGetToOneRelated = preReleaseVersionsAppGetToOneRelated;
-const preReleaseVersionsBuildsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/preReleaseVersions/{id}/builds'
-    });
-};
-exports.preReleaseVersionsBuildsGetToManyRelated = preReleaseVersionsBuildsGetToManyRelated;
-const profilesBundleIdGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/profiles/{id}/bundleId'
-    });
-};
-exports.profilesBundleIdGetToOneRelated = profilesBundleIdGetToOneRelated;
-const profilesCertificatesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/profiles/{id}/certificates'
-    });
-};
-exports.profilesCertificatesGetToManyRelated = profilesCertificatesGetToManyRelated;
-const profilesDevicesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/profiles/{id}/devices'
-    });
-};
-exports.profilesDevicesGetToManyRelated = profilesDevicesGetToManyRelated;
-/**
- * @deprecated
- */
-const promotedPurchasesPromotionImagesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/promotedPurchases/{id}/promotionImages'
-    });
-};
-exports.promotedPurchasesPromotionImagesGetToManyRelated = promotedPurchasesPromotionImagesGetToManyRelated;
-const reviewSubmissionsItemsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/reviewSubmissions/{id}/items'
-    });
-};
-exports.reviewSubmissionsItemsGetToManyRelated = reviewSubmissionsItemsGetToManyRelated;
-const scmProvidersRepositoriesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/scmProviders/{id}/repositories'
-    });
-};
-exports.scmProvidersRepositoriesGetToManyRelated = scmProvidersRepositoriesGetToManyRelated;
-const scmRepositoriesGitReferencesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/scmRepositories/{id}/gitReferences'
-    });
-};
-exports.scmRepositoriesGitReferencesGetToManyRelated = scmRepositoriesGitReferencesGetToManyRelated;
-const scmRepositoriesPullRequestsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/scmRepositories/{id}/pullRequests'
-    });
-};
-exports.scmRepositoriesPullRequestsGetToManyRelated = scmRepositoriesPullRequestsGetToManyRelated;
-const subscriptionAvailabilitiesAvailableTerritoriesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionAvailabilities/{id}/availableTerritories'
-    });
-};
-exports.subscriptionAvailabilitiesAvailableTerritoriesGetToManyRelated = subscriptionAvailabilitiesAvailableTerritoriesGetToManyRelated;
-const subscriptionGroupsSubscriptionGroupLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionGroups/{id}/subscriptionGroupLocalizations'
-    });
-};
-exports.subscriptionGroupsSubscriptionGroupLocalizationsGetToManyRelated = subscriptionGroupsSubscriptionGroupLocalizationsGetToManyRelated;
-const subscriptionGroupsSubscriptionsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionGroups/{id}/subscriptions'
-    });
-};
-exports.subscriptionGroupsSubscriptionsGetToManyRelated = subscriptionGroupsSubscriptionsGetToManyRelated;
-const subscriptionOfferCodeOneTimeUseCodesValuesGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionOfferCodeOneTimeUseCodes/{id}/values'
-    });
-};
-exports.subscriptionOfferCodeOneTimeUseCodesValuesGetToOneRelated = subscriptionOfferCodeOneTimeUseCodesValuesGetToOneRelated;
-const subscriptionOfferCodesCustomCodesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionOfferCodes/{id}/customCodes'
-    });
-};
-exports.subscriptionOfferCodesCustomCodesGetToManyRelated = subscriptionOfferCodesCustomCodesGetToManyRelated;
-const subscriptionOfferCodesOneTimeUseCodesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionOfferCodes/{id}/oneTimeUseCodes'
-    });
-};
-exports.subscriptionOfferCodesOneTimeUseCodesGetToManyRelated = subscriptionOfferCodesOneTimeUseCodesGetToManyRelated;
-const subscriptionOfferCodesPricesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionOfferCodes/{id}/prices'
-    });
-};
-exports.subscriptionOfferCodesPricesGetToManyRelated = subscriptionOfferCodesPricesGetToManyRelated;
-const subscriptionPricePointsEqualizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionPricePoints/{id}/equalizations'
-    });
-};
-exports.subscriptionPricePointsEqualizationsGetToManyRelated = subscriptionPricePointsEqualizationsGetToManyRelated;
-const subscriptionPromotionalOffersPricesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptionPromotionalOffers/{id}/prices'
-    });
-};
-exports.subscriptionPromotionalOffersPricesGetToManyRelated = subscriptionPromotionalOffersPricesGetToManyRelated;
-const subscriptionsAppStoreReviewScreenshotGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}/appStoreReviewScreenshot'
-    });
-};
-exports.subscriptionsAppStoreReviewScreenshotGetToOneRelated = subscriptionsAppStoreReviewScreenshotGetToOneRelated;
-const subscriptionsImagesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}/images'
-    });
-};
-exports.subscriptionsImagesGetToManyRelated = subscriptionsImagesGetToManyRelated;
-const subscriptionsIntroductoryOffersGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}/relationships/introductoryOffers'
-    });
-};
-exports.subscriptionsIntroductoryOffersGetToManyRelationship = subscriptionsIntroductoryOffersGetToManyRelationship;
-const subscriptionsIntroductoryOffersDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/subscriptions/{id}/relationships/introductoryOffers'
-    });
-};
-exports.subscriptionsIntroductoryOffersDeleteToManyRelationship = subscriptionsIntroductoryOffersDeleteToManyRelationship;
-const subscriptionsIntroductoryOffersGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}/introductoryOffers'
-    });
-};
-exports.subscriptionsIntroductoryOffersGetToManyRelated = subscriptionsIntroductoryOffersGetToManyRelated;
-const subscriptionsOfferCodesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}/offerCodes'
-    });
-};
-exports.subscriptionsOfferCodesGetToManyRelated = subscriptionsOfferCodesGetToManyRelated;
-const subscriptionsPricePointsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}/pricePoints'
-    });
-};
-exports.subscriptionsPricePointsGetToManyRelated = subscriptionsPricePointsGetToManyRelated;
-const subscriptionsPricesGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}/relationships/prices'
-    });
-};
-exports.subscriptionsPricesGetToManyRelationship = subscriptionsPricesGetToManyRelationship;
-const subscriptionsPricesDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/subscriptions/{id}/relationships/prices'
-    });
-};
-exports.subscriptionsPricesDeleteToManyRelationship = subscriptionsPricesDeleteToManyRelationship;
-const subscriptionsPricesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}/prices'
-    });
-};
-exports.subscriptionsPricesGetToManyRelated = subscriptionsPricesGetToManyRelated;
-const subscriptionsPromotedPurchaseGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}/promotedPurchase'
-    });
-};
-exports.subscriptionsPromotedPurchaseGetToOneRelated = subscriptionsPromotedPurchaseGetToOneRelated;
-const subscriptionsPromotionalOffersGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}/promotionalOffers'
-    });
-};
-exports.subscriptionsPromotionalOffersGetToManyRelated = subscriptionsPromotionalOffersGetToManyRelated;
-const subscriptionsSubscriptionAvailabilityGetToOneRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}/subscriptionAvailability'
-    });
-};
-exports.subscriptionsSubscriptionAvailabilityGetToOneRelated = subscriptionsSubscriptionAvailabilityGetToOneRelated;
-const subscriptionsSubscriptionLocalizationsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}/subscriptionLocalizations'
-    });
-};
-exports.subscriptionsSubscriptionLocalizationsGetToManyRelated = subscriptionsSubscriptionLocalizationsGetToManyRelated;
-const subscriptionsWinBackOffersGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/subscriptions/{id}/winBackOffers'
-    });
-};
-exports.subscriptionsWinBackOffersGetToManyRelated = subscriptionsWinBackOffersGetToManyRelated;
-const userInvitationsVisibleAppsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/userInvitations/{id}/visibleApps'
-    });
-};
-exports.userInvitationsVisibleAppsGetToManyRelated = userInvitationsVisibleAppsGetToManyRelated;
-const usersVisibleAppsGetToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/users/{id}/relationships/visibleApps'
-    });
-};
-exports.usersVisibleAppsGetToManyRelationship = usersVisibleAppsGetToManyRelationship;
-const usersVisibleAppsCreateToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).post({
-        ...options,
-        url: '/v1/users/{id}/relationships/visibleApps'
-    });
-};
-exports.usersVisibleAppsCreateToManyRelationship = usersVisibleAppsCreateToManyRelationship;
-const usersVisibleAppsReplaceToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).patch({
-        ...options,
-        url: '/v1/users/{id}/relationships/visibleApps'
-    });
-};
-exports.usersVisibleAppsReplaceToManyRelationship = usersVisibleAppsReplaceToManyRelationship;
-const usersVisibleAppsDeleteToManyRelationship = (options) => {
-    return (options?.client ?? exports.client).delete({
-        ...options,
-        url: '/v1/users/{id}/relationships/visibleApps'
-    });
-};
-exports.usersVisibleAppsDeleteToManyRelationship = usersVisibleAppsDeleteToManyRelationship;
-const usersVisibleAppsGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/users/{id}/visibleApps'
-    });
-};
-exports.usersVisibleAppsGetToManyRelated = usersVisibleAppsGetToManyRelated;
-const winBackOffersPricesGetToManyRelated = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/winBackOffers/{id}/prices'
-    });
-};
-exports.winBackOffersPricesGetToManyRelated = winBackOffersPricesGetToManyRelated;
-const appsBetaTesterUsagesGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/apps/{id}/metrics/betaTesterUsages'
-    });
-};
-exports.appsBetaTesterUsagesGetMetrics = appsBetaTesterUsagesGetMetrics;
-const betaGroupsBetaTesterUsagesGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaGroups/{id}/metrics/betaTesterUsages'
-    });
-};
-exports.betaGroupsBetaTesterUsagesGetMetrics = betaGroupsBetaTesterUsagesGetMetrics;
-const betaTestersBetaTesterUsagesGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/betaTesters/{id}/metrics/betaTesterUsages'
-    });
-};
-exports.betaTestersBetaTesterUsagesGetMetrics = betaTestersBetaTesterUsagesGetMetrics;
-const buildsBetaBuildUsagesGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/builds/{id}/metrics/betaBuildUsages'
-    });
-};
-exports.buildsBetaBuildUsagesGetMetrics = buildsBetaBuildUsagesGetMetrics;
-const gameCenterDetailsClassicMatchmakingRequestsGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/metrics/classicMatchmakingRequests'
-    });
-};
-exports.gameCenterDetailsClassicMatchmakingRequestsGetMetrics = gameCenterDetailsClassicMatchmakingRequestsGetMetrics;
-const gameCenterDetailsRuleBasedMatchmakingRequestsGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterDetails/{id}/metrics/ruleBasedMatchmakingRequests'
-    });
-};
-exports.gameCenterDetailsRuleBasedMatchmakingRequestsGetMetrics = gameCenterDetailsRuleBasedMatchmakingRequestsGetMetrics;
-const gameCenterMatchmakingQueuesExperimentMatchmakingQueueSizesGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/experimentMatchmakingQueueSizes'
-    });
-};
-exports.gameCenterMatchmakingQueuesExperimentMatchmakingQueueSizesGetMetrics = gameCenterMatchmakingQueuesExperimentMatchmakingQueueSizesGetMetrics;
-const gameCenterMatchmakingQueuesExperimentMatchmakingRequestsGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/experimentMatchmakingRequests'
-    });
-};
-exports.gameCenterMatchmakingQueuesExperimentMatchmakingRequestsGetMetrics = gameCenterMatchmakingQueuesExperimentMatchmakingRequestsGetMetrics;
-const gameCenterMatchmakingQueuesMatchmakingQueueSizesGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/matchmakingQueueSizes'
-    });
-};
-exports.gameCenterMatchmakingQueuesMatchmakingQueueSizesGetMetrics = gameCenterMatchmakingQueuesMatchmakingQueueSizesGetMetrics;
-const gameCenterMatchmakingQueuesMatchmakingRequestsGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/matchmakingRequests'
-    });
-};
-exports.gameCenterMatchmakingQueuesMatchmakingRequestsGetMetrics = gameCenterMatchmakingQueuesMatchmakingRequestsGetMetrics;
-const gameCenterMatchmakingQueuesMatchmakingSessionsGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/matchmakingSessions'
-    });
-};
-exports.gameCenterMatchmakingQueuesMatchmakingSessionsGetMetrics = gameCenterMatchmakingQueuesMatchmakingSessionsGetMetrics;
-const gameCenterMatchmakingRulesMatchmakingBooleanRuleResultsGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRules/{id}/metrics/matchmakingBooleanRuleResults'
-    });
-};
-exports.gameCenterMatchmakingRulesMatchmakingBooleanRuleResultsGetMetrics = gameCenterMatchmakingRulesMatchmakingBooleanRuleResultsGetMetrics;
-const gameCenterMatchmakingRulesMatchmakingNumberRuleResultsGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRules/{id}/metrics/matchmakingNumberRuleResults'
-    });
-};
-exports.gameCenterMatchmakingRulesMatchmakingNumberRuleResultsGetMetrics = gameCenterMatchmakingRulesMatchmakingNumberRuleResultsGetMetrics;
-const gameCenterMatchmakingRulesMatchmakingRuleErrorsGetMetrics = (options) => {
-    return (options?.client ?? exports.client).get({
-        ...options,
-        url: '/v1/gameCenterMatchmakingRules/{id}/metrics/matchmakingRuleErrors'
-    });
-};
-exports.gameCenterMatchmakingRulesMatchmakingRuleErrorsGetMetrics = gameCenterMatchmakingRulesMatchmakingRuleErrorsGetMetrics;
+class ActorsService {
+    static actorsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/actors'
+        });
+    }
+    static actorsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/actors/{id}'
+        });
+    }
+}
+exports.ActorsService = ActorsService;
+class AgeRatingDeclarationsService {
+    static ageRatingDeclarationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/ageRatingDeclarations/{id}'
+        });
+    }
+}
+exports.AgeRatingDeclarationsService = AgeRatingDeclarationsService;
+class AlternativeDistributionDomainsService {
+    static alternativeDistributionDomainsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/alternativeDistributionDomains'
+        });
+    }
+    static alternativeDistributionDomainsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/alternativeDistributionDomains'
+        });
+    }
+    static alternativeDistributionDomainsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/alternativeDistributionDomains/{id}'
+        });
+    }
+    static alternativeDistributionDomainsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/alternativeDistributionDomains/{id}'
+        });
+    }
+}
+exports.AlternativeDistributionDomainsService = AlternativeDistributionDomainsService;
+class AlternativeDistributionKeysService {
+    static alternativeDistributionKeysGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/alternativeDistributionKeys'
+        });
+    }
+    static alternativeDistributionKeysCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/alternativeDistributionKeys'
+        });
+    }
+    static alternativeDistributionKeysGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/alternativeDistributionKeys/{id}'
+        });
+    }
+    static alternativeDistributionKeysDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/alternativeDistributionKeys/{id}'
+        });
+    }
+}
+exports.AlternativeDistributionKeysService = AlternativeDistributionKeysService;
+class AlternativeDistributionPackageDeltasService {
+    static alternativeDistributionPackageDeltasGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/alternativeDistributionPackageDeltas/{id}'
+        });
+    }
+}
+exports.AlternativeDistributionPackageDeltasService = AlternativeDistributionPackageDeltasService;
+class AlternativeDistributionPackageVariantsService {
+    static alternativeDistributionPackageVariantsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/alternativeDistributionPackageVariants/{id}'
+        });
+    }
+}
+exports.AlternativeDistributionPackageVariantsService = AlternativeDistributionPackageVariantsService;
+class AlternativeDistributionPackageVersionsService {
+    static alternativeDistributionPackageVersionsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/alternativeDistributionPackageVersions/{id}'
+        });
+    }
+    static alternativeDistributionPackageVersionsDeltasGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/alternativeDistributionPackageVersions/{id}/deltas'
+        });
+    }
+    static alternativeDistributionPackageVersionsVariantsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/alternativeDistributionPackageVersions/{id}/variants'
+        });
+    }
+}
+exports.AlternativeDistributionPackageVersionsService = AlternativeDistributionPackageVersionsService;
+class AlternativeDistributionPackagesService {
+    static alternativeDistributionPackagesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/alternativeDistributionPackages'
+        });
+    }
+    static alternativeDistributionPackagesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/alternativeDistributionPackages/{id}'
+        });
+    }
+    static alternativeDistributionPackagesVersionsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/alternativeDistributionPackages/{id}/versions'
+        });
+    }
+}
+exports.AlternativeDistributionPackagesService = AlternativeDistributionPackagesService;
+class AnalyticsReportInstancesService {
+    static analyticsReportInstancesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/analyticsReportInstances/{id}'
+        });
+    }
+    static analyticsReportInstancesSegmentsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/analyticsReportInstances/{id}/segments'
+        });
+    }
+}
+exports.AnalyticsReportInstancesService = AnalyticsReportInstancesService;
+class AnalyticsReportRequestsService {
+    static analyticsReportRequestsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/analyticsReportRequests'
+        });
+    }
+    static analyticsReportRequestsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/analyticsReportRequests/{id}'
+        });
+    }
+    static analyticsReportRequestsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/analyticsReportRequests/{id}'
+        });
+    }
+    static analyticsReportRequestsReportsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/analyticsReportRequests/{id}/reports'
+        });
+    }
+}
+exports.AnalyticsReportRequestsService = AnalyticsReportRequestsService;
+class AnalyticsReportSegmentsService {
+    static analyticsReportSegmentsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/analyticsReportSegments/{id}'
+        });
+    }
+}
+exports.AnalyticsReportSegmentsService = AnalyticsReportSegmentsService;
+class AnalyticsReportsService {
+    static analyticsReportsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/analyticsReports/{id}'
+        });
+    }
+    static analyticsReportsInstancesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/analyticsReports/{id}/instances'
+        });
+    }
+}
+exports.AnalyticsReportsService = AnalyticsReportsService;
+class AppAvailabilitiesService {
+    static appAvailabilitiesV2CreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v2/appAvailabilities'
+        });
+    }
+    static appAvailabilitiesV2GetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/appAvailabilities/{id}'
+        });
+    }
+    static appAvailabilitiesV2TerritoryAvailabilitiesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/appAvailabilities/{id}/territoryAvailabilities'
+        });
+    }
+}
+exports.AppAvailabilitiesService = AppAvailabilitiesService;
+class AppCategoriesService {
+    static appCategoriesGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appCategories'
+        });
+    }
+    static appCategoriesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appCategories/{id}'
+        });
+    }
+    static appCategoriesParentGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appCategories/{id}/parent'
+        });
+    }
+    static appCategoriesSubcategoriesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appCategories/{id}/subcategories'
+        });
+    }
+}
+exports.AppCategoriesService = AppCategoriesService;
+class AppClipAdvancedExperienceImagesService {
+    static appClipAdvancedExperienceImagesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appClipAdvancedExperienceImages'
+        });
+    }
+    static appClipAdvancedExperienceImagesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClipAdvancedExperienceImages/{id}'
+        });
+    }
+    static appClipAdvancedExperienceImagesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appClipAdvancedExperienceImages/{id}'
+        });
+    }
+}
+exports.AppClipAdvancedExperienceImagesService = AppClipAdvancedExperienceImagesService;
+class AppClipAdvancedExperiencesService {
+    static appClipAdvancedExperiencesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appClipAdvancedExperiences'
+        });
+    }
+    static appClipAdvancedExperiencesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClipAdvancedExperiences/{id}'
+        });
+    }
+    static appClipAdvancedExperiencesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appClipAdvancedExperiences/{id}'
+        });
+    }
+}
+exports.AppClipAdvancedExperiencesService = AppClipAdvancedExperiencesService;
+class AppClipAppStoreReviewDetailsService {
+    static appClipAppStoreReviewDetailsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appClipAppStoreReviewDetails'
+        });
+    }
+    static appClipAppStoreReviewDetailsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClipAppStoreReviewDetails/{id}'
+        });
+    }
+    static appClipAppStoreReviewDetailsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appClipAppStoreReviewDetails/{id}'
+        });
+    }
+}
+exports.AppClipAppStoreReviewDetailsService = AppClipAppStoreReviewDetailsService;
+class AppClipDefaultExperienceLocalizationsService {
+    static appClipDefaultExperienceLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appClipDefaultExperienceLocalizations'
+        });
+    }
+    static appClipDefaultExperienceLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClipDefaultExperienceLocalizations/{id}'
+        });
+    }
+    static appClipDefaultExperienceLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appClipDefaultExperienceLocalizations/{id}'
+        });
+    }
+    static appClipDefaultExperienceLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appClipDefaultExperienceLocalizations/{id}'
+        });
+    }
+    static appClipDefaultExperienceLocalizationsAppClipHeaderImageGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClipDefaultExperienceLocalizations/{id}/appClipHeaderImage'
+        });
+    }
+}
+exports.AppClipDefaultExperienceLocalizationsService = AppClipDefaultExperienceLocalizationsService;
+class AppClipDefaultExperiencesService {
+    static appClipDefaultExperiencesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appClipDefaultExperiences'
+        });
+    }
+    static appClipDefaultExperiencesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClipDefaultExperiences/{id}'
+        });
+    }
+    static appClipDefaultExperiencesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appClipDefaultExperiences/{id}'
+        });
+    }
+    static appClipDefaultExperiencesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appClipDefaultExperiences/{id}'
+        });
+    }
+    static appClipDefaultExperiencesAppClipAppStoreReviewDetailGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClipDefaultExperiences/{id}/appClipAppStoreReviewDetail'
+        });
+    }
+    static appClipDefaultExperiencesAppClipDefaultExperienceLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClipDefaultExperiences/{id}/appClipDefaultExperienceLocalizations'
+        });
+    }
+    static appClipDefaultExperiencesReleaseWithAppStoreVersionGetToOneRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClipDefaultExperiences/{id}/relationships/releaseWithAppStoreVersion'
+        });
+    }
+    static appClipDefaultExperiencesReleaseWithAppStoreVersionUpdateToOneRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appClipDefaultExperiences/{id}/relationships/releaseWithAppStoreVersion'
+        });
+    }
+    static appClipDefaultExperiencesReleaseWithAppStoreVersionGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClipDefaultExperiences/{id}/releaseWithAppStoreVersion'
+        });
+    }
+}
+exports.AppClipDefaultExperiencesService = AppClipDefaultExperiencesService;
+class AppClipHeaderImagesService {
+    static appClipHeaderImagesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appClipHeaderImages'
+        });
+    }
+    static appClipHeaderImagesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClipHeaderImages/{id}'
+        });
+    }
+    static appClipHeaderImagesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appClipHeaderImages/{id}'
+        });
+    }
+    static appClipHeaderImagesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appClipHeaderImages/{id}'
+        });
+    }
+}
+exports.AppClipHeaderImagesService = AppClipHeaderImagesService;
+class AppClipsService {
+    static appClipsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClips/{id}'
+        });
+    }
+    static appClipsAppClipAdvancedExperiencesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClips/{id}/appClipAdvancedExperiences'
+        });
+    }
+    static appClipsAppClipDefaultExperiencesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appClips/{id}/appClipDefaultExperiences'
+        });
+    }
+}
+exports.AppClipsService = AppClipsService;
+class AppCustomProductPageLocalizationsService {
+    static appCustomProductPageLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appCustomProductPageLocalizations'
+        });
+    }
+    static appCustomProductPageLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appCustomProductPageLocalizations/{id}'
+        });
+    }
+    static appCustomProductPageLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appCustomProductPageLocalizations/{id}'
+        });
+    }
+    static appCustomProductPageLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appCustomProductPageLocalizations/{id}'
+        });
+    }
+    static appCustomProductPageLocalizationsAppPreviewSetsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appCustomProductPageLocalizations/{id}/appPreviewSets'
+        });
+    }
+    static appCustomProductPageLocalizationsAppScreenshotSetsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appCustomProductPageLocalizations/{id}/appScreenshotSets'
+        });
+    }
+}
+exports.AppCustomProductPageLocalizationsService = AppCustomProductPageLocalizationsService;
+class AppCustomProductPageVersionsService {
+    static appCustomProductPageVersionsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appCustomProductPageVersions'
+        });
+    }
+    static appCustomProductPageVersionsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appCustomProductPageVersions/{id}'
+        });
+    }
+    static appCustomProductPageVersionsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appCustomProductPageVersions/{id}'
+        });
+    }
+    static appCustomProductPageVersionsAppCustomProductPageLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appCustomProductPageVersions/{id}/appCustomProductPageLocalizations'
+        });
+    }
+}
+exports.AppCustomProductPageVersionsService = AppCustomProductPageVersionsService;
+class AppCustomProductPagesService {
+    static appCustomProductPagesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appCustomProductPages'
+        });
+    }
+    static appCustomProductPagesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appCustomProductPages/{id}'
+        });
+    }
+    static appCustomProductPagesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appCustomProductPages/{id}'
+        });
+    }
+    static appCustomProductPagesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appCustomProductPages/{id}'
+        });
+    }
+    static appCustomProductPagesAppCustomProductPageVersionsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appCustomProductPages/{id}/appCustomProductPageVersions'
+        });
+    }
+}
+exports.AppCustomProductPagesService = AppCustomProductPagesService;
+class AppEncryptionDeclarationDocumentsService {
+    static appEncryptionDeclarationDocumentsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appEncryptionDeclarationDocuments'
+        });
+    }
+    static appEncryptionDeclarationDocumentsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appEncryptionDeclarationDocuments/{id}'
+        });
+    }
+    static appEncryptionDeclarationDocumentsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appEncryptionDeclarationDocuments/{id}'
+        });
+    }
+}
+exports.AppEncryptionDeclarationDocumentsService = AppEncryptionDeclarationDocumentsService;
+class AppEncryptionDeclarationsService {
+    static appEncryptionDeclarationsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appEncryptionDeclarations'
+        });
+    }
+    static appEncryptionDeclarationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appEncryptionDeclarations'
+        });
+    }
+    static appEncryptionDeclarationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appEncryptionDeclarations/{id}'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static appEncryptionDeclarationsAppGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appEncryptionDeclarations/{id}/app'
+        });
+    }
+    static appEncryptionDeclarationsAppEncryptionDeclarationDocumentGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appEncryptionDeclarations/{id}/appEncryptionDeclarationDocument'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static appEncryptionDeclarationsBuildsCreateToManyRelationship(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appEncryptionDeclarations/{id}/relationships/builds'
+        });
+    }
+}
+exports.AppEncryptionDeclarationsService = AppEncryptionDeclarationsService;
+class AppEventLocalizationsService {
+    static appEventLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appEventLocalizations'
+        });
+    }
+    static appEventLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appEventLocalizations/{id}'
+        });
+    }
+    static appEventLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appEventLocalizations/{id}'
+        });
+    }
+    static appEventLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appEventLocalizations/{id}'
+        });
+    }
+    static appEventLocalizationsAppEventScreenshotsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appEventLocalizations/{id}/appEventScreenshots'
+        });
+    }
+    static appEventLocalizationsAppEventVideoClipsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appEventLocalizations/{id}/appEventVideoClips'
+        });
+    }
+}
+exports.AppEventLocalizationsService = AppEventLocalizationsService;
+class AppEventScreenshotsService {
+    static appEventScreenshotsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appEventScreenshots'
+        });
+    }
+    static appEventScreenshotsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appEventScreenshots/{id}'
+        });
+    }
+    static appEventScreenshotsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appEventScreenshots/{id}'
+        });
+    }
+    static appEventScreenshotsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appEventScreenshots/{id}'
+        });
+    }
+}
+exports.AppEventScreenshotsService = AppEventScreenshotsService;
+class AppEventVideoClipsService {
+    static appEventVideoClipsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appEventVideoClips'
+        });
+    }
+    static appEventVideoClipsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appEventVideoClips/{id}'
+        });
+    }
+    static appEventVideoClipsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appEventVideoClips/{id}'
+        });
+    }
+    static appEventVideoClipsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appEventVideoClips/{id}'
+        });
+    }
+}
+exports.AppEventVideoClipsService = AppEventVideoClipsService;
+class AppEventsService {
+    static appEventsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appEvents'
+        });
+    }
+    static appEventsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appEvents/{id}'
+        });
+    }
+    static appEventsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appEvents/{id}'
+        });
+    }
+    static appEventsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appEvents/{id}'
+        });
+    }
+    static appEventsLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appEvents/{id}/localizations'
+        });
+    }
+}
+exports.AppEventsService = AppEventsService;
+class AppInfoLocalizationsService {
+    static appInfoLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appInfoLocalizations'
+        });
+    }
+    static appInfoLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appInfoLocalizations/{id}'
+        });
+    }
+    static appInfoLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appInfoLocalizations/{id}'
+        });
+    }
+    static appInfoLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appInfoLocalizations/{id}'
+        });
+    }
+}
+exports.AppInfoLocalizationsService = AppInfoLocalizationsService;
+class AppInfosService {
+    static appInfosGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appInfos/{id}'
+        });
+    }
+    static appInfosUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appInfos/{id}'
+        });
+    }
+    static appInfosAgeRatingDeclarationGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appInfos/{id}/ageRatingDeclaration'
+        });
+    }
+    static appInfosAppInfoLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appInfos/{id}/appInfoLocalizations'
+        });
+    }
+    static appInfosPrimaryCategoryGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appInfos/{id}/primaryCategory'
+        });
+    }
+    static appInfosPrimarySubcategoryOneGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appInfos/{id}/primarySubcategoryOne'
+        });
+    }
+    static appInfosPrimarySubcategoryTwoGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appInfos/{id}/primarySubcategoryTwo'
+        });
+    }
+    static appInfosSecondaryCategoryGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appInfos/{id}/secondaryCategory'
+        });
+    }
+    static appInfosSecondarySubcategoryOneGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appInfos/{id}/secondarySubcategoryOne'
+        });
+    }
+    static appInfosSecondarySubcategoryTwoGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appInfos/{id}/secondarySubcategoryTwo'
+        });
+    }
+}
+exports.AppInfosService = AppInfosService;
+class AppPreviewSetsService {
+    static appPreviewSetsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appPreviewSets'
+        });
+    }
+    static appPreviewSetsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appPreviewSets/{id}'
+        });
+    }
+    static appPreviewSetsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appPreviewSets/{id}'
+        });
+    }
+    static appPreviewSetsAppPreviewsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appPreviewSets/{id}/relationships/appPreviews'
+        });
+    }
+    static appPreviewSetsAppPreviewsReplaceToManyRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appPreviewSets/{id}/relationships/appPreviews'
+        });
+    }
+    static appPreviewSetsAppPreviewsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appPreviewSets/{id}/appPreviews'
+        });
+    }
+}
+exports.AppPreviewSetsService = AppPreviewSetsService;
+class AppPreviewsService {
+    static appPreviewsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appPreviews'
+        });
+    }
+    static appPreviewsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appPreviews/{id}'
+        });
+    }
+    static appPreviewsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appPreviews/{id}'
+        });
+    }
+    static appPreviewsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appPreviews/{id}'
+        });
+    }
+}
+exports.AppPreviewsService = AppPreviewsService;
+class AppPricePointsService {
+    static appPricePointsV3GetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v3/appPricePoints/{id}'
+        });
+    }
+    static appPricePointsV3EqualizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v3/appPricePoints/{id}/equalizations'
+        });
+    }
+}
+exports.AppPricePointsService = AppPricePointsService;
+class AppPriceSchedulesService {
+    static appPriceSchedulesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appPriceSchedules'
+        });
+    }
+    static appPriceSchedulesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appPriceSchedules/{id}'
+        });
+    }
+    static appPriceSchedulesAutomaticPricesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appPriceSchedules/{id}/automaticPrices'
+        });
+    }
+    static appPriceSchedulesBaseTerritoryGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appPriceSchedules/{id}/baseTerritory'
+        });
+    }
+    static appPriceSchedulesManualPricesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appPriceSchedules/{id}/manualPrices'
+        });
+    }
+}
+exports.AppPriceSchedulesService = AppPriceSchedulesService;
+class AppScreenshotSetsService {
+    static appScreenshotSetsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appScreenshotSets'
+        });
+    }
+    static appScreenshotSetsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appScreenshotSets/{id}'
+        });
+    }
+    static appScreenshotSetsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appScreenshotSets/{id}'
+        });
+    }
+    static appScreenshotSetsAppScreenshotsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appScreenshotSets/{id}/relationships/appScreenshots'
+        });
+    }
+    static appScreenshotSetsAppScreenshotsReplaceToManyRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appScreenshotSets/{id}/relationships/appScreenshots'
+        });
+    }
+    static appScreenshotSetsAppScreenshotsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appScreenshotSets/{id}/appScreenshots'
+        });
+    }
+}
+exports.AppScreenshotSetsService = AppScreenshotSetsService;
+class AppScreenshotsService {
+    static appScreenshotsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appScreenshots'
+        });
+    }
+    static appScreenshotsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appScreenshots/{id}'
+        });
+    }
+    static appScreenshotsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appScreenshots/{id}'
+        });
+    }
+    static appScreenshotsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appScreenshots/{id}'
+        });
+    }
+}
+exports.AppScreenshotsService = AppScreenshotsService;
+class AppStoreReviewAttachmentsService {
+    static appStoreReviewAttachmentsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appStoreReviewAttachments'
+        });
+    }
+    static appStoreReviewAttachmentsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreReviewAttachments/{id}'
+        });
+    }
+    static appStoreReviewAttachmentsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appStoreReviewAttachments/{id}'
+        });
+    }
+    static appStoreReviewAttachmentsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appStoreReviewAttachments/{id}'
+        });
+    }
+}
+exports.AppStoreReviewAttachmentsService = AppStoreReviewAttachmentsService;
+class AppStoreReviewDetailsService {
+    static appStoreReviewDetailsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appStoreReviewDetails'
+        });
+    }
+    static appStoreReviewDetailsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreReviewDetails/{id}'
+        });
+    }
+    static appStoreReviewDetailsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appStoreReviewDetails/{id}'
+        });
+    }
+    static appStoreReviewDetailsAppStoreReviewAttachmentsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreReviewDetails/{id}/appStoreReviewAttachments'
+        });
+    }
+}
+exports.AppStoreReviewDetailsService = AppStoreReviewDetailsService;
+class AppStoreVersionExperimentTreatmentLocalizationsService {
+    static appStoreVersionExperimentTreatmentLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appStoreVersionExperimentTreatmentLocalizations'
+        });
+    }
+    static appStoreVersionExperimentTreatmentLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersionExperimentTreatmentLocalizations/{id}'
+        });
+    }
+    static appStoreVersionExperimentTreatmentLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appStoreVersionExperimentTreatmentLocalizations/{id}'
+        });
+    }
+    static appStoreVersionExperimentTreatmentLocalizationsAppPreviewSetsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersionExperimentTreatmentLocalizations/{id}/appPreviewSets'
+        });
+    }
+    static appStoreVersionExperimentTreatmentLocalizationsAppScreenshotSetsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersionExperimentTreatmentLocalizations/{id}/appScreenshotSets'
+        });
+    }
+}
+exports.AppStoreVersionExperimentTreatmentLocalizationsService = AppStoreVersionExperimentTreatmentLocalizationsService;
+class AppStoreVersionExperimentTreatmentsService {
+    static appStoreVersionExperimentTreatmentsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appStoreVersionExperimentTreatments'
+        });
+    }
+    static appStoreVersionExperimentTreatmentsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersionExperimentTreatments/{id}'
+        });
+    }
+    static appStoreVersionExperimentTreatmentsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appStoreVersionExperimentTreatments/{id}'
+        });
+    }
+    static appStoreVersionExperimentTreatmentsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appStoreVersionExperimentTreatments/{id}'
+        });
+    }
+    static appStoreVersionExperimentTreatmentsAppStoreVersionExperimentTreatmentLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersionExperimentTreatments/{id}/appStoreVersionExperimentTreatmentLocalizations'
+        });
+    }
+}
+exports.AppStoreVersionExperimentTreatmentsService = AppStoreVersionExperimentTreatmentsService;
+class AppStoreVersionExperimentsService {
+    static appStoreVersionExperimentsV2CreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v2/appStoreVersionExperiments'
+        });
+    }
+    static appStoreVersionExperimentsV2GetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/appStoreVersionExperiments/{id}'
+        });
+    }
+    static appStoreVersionExperimentsV2UpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v2/appStoreVersionExperiments/{id}'
+        });
+    }
+    static appStoreVersionExperimentsV2DeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v2/appStoreVersionExperiments/{id}'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static appStoreVersionExperimentsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appStoreVersionExperiments'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static appStoreVersionExperimentsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersionExperiments/{id}'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static appStoreVersionExperimentsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appStoreVersionExperiments/{id}'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static appStoreVersionExperimentsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appStoreVersionExperiments/{id}'
+        });
+    }
+    static appStoreVersionExperimentsV2AppStoreVersionExperimentTreatmentsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/appStoreVersionExperiments/{id}/appStoreVersionExperimentTreatments'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static appStoreVersionExperimentsAppStoreVersionExperimentTreatmentsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersionExperiments/{id}/appStoreVersionExperimentTreatments'
+        });
+    }
+}
+exports.AppStoreVersionExperimentsService = AppStoreVersionExperimentsService;
+class AppStoreVersionLocalizationsService {
+    static appStoreVersionLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appStoreVersionLocalizations'
+        });
+    }
+    static appStoreVersionLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersionLocalizations/{id}'
+        });
+    }
+    static appStoreVersionLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appStoreVersionLocalizations/{id}'
+        });
+    }
+    static appStoreVersionLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appStoreVersionLocalizations/{id}'
+        });
+    }
+    static appStoreVersionLocalizationsAppPreviewSetsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersionLocalizations/{id}/appPreviewSets'
+        });
+    }
+    static appStoreVersionLocalizationsAppScreenshotSetsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersionLocalizations/{id}/appScreenshotSets'
+        });
+    }
+}
+exports.AppStoreVersionLocalizationsService = AppStoreVersionLocalizationsService;
+class AppStoreVersionPhasedReleasesService {
+    static appStoreVersionPhasedReleasesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appStoreVersionPhasedReleases'
+        });
+    }
+    static appStoreVersionPhasedReleasesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appStoreVersionPhasedReleases/{id}'
+        });
+    }
+    static appStoreVersionPhasedReleasesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appStoreVersionPhasedReleases/{id}'
+        });
+    }
+}
+exports.AppStoreVersionPhasedReleasesService = AppStoreVersionPhasedReleasesService;
+class AppStoreVersionPromotionsService {
+    static appStoreVersionPromotionsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appStoreVersionPromotions'
+        });
+    }
+}
+exports.AppStoreVersionPromotionsService = AppStoreVersionPromotionsService;
+class AppStoreVersionReleaseRequestsService {
+    static appStoreVersionReleaseRequestsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appStoreVersionReleaseRequests'
+        });
+    }
+}
+exports.AppStoreVersionReleaseRequestsService = AppStoreVersionReleaseRequestsService;
+class AppStoreVersionSubmissionsService {
+    /**
+     * @deprecated
+     */
+    static appStoreVersionSubmissionsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appStoreVersionSubmissions'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static appStoreVersionSubmissionsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appStoreVersionSubmissions/{id}'
+        });
+    }
+}
+exports.AppStoreVersionSubmissionsService = AppStoreVersionSubmissionsService;
+class AppStoreVersionsService {
+    static appStoreVersionsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/appStoreVersions'
+        });
+    }
+    static appStoreVersionsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}'
+        });
+    }
+    static appStoreVersionsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appStoreVersions/{id}'
+        });
+    }
+    static appStoreVersionsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/appStoreVersions/{id}'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static appStoreVersionsAgeRatingDeclarationGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/ageRatingDeclaration'
+        });
+    }
+    static appStoreVersionsAlternativeDistributionPackageGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/alternativeDistributionPackage'
+        });
+    }
+    static appStoreVersionsAppClipDefaultExperienceGetToOneRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/relationships/appClipDefaultExperience'
+        });
+    }
+    static appStoreVersionsAppClipDefaultExperienceUpdateToOneRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/relationships/appClipDefaultExperience'
+        });
+    }
+    static appStoreVersionsAppClipDefaultExperienceGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/appClipDefaultExperience'
+        });
+    }
+    static appStoreVersionsAppStoreReviewDetailGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/appStoreReviewDetail'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static appStoreVersionsAppStoreVersionExperimentsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/appStoreVersionExperiments'
+        });
+    }
+    static appStoreVersionsAppStoreVersionExperimentsV2GetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/appStoreVersionExperimentsV2'
+        });
+    }
+    static appStoreVersionsAppStoreVersionLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/appStoreVersionLocalizations'
+        });
+    }
+    static appStoreVersionsAppStoreVersionPhasedReleaseGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/appStoreVersionPhasedRelease'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static appStoreVersionsAppStoreVersionSubmissionGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/appStoreVersionSubmission'
+        });
+    }
+    static appStoreVersionsBuildGetToOneRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/relationships/build'
+        });
+    }
+    static appStoreVersionsBuildUpdateToOneRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/relationships/build'
+        });
+    }
+    static appStoreVersionsBuildGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/build'
+        });
+    }
+    static appStoreVersionsCustomerReviewsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/customerReviews'
+        });
+    }
+    static appStoreVersionsGameCenterAppVersionGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/gameCenterAppVersion'
+        });
+    }
+    static appStoreVersionsRoutingAppCoverageGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/appStoreVersions/{id}/routingAppCoverage'
+        });
+    }
+}
+exports.AppStoreVersionsService = AppStoreVersionsService;
+class AppsService {
+    static appsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps'
+        });
+    }
+    static appsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}'
+        });
+    }
+    static appsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/apps/{id}'
+        });
+    }
+    static appsAlternativeDistributionKeyGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/alternativeDistributionKey'
+        });
+    }
+    static appsAnalyticsReportRequestsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/analyticsReportRequests'
+        });
+    }
+    static appsAppAvailabilityV2GetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/appAvailabilityV2'
+        });
+    }
+    static appsAppClipsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/appClips'
+        });
+    }
+    static appsAppCustomProductPagesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/appCustomProductPages'
+        });
+    }
+    static appsAppEncryptionDeclarationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/appEncryptionDeclarations'
+        });
+    }
+    static appsAppEventsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/appEvents'
+        });
+    }
+    static appsAppInfosGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/appInfos'
+        });
+    }
+    static appsAppPricePointsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/appPricePoints'
+        });
+    }
+    static appsAppPriceScheduleGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/appPriceSchedule'
+        });
+    }
+    static appsAppStoreVersionExperimentsV2GetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/appStoreVersionExperimentsV2'
+        });
+    }
+    static appsAppStoreVersionsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/appStoreVersions'
+        });
+    }
+    static appsBetaAppLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/betaAppLocalizations'
+        });
+    }
+    static appsBetaAppReviewDetailGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/betaAppReviewDetail'
+        });
+    }
+    static appsBetaGroupsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/betaGroups'
+        });
+    }
+    static appsBetaLicenseAgreementGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/betaLicenseAgreement'
+        });
+    }
+    static appsBetaTestersDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/apps/{id}/relationships/betaTesters'
+        });
+    }
+    static appsBuildsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/builds'
+        });
+    }
+    static appsCiProductGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/ciProduct'
+        });
+    }
+    static appsCustomerReviewsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/customerReviews'
+        });
+    }
+    static appsEndUserLicenseAgreementGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/endUserLicenseAgreement'
+        });
+    }
+    static appsGameCenterDetailGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/gameCenterDetail'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static appsGameCenterEnabledVersionsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/gameCenterEnabledVersions'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static appsInAppPurchasesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/inAppPurchases'
+        });
+    }
+    static appsInAppPurchasesV2GetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/inAppPurchasesV2'
+        });
+    }
+    static appsMarketplaceSearchDetailGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/marketplaceSearchDetail'
+        });
+    }
+    static appsPerfPowerMetricsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/perfPowerMetrics'
+        });
+    }
+    static appsPreReleaseVersionsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/preReleaseVersions'
+        });
+    }
+    static appsPromotedPurchasesGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/relationships/promotedPurchases'
+        });
+    }
+    static appsPromotedPurchasesReplaceToManyRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/apps/{id}/relationships/promotedPurchases'
+        });
+    }
+    static appsPromotedPurchasesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/promotedPurchases'
+        });
+    }
+    static appsReviewSubmissionsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/reviewSubmissions'
+        });
+    }
+    static appsSubscriptionGracePeriodGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/subscriptionGracePeriod'
+        });
+    }
+    static appsSubscriptionGroupsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/subscriptionGroups'
+        });
+    }
+    static appsBetaTesterUsagesGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/metrics/betaTesterUsages'
+        });
+    }
+}
+exports.AppsService = AppsService;
+class BetaAppClipInvocationLocalizationsService {
+    static betaAppClipInvocationLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/betaAppClipInvocationLocalizations'
+        });
+    }
+    static betaAppClipInvocationLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/betaAppClipInvocationLocalizations/{id}'
+        });
+    }
+    static betaAppClipInvocationLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/betaAppClipInvocationLocalizations/{id}'
+        });
+    }
+}
+exports.BetaAppClipInvocationLocalizationsService = BetaAppClipInvocationLocalizationsService;
+class BetaAppClipInvocationsService {
+    static betaAppClipInvocationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/betaAppClipInvocations'
+        });
+    }
+    static betaAppClipInvocationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaAppClipInvocations/{id}'
+        });
+    }
+    static betaAppClipInvocationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/betaAppClipInvocations/{id}'
+        });
+    }
+    static betaAppClipInvocationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/betaAppClipInvocations/{id}'
+        });
+    }
+}
+exports.BetaAppClipInvocationsService = BetaAppClipInvocationsService;
+class BetaAppLocalizationsService {
+    static betaAppLocalizationsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaAppLocalizations'
+        });
+    }
+    static betaAppLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/betaAppLocalizations'
+        });
+    }
+    static betaAppLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaAppLocalizations/{id}'
+        });
+    }
+    static betaAppLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/betaAppLocalizations/{id}'
+        });
+    }
+    static betaAppLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/betaAppLocalizations/{id}'
+        });
+    }
+    static betaAppLocalizationsAppGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaAppLocalizations/{id}/app'
+        });
+    }
+}
+exports.BetaAppLocalizationsService = BetaAppLocalizationsService;
+class BetaAppReviewDetailsService {
+    static betaAppReviewDetailsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaAppReviewDetails'
+        });
+    }
+    static betaAppReviewDetailsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaAppReviewDetails/{id}'
+        });
+    }
+    static betaAppReviewDetailsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/betaAppReviewDetails/{id}'
+        });
+    }
+    static betaAppReviewDetailsAppGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaAppReviewDetails/{id}/app'
+        });
+    }
+}
+exports.BetaAppReviewDetailsService = BetaAppReviewDetailsService;
+class BetaAppReviewSubmissionsService {
+    static betaAppReviewSubmissionsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaAppReviewSubmissions'
+        });
+    }
+    static betaAppReviewSubmissionsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/betaAppReviewSubmissions'
+        });
+    }
+    static betaAppReviewSubmissionsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaAppReviewSubmissions/{id}'
+        });
+    }
+    static betaAppReviewSubmissionsBuildGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaAppReviewSubmissions/{id}/build'
+        });
+    }
+}
+exports.BetaAppReviewSubmissionsService = BetaAppReviewSubmissionsService;
+class BetaBuildLocalizationsService {
+    static betaBuildLocalizationsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaBuildLocalizations'
+        });
+    }
+    static betaBuildLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/betaBuildLocalizations'
+        });
+    }
+    static betaBuildLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaBuildLocalizations/{id}'
+        });
+    }
+    static betaBuildLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/betaBuildLocalizations/{id}'
+        });
+    }
+    static betaBuildLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/betaBuildLocalizations/{id}'
+        });
+    }
+    static betaBuildLocalizationsBuildGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaBuildLocalizations/{id}/build'
+        });
+    }
+}
+exports.BetaBuildLocalizationsService = BetaBuildLocalizationsService;
+class BetaGroupsService {
+    static betaGroupsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaGroups'
+        });
+    }
+    static betaGroupsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/betaGroups'
+        });
+    }
+    static betaGroupsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaGroups/{id}'
+        });
+    }
+    static betaGroupsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/betaGroups/{id}'
+        });
+    }
+    static betaGroupsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/betaGroups/{id}'
+        });
+    }
+    static betaGroupsAppGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaGroups/{id}/app'
+        });
+    }
+    static betaGroupsBetaTestersGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaGroups/{id}/relationships/betaTesters'
+        });
+    }
+    static betaGroupsBetaTestersCreateToManyRelationship(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/betaGroups/{id}/relationships/betaTesters'
+        });
+    }
+    static betaGroupsBetaTestersDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/betaGroups/{id}/relationships/betaTesters'
+        });
+    }
+    static betaGroupsBetaTestersGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaGroups/{id}/betaTesters'
+        });
+    }
+    static betaGroupsBuildsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaGroups/{id}/relationships/builds'
+        });
+    }
+    static betaGroupsBuildsCreateToManyRelationship(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/betaGroups/{id}/relationships/builds'
+        });
+    }
+    static betaGroupsBuildsDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/betaGroups/{id}/relationships/builds'
+        });
+    }
+    static betaGroupsBuildsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaGroups/{id}/builds'
+        });
+    }
+    static betaGroupsBetaTesterUsagesGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaGroups/{id}/metrics/betaTesterUsages'
+        });
+    }
+}
+exports.BetaGroupsService = BetaGroupsService;
+class BetaLicenseAgreementsService {
+    static betaLicenseAgreementsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaLicenseAgreements'
+        });
+    }
+    static betaLicenseAgreementsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaLicenseAgreements/{id}'
+        });
+    }
+    static betaLicenseAgreementsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/betaLicenseAgreements/{id}'
+        });
+    }
+    static betaLicenseAgreementsAppGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaLicenseAgreements/{id}/app'
+        });
+    }
+}
+exports.BetaLicenseAgreementsService = BetaLicenseAgreementsService;
+class BetaTesterInvitationsService {
+    static betaTesterInvitationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/betaTesterInvitations'
+        });
+    }
+}
+exports.BetaTesterInvitationsService = BetaTesterInvitationsService;
+class BetaTestersService {
+    static betaTestersGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaTesters'
+        });
+    }
+    static betaTestersCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/betaTesters'
+        });
+    }
+    static betaTestersGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaTesters/{id}'
+        });
+    }
+    static betaTestersDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/betaTesters/{id}'
+        });
+    }
+    static betaTestersAppsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaTesters/{id}/relationships/apps'
+        });
+    }
+    static betaTestersAppsDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/betaTesters/{id}/relationships/apps'
+        });
+    }
+    static betaTestersAppsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaTesters/{id}/apps'
+        });
+    }
+    static betaTestersBetaGroupsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaTesters/{id}/relationships/betaGroups'
+        });
+    }
+    static betaTestersBetaGroupsCreateToManyRelationship(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/betaTesters/{id}/relationships/betaGroups'
+        });
+    }
+    static betaTestersBetaGroupsDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/betaTesters/{id}/relationships/betaGroups'
+        });
+    }
+    static betaTestersBetaGroupsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaTesters/{id}/betaGroups'
+        });
+    }
+    static betaTestersBuildsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaTesters/{id}/relationships/builds'
+        });
+    }
+    static betaTestersBuildsCreateToManyRelationship(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/betaTesters/{id}/relationships/builds'
+        });
+    }
+    static betaTestersBuildsDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/betaTesters/{id}/relationships/builds'
+        });
+    }
+    static betaTestersBuildsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaTesters/{id}/builds'
+        });
+    }
+    static betaTestersBetaTesterUsagesGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaTesters/{id}/metrics/betaTesterUsages'
+        });
+    }
+}
+exports.BetaTestersService = BetaTestersService;
+class BuildBetaDetailsService {
+    static buildBetaDetailsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/buildBetaDetails'
+        });
+    }
+    static buildBetaDetailsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/buildBetaDetails/{id}'
+        });
+    }
+    static buildBetaDetailsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/buildBetaDetails/{id}'
+        });
+    }
+    static buildBetaDetailsBuildGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/buildBetaDetails/{id}/build'
+        });
+    }
+}
+exports.BuildBetaDetailsService = BuildBetaDetailsService;
+class BuildBetaNotificationsService {
+    static buildBetaNotificationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/buildBetaNotifications'
+        });
+    }
+}
+exports.BuildBetaNotificationsService = BuildBetaNotificationsService;
+class BuildsService {
+    static buildsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds'
+        });
+    }
+    static buildsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}'
+        });
+    }
+    static buildsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/builds/{id}'
+        });
+    }
+    static buildsAppGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/app'
+        });
+    }
+    static buildsAppEncryptionDeclarationGetToOneRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/relationships/appEncryptionDeclaration'
+        });
+    }
+    static buildsAppEncryptionDeclarationUpdateToOneRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/builds/{id}/relationships/appEncryptionDeclaration'
+        });
+    }
+    static buildsAppEncryptionDeclarationGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/appEncryptionDeclaration'
+        });
+    }
+    static buildsAppStoreVersionGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/appStoreVersion'
+        });
+    }
+    static buildsBetaAppReviewSubmissionGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/betaAppReviewSubmission'
+        });
+    }
+    static buildsBetaBuildLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/betaBuildLocalizations'
+        });
+    }
+    static buildsBetaGroupsCreateToManyRelationship(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/builds/{id}/relationships/betaGroups'
+        });
+    }
+    static buildsBetaGroupsDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/builds/{id}/relationships/betaGroups'
+        });
+    }
+    static buildsBuildBetaDetailGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/buildBetaDetail'
+        });
+    }
+    static buildsDiagnosticSignaturesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/diagnosticSignatures'
+        });
+    }
+    static buildsIconsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/icons'
+        });
+    }
+    static buildsIndividualTestersGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/relationships/individualTesters'
+        });
+    }
+    static buildsIndividualTestersCreateToManyRelationship(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/builds/{id}/relationships/individualTesters'
+        });
+    }
+    static buildsIndividualTestersDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/builds/{id}/relationships/individualTesters'
+        });
+    }
+    static buildsIndividualTestersGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/individualTesters'
+        });
+    }
+    static buildsPerfPowerMetricsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/perfPowerMetrics'
+        });
+    }
+    static buildsPreReleaseVersionGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/preReleaseVersion'
+        });
+    }
+    static buildsBetaBuildUsagesGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/metrics/betaBuildUsages'
+        });
+    }
+}
+exports.BuildsService = BuildsService;
+class BundleIdCapabilitiesService {
+    static bundleIdCapabilitiesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/bundleIdCapabilities'
+        });
+    }
+    static bundleIdCapabilitiesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/bundleIdCapabilities/{id}'
+        });
+    }
+    static bundleIdCapabilitiesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/bundleIdCapabilities/{id}'
+        });
+    }
+}
+exports.BundleIdCapabilitiesService = BundleIdCapabilitiesService;
+class BundleIdsService {
+    static bundleIdsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/bundleIds'
+        });
+    }
+    static bundleIdsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/bundleIds'
+        });
+    }
+    static bundleIdsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/bundleIds/{id}'
+        });
+    }
+    static bundleIdsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/bundleIds/{id}'
+        });
+    }
+    static bundleIdsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/bundleIds/{id}'
+        });
+    }
+    static bundleIdsAppGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/bundleIds/{id}/app'
+        });
+    }
+    static bundleIdsBundleIdCapabilitiesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/bundleIds/{id}/bundleIdCapabilities'
+        });
+    }
+    static bundleIdsProfilesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/bundleIds/{id}/profiles'
+        });
+    }
+}
+exports.BundleIdsService = BundleIdsService;
+class CertificatesService {
+    static certificatesGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/certificates'
+        });
+    }
+    static certificatesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/certificates'
+        });
+    }
+    static certificatesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/certificates/{id}'
+        });
+    }
+    static certificatesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/certificates/{id}'
+        });
+    }
+}
+exports.CertificatesService = CertificatesService;
+class CiArtifactsService {
+    static ciArtifactsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciArtifacts/{id}'
+        });
+    }
+}
+exports.CiArtifactsService = CiArtifactsService;
+class CiBuildActionsService {
+    static ciBuildActionsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciBuildActions/{id}'
+        });
+    }
+    static ciBuildActionsArtifactsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciBuildActions/{id}/artifacts'
+        });
+    }
+    static ciBuildActionsBuildRunGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciBuildActions/{id}/buildRun'
+        });
+    }
+    static ciBuildActionsIssuesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciBuildActions/{id}/issues'
+        });
+    }
+    static ciBuildActionsTestResultsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciBuildActions/{id}/testResults'
+        });
+    }
+}
+exports.CiBuildActionsService = CiBuildActionsService;
+class CiBuildRunsService {
+    static ciBuildRunsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/ciBuildRuns'
+        });
+    }
+    static ciBuildRunsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciBuildRuns/{id}'
+        });
+    }
+    static ciBuildRunsActionsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciBuildRuns/{id}/actions'
+        });
+    }
+    static ciBuildRunsBuildsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciBuildRuns/{id}/builds'
+        });
+    }
+}
+exports.CiBuildRunsService = CiBuildRunsService;
+class CiIssuesService {
+    static ciIssuesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciIssues/{id}'
+        });
+    }
+}
+exports.CiIssuesService = CiIssuesService;
+class CiMacOsVersionsService {
+    static ciMacOsVersionsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciMacOsVersions'
+        });
+    }
+    static ciMacOsVersionsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciMacOsVersions/{id}'
+        });
+    }
+    static ciMacOsVersionsXcodeVersionsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciMacOsVersions/{id}/xcodeVersions'
+        });
+    }
+}
+exports.CiMacOsVersionsService = CiMacOsVersionsService;
+class CiProductsService {
+    static ciProductsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciProducts'
+        });
+    }
+    static ciProductsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciProducts/{id}'
+        });
+    }
+    static ciProductsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/ciProducts/{id}'
+        });
+    }
+    static ciProductsAdditionalRepositoriesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciProducts/{id}/additionalRepositories'
+        });
+    }
+    static ciProductsAppGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciProducts/{id}/app'
+        });
+    }
+    static ciProductsBuildRunsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciProducts/{id}/buildRuns'
+        });
+    }
+    static ciProductsPrimaryRepositoriesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciProducts/{id}/primaryRepositories'
+        });
+    }
+    static ciProductsWorkflowsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciProducts/{id}/workflows'
+        });
+    }
+}
+exports.CiProductsService = CiProductsService;
+class CiTestResultsService {
+    static ciTestResultsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciTestResults/{id}'
+        });
+    }
+}
+exports.CiTestResultsService = CiTestResultsService;
+class CiWorkflowsService {
+    static ciWorkflowsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/ciWorkflows'
+        });
+    }
+    static ciWorkflowsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciWorkflows/{id}'
+        });
+    }
+    static ciWorkflowsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/ciWorkflows/{id}'
+        });
+    }
+    static ciWorkflowsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/ciWorkflows/{id}'
+        });
+    }
+    static ciWorkflowsBuildRunsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciWorkflows/{id}/buildRuns'
+        });
+    }
+    static ciWorkflowsRepositoryGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciWorkflows/{id}/repository'
+        });
+    }
+}
+exports.CiWorkflowsService = CiWorkflowsService;
+class CiXcodeVersionsService {
+    static ciXcodeVersionsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciXcodeVersions'
+        });
+    }
+    static ciXcodeVersionsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciXcodeVersions/{id}'
+        });
+    }
+    static ciXcodeVersionsMacOsVersionsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/ciXcodeVersions/{id}/macOsVersions'
+        });
+    }
+}
+exports.CiXcodeVersionsService = CiXcodeVersionsService;
+class CustomerReviewResponsesService {
+    static customerReviewResponsesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/customerReviewResponses'
+        });
+    }
+    static customerReviewResponsesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/customerReviewResponses/{id}'
+        });
+    }
+    static customerReviewResponsesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/customerReviewResponses/{id}'
+        });
+    }
+}
+exports.CustomerReviewResponsesService = CustomerReviewResponsesService;
+class CustomerReviewsService {
+    static customerReviewsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/customerReviews/{id}'
+        });
+    }
+    static customerReviewsResponseGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/customerReviews/{id}/response'
+        });
+    }
+}
+exports.CustomerReviewsService = CustomerReviewsService;
+class DevicesService {
+    static devicesGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/devices'
+        });
+    }
+    static devicesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/devices'
+        });
+    }
+    static devicesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/devices/{id}'
+        });
+    }
+    static devicesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/devices/{id}'
+        });
+    }
+}
+exports.DevicesService = DevicesService;
+class EndAppAvailabilityPreOrdersService {
+    static endAppAvailabilityPreOrdersCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/endAppAvailabilityPreOrders'
+        });
+    }
+}
+exports.EndAppAvailabilityPreOrdersService = EndAppAvailabilityPreOrdersService;
+class EndUserLicenseAgreementsService {
+    static endUserLicenseAgreementsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/endUserLicenseAgreements'
+        });
+    }
+    static endUserLicenseAgreementsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/endUserLicenseAgreements/{id}'
+        });
+    }
+    static endUserLicenseAgreementsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/endUserLicenseAgreements/{id}'
+        });
+    }
+    static endUserLicenseAgreementsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/endUserLicenseAgreements/{id}'
+        });
+    }
+    static endUserLicenseAgreementsTerritoriesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/endUserLicenseAgreements/{id}/territories'
+        });
+    }
+}
+exports.EndUserLicenseAgreementsService = EndUserLicenseAgreementsService;
+class FinanceReportsService {
+    static financeReportsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/financeReports'
+        });
+    }
+}
+exports.FinanceReportsService = FinanceReportsService;
+class GameCenterAchievementImagesService {
+    static gameCenterAchievementImagesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterAchievementImages'
+        });
+    }
+    static gameCenterAchievementImagesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAchievementImages/{id}'
+        });
+    }
+    static gameCenterAchievementImagesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterAchievementImages/{id}'
+        });
+    }
+    static gameCenterAchievementImagesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterAchievementImages/{id}'
+        });
+    }
+}
+exports.GameCenterAchievementImagesService = GameCenterAchievementImagesService;
+class GameCenterAchievementLocalizationsService {
+    static gameCenterAchievementLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterAchievementLocalizations'
+        });
+    }
+    static gameCenterAchievementLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAchievementLocalizations/{id}'
+        });
+    }
+    static gameCenterAchievementLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterAchievementLocalizations/{id}'
+        });
+    }
+    static gameCenterAchievementLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterAchievementLocalizations/{id}'
+        });
+    }
+    static gameCenterAchievementLocalizationsGameCenterAchievementGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAchievementLocalizations/{id}/gameCenterAchievement'
+        });
+    }
+    static gameCenterAchievementLocalizationsGameCenterAchievementImageGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAchievementLocalizations/{id}/gameCenterAchievementImage'
+        });
+    }
+}
+exports.GameCenterAchievementLocalizationsService = GameCenterAchievementLocalizationsService;
+class GameCenterAchievementReleasesService {
+    static gameCenterAchievementReleasesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterAchievementReleases'
+        });
+    }
+    static gameCenterAchievementReleasesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAchievementReleases/{id}'
+        });
+    }
+    static gameCenterAchievementReleasesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterAchievementReleases/{id}'
+        });
+    }
+}
+exports.GameCenterAchievementReleasesService = GameCenterAchievementReleasesService;
+class GameCenterAchievementsService {
+    static gameCenterAchievementsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterAchievements'
+        });
+    }
+    static gameCenterAchievementsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAchievements/{id}'
+        });
+    }
+    static gameCenterAchievementsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterAchievements/{id}'
+        });
+    }
+    static gameCenterAchievementsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterAchievements/{id}'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static gameCenterAchievementsGroupAchievementGetToOneRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAchievements/{id}/relationships/groupAchievement'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static gameCenterAchievementsGroupAchievementUpdateToOneRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterAchievements/{id}/relationships/groupAchievement'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static gameCenterAchievementsGroupAchievementGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAchievements/{id}/groupAchievement'
+        });
+    }
+    static gameCenterAchievementsLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAchievements/{id}/localizations'
+        });
+    }
+    static gameCenterAchievementsReleasesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAchievements/{id}/releases'
+        });
+    }
+}
+exports.GameCenterAchievementsService = GameCenterAchievementsService;
+class GameCenterAppVersionsService {
+    static gameCenterAppVersionsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterAppVersions'
+        });
+    }
+    static gameCenterAppVersionsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAppVersions/{id}'
+        });
+    }
+    static gameCenterAppVersionsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterAppVersions/{id}'
+        });
+    }
+    static gameCenterAppVersionsAppStoreVersionGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAppVersions/{id}/appStoreVersion'
+        });
+    }
+    static gameCenterAppVersionsCompatibilityVersionsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAppVersions/{id}/relationships/compatibilityVersions'
+        });
+    }
+    static gameCenterAppVersionsCompatibilityVersionsCreateToManyRelationship(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterAppVersions/{id}/relationships/compatibilityVersions'
+        });
+    }
+    static gameCenterAppVersionsCompatibilityVersionsDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterAppVersions/{id}/relationships/compatibilityVersions'
+        });
+    }
+    static gameCenterAppVersionsCompatibilityVersionsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterAppVersions/{id}/compatibilityVersions'
+        });
+    }
+}
+exports.GameCenterAppVersionsService = GameCenterAppVersionsService;
+class GameCenterDetailsService {
+    static gameCenterDetailsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterDetails'
+        });
+    }
+    static gameCenterDetailsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}'
+        });
+    }
+    static gameCenterDetailsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}'
+        });
+    }
+    static gameCenterDetailsAchievementReleasesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/achievementReleases'
+        });
+    }
+    static gameCenterDetailsGameCenterAchievementsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/relationships/gameCenterAchievements'
+        });
+    }
+    static gameCenterDetailsGameCenterAchievementsReplaceToManyRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/relationships/gameCenterAchievements'
+        });
+    }
+    static gameCenterDetailsGameCenterAchievementsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/gameCenterAchievements'
+        });
+    }
+    static gameCenterDetailsGameCenterAppVersionsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/gameCenterAppVersions'
+        });
+    }
+    static gameCenterDetailsGameCenterGroupGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/gameCenterGroup'
+        });
+    }
+    static gameCenterDetailsGameCenterLeaderboardSetsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/relationships/gameCenterLeaderboardSets'
+        });
+    }
+    static gameCenterDetailsGameCenterLeaderboardSetsReplaceToManyRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/relationships/gameCenterLeaderboardSets'
+        });
+    }
+    static gameCenterDetailsGameCenterLeaderboardSetsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/gameCenterLeaderboardSets'
+        });
+    }
+    static gameCenterDetailsGameCenterLeaderboardsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/relationships/gameCenterLeaderboards'
+        });
+    }
+    static gameCenterDetailsGameCenterLeaderboardsReplaceToManyRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/relationships/gameCenterLeaderboards'
+        });
+    }
+    static gameCenterDetailsGameCenterLeaderboardsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/gameCenterLeaderboards'
+        });
+    }
+    static gameCenterDetailsLeaderboardReleasesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/leaderboardReleases'
+        });
+    }
+    static gameCenterDetailsLeaderboardSetReleasesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/leaderboardSetReleases'
+        });
+    }
+    static gameCenterDetailsClassicMatchmakingRequestsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/metrics/classicMatchmakingRequests'
+        });
+    }
+    static gameCenterDetailsRuleBasedMatchmakingRequestsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/metrics/ruleBasedMatchmakingRequests'
+        });
+    }
+}
+exports.GameCenterDetailsService = GameCenterDetailsService;
+class GameCenterGroupsService {
+    static gameCenterGroupsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterGroups'
+        });
+    }
+    static gameCenterGroupsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterGroups'
+        });
+    }
+    static gameCenterGroupsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterGroups/{id}'
+        });
+    }
+    static gameCenterGroupsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterGroups/{id}'
+        });
+    }
+    static gameCenterGroupsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterGroups/{id}'
+        });
+    }
+    static gameCenterGroupsGameCenterAchievementsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterGroups/{id}/relationships/gameCenterAchievements'
+        });
+    }
+    static gameCenterGroupsGameCenterAchievementsReplaceToManyRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterGroups/{id}/relationships/gameCenterAchievements'
+        });
+    }
+    static gameCenterGroupsGameCenterAchievementsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterGroups/{id}/gameCenterAchievements'
+        });
+    }
+    static gameCenterGroupsGameCenterDetailsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterGroups/{id}/gameCenterDetails'
+        });
+    }
+    static gameCenterGroupsGameCenterLeaderboardSetsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterGroups/{id}/relationships/gameCenterLeaderboardSets'
+        });
+    }
+    static gameCenterGroupsGameCenterLeaderboardSetsReplaceToManyRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterGroups/{id}/relationships/gameCenterLeaderboardSets'
+        });
+    }
+    static gameCenterGroupsGameCenterLeaderboardSetsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterGroups/{id}/gameCenterLeaderboardSets'
+        });
+    }
+    static gameCenterGroupsGameCenterLeaderboardsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterGroups/{id}/relationships/gameCenterLeaderboards'
+        });
+    }
+    static gameCenterGroupsGameCenterLeaderboardsReplaceToManyRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterGroups/{id}/relationships/gameCenterLeaderboards'
+        });
+    }
+    static gameCenterGroupsGameCenterLeaderboardsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterGroups/{id}/gameCenterLeaderboards'
+        });
+    }
+}
+exports.GameCenterGroupsService = GameCenterGroupsService;
+class GameCenterLeaderboardEntrySubmissionsService {
+    static gameCenterLeaderboardEntrySubmissionsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterLeaderboardEntrySubmissions'
+        });
+    }
+}
+exports.GameCenterLeaderboardEntrySubmissionsService = GameCenterLeaderboardEntrySubmissionsService;
+class GameCenterLeaderboardImagesService {
+    static gameCenterLeaderboardImagesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterLeaderboardImages'
+        });
+    }
+    static gameCenterLeaderboardImagesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardImages/{id}'
+        });
+    }
+    static gameCenterLeaderboardImagesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterLeaderboardImages/{id}'
+        });
+    }
+    static gameCenterLeaderboardImagesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterLeaderboardImages/{id}'
+        });
+    }
+}
+exports.GameCenterLeaderboardImagesService = GameCenterLeaderboardImagesService;
+class GameCenterLeaderboardLocalizationsService {
+    static gameCenterLeaderboardLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterLeaderboardLocalizations'
+        });
+    }
+    static gameCenterLeaderboardLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardLocalizations/{id}'
+        });
+    }
+    static gameCenterLeaderboardLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterLeaderboardLocalizations/{id}'
+        });
+    }
+    static gameCenterLeaderboardLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterLeaderboardLocalizations/{id}'
+        });
+    }
+    static gameCenterLeaderboardLocalizationsGameCenterLeaderboardImageGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardLocalizations/{id}/gameCenterLeaderboardImage'
+        });
+    }
+}
+exports.GameCenterLeaderboardLocalizationsService = GameCenterLeaderboardLocalizationsService;
+class GameCenterLeaderboardReleasesService {
+    static gameCenterLeaderboardReleasesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterLeaderboardReleases'
+        });
+    }
+    static gameCenterLeaderboardReleasesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardReleases/{id}'
+        });
+    }
+    static gameCenterLeaderboardReleasesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterLeaderboardReleases/{id}'
+        });
+    }
+}
+exports.GameCenterLeaderboardReleasesService = GameCenterLeaderboardReleasesService;
+class GameCenterLeaderboardSetImagesService {
+    static gameCenterLeaderboardSetImagesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetImages'
+        });
+    }
+    static gameCenterLeaderboardSetImagesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetImages/{id}'
+        });
+    }
+    static gameCenterLeaderboardSetImagesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetImages/{id}'
+        });
+    }
+    static gameCenterLeaderboardSetImagesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetImages/{id}'
+        });
+    }
+}
+exports.GameCenterLeaderboardSetImagesService = GameCenterLeaderboardSetImagesService;
+class GameCenterLeaderboardSetLocalizationsService {
+    static gameCenterLeaderboardSetLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetLocalizations'
+        });
+    }
+    static gameCenterLeaderboardSetLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetLocalizations/{id}'
+        });
+    }
+    static gameCenterLeaderboardSetLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetLocalizations/{id}'
+        });
+    }
+    static gameCenterLeaderboardSetLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetLocalizations/{id}'
+        });
+    }
+    static gameCenterLeaderboardSetLocalizationsGameCenterLeaderboardSetImageGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetLocalizations/{id}/gameCenterLeaderboardSetImage'
+        });
+    }
+}
+exports.GameCenterLeaderboardSetLocalizationsService = GameCenterLeaderboardSetLocalizationsService;
+class GameCenterLeaderboardSetMemberLocalizationsService {
+    static gameCenterLeaderboardSetMemberLocalizationsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetMemberLocalizations'
+        });
+    }
+    static gameCenterLeaderboardSetMemberLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetMemberLocalizations'
+        });
+    }
+    static gameCenterLeaderboardSetMemberLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetMemberLocalizations/{id}'
+        });
+    }
+    static gameCenterLeaderboardSetMemberLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetMemberLocalizations/{id}'
+        });
+    }
+    static gameCenterLeaderboardSetMemberLocalizationsGameCenterLeaderboardGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetMemberLocalizations/{id}/gameCenterLeaderboard'
+        });
+    }
+    static gameCenterLeaderboardSetMemberLocalizationsGameCenterLeaderboardSetGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetMemberLocalizations/{id}/gameCenterLeaderboardSet'
+        });
+    }
+}
+exports.GameCenterLeaderboardSetMemberLocalizationsService = GameCenterLeaderboardSetMemberLocalizationsService;
+class GameCenterLeaderboardSetReleasesService {
+    static gameCenterLeaderboardSetReleasesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetReleases'
+        });
+    }
+    static gameCenterLeaderboardSetReleasesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetReleases/{id}'
+        });
+    }
+    static gameCenterLeaderboardSetReleasesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSetReleases/{id}'
+        });
+    }
+}
+exports.GameCenterLeaderboardSetReleasesService = GameCenterLeaderboardSetReleasesService;
+class GameCenterLeaderboardSetsService {
+    static gameCenterLeaderboardSetsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets'
+        });
+    }
+    static gameCenterLeaderboardSetsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets/{id}'
+        });
+    }
+    static gameCenterLeaderboardSetsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets/{id}'
+        });
+    }
+    static gameCenterLeaderboardSetsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets/{id}'
+        });
+    }
+    static gameCenterLeaderboardSetsGameCenterLeaderboardsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets/{id}/relationships/gameCenterLeaderboards'
+        });
+    }
+    static gameCenterLeaderboardSetsGameCenterLeaderboardsCreateToManyRelationship(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets/{id}/relationships/gameCenterLeaderboards'
+        });
+    }
+    static gameCenterLeaderboardSetsGameCenterLeaderboardsReplaceToManyRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets/{id}/relationships/gameCenterLeaderboards'
+        });
+    }
+    static gameCenterLeaderboardSetsGameCenterLeaderboardsDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets/{id}/relationships/gameCenterLeaderboards'
+        });
+    }
+    static gameCenterLeaderboardSetsGameCenterLeaderboardsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets/{id}/gameCenterLeaderboards'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static gameCenterLeaderboardSetsGroupLeaderboardSetGetToOneRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets/{id}/relationships/groupLeaderboardSet'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static gameCenterLeaderboardSetsGroupLeaderboardSetUpdateToOneRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets/{id}/relationships/groupLeaderboardSet'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static gameCenterLeaderboardSetsGroupLeaderboardSetGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets/{id}/groupLeaderboardSet'
+        });
+    }
+    static gameCenterLeaderboardSetsLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets/{id}/localizations'
+        });
+    }
+    static gameCenterLeaderboardSetsReleasesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboardSets/{id}/releases'
+        });
+    }
+}
+exports.GameCenterLeaderboardSetsService = GameCenterLeaderboardSetsService;
+class GameCenterLeaderboardsService {
+    static gameCenterLeaderboardsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterLeaderboards'
+        });
+    }
+    static gameCenterLeaderboardsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboards/{id}'
+        });
+    }
+    static gameCenterLeaderboardsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterLeaderboards/{id}'
+        });
+    }
+    static gameCenterLeaderboardsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterLeaderboards/{id}'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static gameCenterLeaderboardsGroupLeaderboardGetToOneRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboards/{id}/relationships/groupLeaderboard'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static gameCenterLeaderboardsGroupLeaderboardUpdateToOneRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterLeaderboards/{id}/relationships/groupLeaderboard'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static gameCenterLeaderboardsGroupLeaderboardGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboards/{id}/groupLeaderboard'
+        });
+    }
+    static gameCenterLeaderboardsLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboards/{id}/localizations'
+        });
+    }
+    static gameCenterLeaderboardsReleasesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterLeaderboards/{id}/releases'
+        });
+    }
+}
+exports.GameCenterLeaderboardsService = GameCenterLeaderboardsService;
+class GameCenterMatchmakingQueuesService {
+    static gameCenterMatchmakingQueuesGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues'
+        });
+    }
+    static gameCenterMatchmakingQueuesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues'
+        });
+    }
+    static gameCenterMatchmakingQueuesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues/{id}'
+        });
+    }
+    static gameCenterMatchmakingQueuesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues/{id}'
+        });
+    }
+    static gameCenterMatchmakingQueuesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues/{id}'
+        });
+    }
+    static gameCenterMatchmakingQueuesExperimentMatchmakingQueueSizesGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/experimentMatchmakingQueueSizes'
+        });
+    }
+    static gameCenterMatchmakingQueuesExperimentMatchmakingRequestsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/experimentMatchmakingRequests'
+        });
+    }
+    static gameCenterMatchmakingQueuesMatchmakingQueueSizesGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/matchmakingQueueSizes'
+        });
+    }
+    static gameCenterMatchmakingQueuesMatchmakingRequestsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/matchmakingRequests'
+        });
+    }
+    static gameCenterMatchmakingQueuesMatchmakingSessionsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/matchmakingSessions'
+        });
+    }
+}
+exports.GameCenterMatchmakingQueuesService = GameCenterMatchmakingQueuesService;
+class GameCenterMatchmakingRuleSetTestsService {
+    static gameCenterMatchmakingRuleSetTestsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRuleSetTests'
+        });
+    }
+}
+exports.GameCenterMatchmakingRuleSetTestsService = GameCenterMatchmakingRuleSetTestsService;
+class GameCenterMatchmakingRuleSetsService {
+    static gameCenterMatchmakingRuleSetsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRuleSets'
+        });
+    }
+    static gameCenterMatchmakingRuleSetsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRuleSets'
+        });
+    }
+    static gameCenterMatchmakingRuleSetsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRuleSets/{id}'
+        });
+    }
+    static gameCenterMatchmakingRuleSetsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRuleSets/{id}'
+        });
+    }
+    static gameCenterMatchmakingRuleSetsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRuleSets/{id}'
+        });
+    }
+    static gameCenterMatchmakingRuleSetsMatchmakingQueuesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRuleSets/{id}/matchmakingQueues'
+        });
+    }
+    static gameCenterMatchmakingRuleSetsRulesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRuleSets/{id}/rules'
+        });
+    }
+    static gameCenterMatchmakingRuleSetsTeamsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRuleSets/{id}/teams'
+        });
+    }
+}
+exports.GameCenterMatchmakingRuleSetsService = GameCenterMatchmakingRuleSetsService;
+class GameCenterMatchmakingRulesService {
+    static gameCenterMatchmakingRulesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRules'
+        });
+    }
+    static gameCenterMatchmakingRulesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRules/{id}'
+        });
+    }
+    static gameCenterMatchmakingRulesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRules/{id}'
+        });
+    }
+    static gameCenterMatchmakingRulesMatchmakingBooleanRuleResultsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRules/{id}/metrics/matchmakingBooleanRuleResults'
+        });
+    }
+    static gameCenterMatchmakingRulesMatchmakingNumberRuleResultsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRules/{id}/metrics/matchmakingNumberRuleResults'
+        });
+    }
+    static gameCenterMatchmakingRulesMatchmakingRuleErrorsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRules/{id}/metrics/matchmakingRuleErrors'
+        });
+    }
+}
+exports.GameCenterMatchmakingRulesService = GameCenterMatchmakingRulesService;
+class GameCenterMatchmakingTeamsService {
+    static gameCenterMatchmakingTeamsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterMatchmakingTeams'
+        });
+    }
+    static gameCenterMatchmakingTeamsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterMatchmakingTeams/{id}'
+        });
+    }
+    static gameCenterMatchmakingTeamsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterMatchmakingTeams/{id}'
+        });
+    }
+}
+exports.GameCenterMatchmakingTeamsService = GameCenterMatchmakingTeamsService;
+class GameCenterPlayerAchievementSubmissionsService {
+    static gameCenterPlayerAchievementSubmissionsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterPlayerAchievementSubmissions'
+        });
+    }
+}
+exports.GameCenterPlayerAchievementSubmissionsService = GameCenterPlayerAchievementSubmissionsService;
+class InAppPurchaseAppStoreReviewScreenshotsService {
+    static inAppPurchaseAppStoreReviewScreenshotsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/inAppPurchaseAppStoreReviewScreenshots'
+        });
+    }
+    static inAppPurchaseAppStoreReviewScreenshotsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/inAppPurchaseAppStoreReviewScreenshots/{id}'
+        });
+    }
+    static inAppPurchaseAppStoreReviewScreenshotsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/inAppPurchaseAppStoreReviewScreenshots/{id}'
+        });
+    }
+    static inAppPurchaseAppStoreReviewScreenshotsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/inAppPurchaseAppStoreReviewScreenshots/{id}'
+        });
+    }
+}
+exports.InAppPurchaseAppStoreReviewScreenshotsService = InAppPurchaseAppStoreReviewScreenshotsService;
+class InAppPurchaseAvailabilitiesService {
+    static inAppPurchaseAvailabilitiesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/inAppPurchaseAvailabilities'
+        });
+    }
+    static inAppPurchaseAvailabilitiesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/inAppPurchaseAvailabilities/{id}'
+        });
+    }
+    static inAppPurchaseAvailabilitiesAvailableTerritoriesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/inAppPurchaseAvailabilities/{id}/availableTerritories'
+        });
+    }
+}
+exports.InAppPurchaseAvailabilitiesService = InAppPurchaseAvailabilitiesService;
+class InAppPurchaseContentsService {
+    static inAppPurchaseContentsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/inAppPurchaseContents/{id}'
+        });
+    }
+}
+exports.InAppPurchaseContentsService = InAppPurchaseContentsService;
+class InAppPurchaseImagesService {
+    static inAppPurchaseImagesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/inAppPurchaseImages'
+        });
+    }
+    static inAppPurchaseImagesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/inAppPurchaseImages/{id}'
+        });
+    }
+    static inAppPurchaseImagesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/inAppPurchaseImages/{id}'
+        });
+    }
+    static inAppPurchaseImagesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/inAppPurchaseImages/{id}'
+        });
+    }
+}
+exports.InAppPurchaseImagesService = InAppPurchaseImagesService;
+class InAppPurchaseLocalizationsService {
+    static inAppPurchaseLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/inAppPurchaseLocalizations'
+        });
+    }
+    static inAppPurchaseLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/inAppPurchaseLocalizations/{id}'
+        });
+    }
+    static inAppPurchaseLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/inAppPurchaseLocalizations/{id}'
+        });
+    }
+    static inAppPurchaseLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/inAppPurchaseLocalizations/{id}'
+        });
+    }
+}
+exports.InAppPurchaseLocalizationsService = InAppPurchaseLocalizationsService;
+class InAppPurchasePriceSchedulesService {
+    static inAppPurchasePriceSchedulesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/inAppPurchasePriceSchedules'
+        });
+    }
+    static inAppPurchasePriceSchedulesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/inAppPurchasePriceSchedules/{id}'
+        });
+    }
+    static inAppPurchasePriceSchedulesAutomaticPricesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/inAppPurchasePriceSchedules/{id}/automaticPrices'
+        });
+    }
+    static inAppPurchasePriceSchedulesBaseTerritoryGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/inAppPurchasePriceSchedules/{id}/baseTerritory'
+        });
+    }
+    static inAppPurchasePriceSchedulesManualPricesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/inAppPurchasePriceSchedules/{id}/manualPrices'
+        });
+    }
+}
+exports.InAppPurchasePriceSchedulesService = InAppPurchasePriceSchedulesService;
+class InAppPurchaseSubmissionsService {
+    static inAppPurchaseSubmissionsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/inAppPurchaseSubmissions'
+        });
+    }
+}
+exports.InAppPurchaseSubmissionsService = InAppPurchaseSubmissionsService;
+class InAppPurchasesService {
+    /**
+     * @deprecated
+     */
+    static inAppPurchasesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/inAppPurchases/{id}'
+        });
+    }
+    static inAppPurchasesV2CreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v2/inAppPurchases'
+        });
+    }
+    static inAppPurchasesV2GetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/inAppPurchases/{id}'
+        });
+    }
+    static inAppPurchasesV2UpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v2/inAppPurchases/{id}'
+        });
+    }
+    static inAppPurchasesV2DeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v2/inAppPurchases/{id}'
+        });
+    }
+    static inAppPurchasesV2AppStoreReviewScreenshotGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/inAppPurchases/{id}/appStoreReviewScreenshot'
+        });
+    }
+    static inAppPurchasesV2ContentGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/inAppPurchases/{id}/content'
+        });
+    }
+    static inAppPurchasesV2IapPriceScheduleGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/inAppPurchases/{id}/iapPriceSchedule'
+        });
+    }
+    static inAppPurchasesV2ImagesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/inAppPurchases/{id}/images'
+        });
+    }
+    static inAppPurchasesV2InAppPurchaseAvailabilityGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/inAppPurchases/{id}/inAppPurchaseAvailability'
+        });
+    }
+    static inAppPurchasesV2InAppPurchaseLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/inAppPurchases/{id}/inAppPurchaseLocalizations'
+        });
+    }
+    static inAppPurchasesV2PricePointsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/inAppPurchases/{id}/pricePoints'
+        });
+    }
+    static inAppPurchasesV2PromotedPurchaseGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/inAppPurchases/{id}/promotedPurchase'
+        });
+    }
+}
+exports.InAppPurchasesService = InAppPurchasesService;
+class MarketplaceDomainsService {
+    /**
+     * @deprecated
+     */
+    static marketplaceDomainsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/marketplaceDomains'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static marketplaceDomainsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/marketplaceDomains'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static marketplaceDomainsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/marketplaceDomains/{id}'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static marketplaceDomainsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/marketplaceDomains/{id}'
+        });
+    }
+}
+exports.MarketplaceDomainsService = MarketplaceDomainsService;
+class MarketplaceSearchDetailsService {
+    static marketplaceSearchDetailsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/marketplaceSearchDetails'
+        });
+    }
+    static marketplaceSearchDetailsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/marketplaceSearchDetails/{id}'
+        });
+    }
+    static marketplaceSearchDetailsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/marketplaceSearchDetails/{id}'
+        });
+    }
+}
+exports.MarketplaceSearchDetailsService = MarketplaceSearchDetailsService;
+class MarketplaceWebhooksService {
+    static marketplaceWebhooksGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/marketplaceWebhooks'
+        });
+    }
+    static marketplaceWebhooksCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/marketplaceWebhooks'
+        });
+    }
+    static marketplaceWebhooksUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/marketplaceWebhooks/{id}'
+        });
+    }
+    static marketplaceWebhooksDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/marketplaceWebhooks/{id}'
+        });
+    }
+}
+exports.MarketplaceWebhooksService = MarketplaceWebhooksService;
+class PreReleaseVersionsService {
+    static preReleaseVersionsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/preReleaseVersions'
+        });
+    }
+    static preReleaseVersionsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/preReleaseVersions/{id}'
+        });
+    }
+    static preReleaseVersionsAppGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/preReleaseVersions/{id}/app'
+        });
+    }
+    static preReleaseVersionsBuildsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/preReleaseVersions/{id}/builds'
+        });
+    }
+}
+exports.PreReleaseVersionsService = PreReleaseVersionsService;
+class ProfilesService {
+    static profilesGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/profiles'
+        });
+    }
+    static profilesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/profiles'
+        });
+    }
+    static profilesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/profiles/{id}'
+        });
+    }
+    static profilesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/profiles/{id}'
+        });
+    }
+    static profilesBundleIdGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/profiles/{id}/bundleId'
+        });
+    }
+    static profilesCertificatesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/profiles/{id}/certificates'
+        });
+    }
+    static profilesDevicesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/profiles/{id}/devices'
+        });
+    }
+}
+exports.ProfilesService = ProfilesService;
+class PromotedPurchaseImagesService {
+    /**
+     * @deprecated
+     */
+    static promotedPurchaseImagesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/promotedPurchaseImages'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static promotedPurchaseImagesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/promotedPurchaseImages/{id}'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static promotedPurchaseImagesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/promotedPurchaseImages/{id}'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static promotedPurchaseImagesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/promotedPurchaseImages/{id}'
+        });
+    }
+}
+exports.PromotedPurchaseImagesService = PromotedPurchaseImagesService;
+class PromotedPurchasesService {
+    static promotedPurchasesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/promotedPurchases'
+        });
+    }
+    static promotedPurchasesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/promotedPurchases/{id}'
+        });
+    }
+    static promotedPurchasesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/promotedPurchases/{id}'
+        });
+    }
+    static promotedPurchasesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/promotedPurchases/{id}'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static promotedPurchasesPromotionImagesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/promotedPurchases/{id}/promotionImages'
+        });
+    }
+}
+exports.PromotedPurchasesService = PromotedPurchasesService;
+class ReviewSubmissionItemsService {
+    static reviewSubmissionItemsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/reviewSubmissionItems'
+        });
+    }
+    static reviewSubmissionItemsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/reviewSubmissionItems/{id}'
+        });
+    }
+    static reviewSubmissionItemsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/reviewSubmissionItems/{id}'
+        });
+    }
+}
+exports.ReviewSubmissionItemsService = ReviewSubmissionItemsService;
+class ReviewSubmissionsService {
+    static reviewSubmissionsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/reviewSubmissions'
+        });
+    }
+    static reviewSubmissionsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/reviewSubmissions'
+        });
+    }
+    static reviewSubmissionsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/reviewSubmissions/{id}'
+        });
+    }
+    static reviewSubmissionsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/reviewSubmissions/{id}'
+        });
+    }
+    static reviewSubmissionsItemsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/reviewSubmissions/{id}/items'
+        });
+    }
+}
+exports.ReviewSubmissionsService = ReviewSubmissionsService;
+class RoutingAppCoveragesService {
+    static routingAppCoveragesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/routingAppCoverages'
+        });
+    }
+    static routingAppCoveragesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/routingAppCoverages/{id}'
+        });
+    }
+    static routingAppCoveragesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/routingAppCoverages/{id}'
+        });
+    }
+    static routingAppCoveragesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/routingAppCoverages/{id}'
+        });
+    }
+}
+exports.RoutingAppCoveragesService = RoutingAppCoveragesService;
+class SalesReportsService {
+    static salesReportsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/salesReports'
+        });
+    }
+}
+exports.SalesReportsService = SalesReportsService;
+class SandboxTestersService {
+    static sandboxTestersV2GetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v2/sandboxTesters'
+        });
+    }
+    static sandboxTestersV2UpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v2/sandboxTesters/{id}'
+        });
+    }
+}
+exports.SandboxTestersService = SandboxTestersService;
+class SandboxTestersClearPurchaseHistoryRequestService {
+    static sandboxTestersClearPurchaseHistoryRequestV2CreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v2/sandboxTestersClearPurchaseHistoryRequest'
+        });
+    }
+}
+exports.SandboxTestersClearPurchaseHistoryRequestService = SandboxTestersClearPurchaseHistoryRequestService;
+class ScmGitReferencesService {
+    static scmGitReferencesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/scmGitReferences/{id}'
+        });
+    }
+}
+exports.ScmGitReferencesService = ScmGitReferencesService;
+class ScmProvidersService {
+    static scmProvidersGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/scmProviders'
+        });
+    }
+    static scmProvidersGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/scmProviders/{id}'
+        });
+    }
+    static scmProvidersRepositoriesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/scmProviders/{id}/repositories'
+        });
+    }
+}
+exports.ScmProvidersService = ScmProvidersService;
+class ScmPullRequestsService {
+    static scmPullRequestsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/scmPullRequests/{id}'
+        });
+    }
+}
+exports.ScmPullRequestsService = ScmPullRequestsService;
+class ScmRepositoriesService {
+    static scmRepositoriesGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/scmRepositories'
+        });
+    }
+    static scmRepositoriesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/scmRepositories/{id}'
+        });
+    }
+    static scmRepositoriesGitReferencesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/scmRepositories/{id}/gitReferences'
+        });
+    }
+    static scmRepositoriesPullRequestsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/scmRepositories/{id}/pullRequests'
+        });
+    }
+}
+exports.ScmRepositoriesService = ScmRepositoriesService;
+class SubscriptionAppStoreReviewScreenshotsService {
+    static subscriptionAppStoreReviewScreenshotsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionAppStoreReviewScreenshots'
+        });
+    }
+    static subscriptionAppStoreReviewScreenshotsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionAppStoreReviewScreenshots/{id}'
+        });
+    }
+    static subscriptionAppStoreReviewScreenshotsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/subscriptionAppStoreReviewScreenshots/{id}'
+        });
+    }
+    static subscriptionAppStoreReviewScreenshotsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/subscriptionAppStoreReviewScreenshots/{id}'
+        });
+    }
+}
+exports.SubscriptionAppStoreReviewScreenshotsService = SubscriptionAppStoreReviewScreenshotsService;
+class SubscriptionAvailabilitiesService {
+    static subscriptionAvailabilitiesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionAvailabilities'
+        });
+    }
+    static subscriptionAvailabilitiesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionAvailabilities/{id}'
+        });
+    }
+    static subscriptionAvailabilitiesAvailableTerritoriesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionAvailabilities/{id}/availableTerritories'
+        });
+    }
+}
+exports.SubscriptionAvailabilitiesService = SubscriptionAvailabilitiesService;
+class SubscriptionGracePeriodsService {
+    static subscriptionGracePeriodsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionGracePeriods/{id}'
+        });
+    }
+    static subscriptionGracePeriodsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/subscriptionGracePeriods/{id}'
+        });
+    }
+}
+exports.SubscriptionGracePeriodsService = SubscriptionGracePeriodsService;
+class SubscriptionGroupLocalizationsService {
+    static subscriptionGroupLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionGroupLocalizations'
+        });
+    }
+    static subscriptionGroupLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionGroupLocalizations/{id}'
+        });
+    }
+    static subscriptionGroupLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/subscriptionGroupLocalizations/{id}'
+        });
+    }
+    static subscriptionGroupLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/subscriptionGroupLocalizations/{id}'
+        });
+    }
+}
+exports.SubscriptionGroupLocalizationsService = SubscriptionGroupLocalizationsService;
+class SubscriptionGroupSubmissionsService {
+    static subscriptionGroupSubmissionsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionGroupSubmissions'
+        });
+    }
+}
+exports.SubscriptionGroupSubmissionsService = SubscriptionGroupSubmissionsService;
+class SubscriptionGroupsService {
+    static subscriptionGroupsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionGroups'
+        });
+    }
+    static subscriptionGroupsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionGroups/{id}'
+        });
+    }
+    static subscriptionGroupsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/subscriptionGroups/{id}'
+        });
+    }
+    static subscriptionGroupsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/subscriptionGroups/{id}'
+        });
+    }
+    static subscriptionGroupsSubscriptionGroupLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionGroups/{id}/subscriptionGroupLocalizations'
+        });
+    }
+    static subscriptionGroupsSubscriptionsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionGroups/{id}/subscriptions'
+        });
+    }
+}
+exports.SubscriptionGroupsService = SubscriptionGroupsService;
+class SubscriptionImagesService {
+    static subscriptionImagesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionImages'
+        });
+    }
+    static subscriptionImagesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionImages/{id}'
+        });
+    }
+    static subscriptionImagesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/subscriptionImages/{id}'
+        });
+    }
+    static subscriptionImagesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/subscriptionImages/{id}'
+        });
+    }
+}
+exports.SubscriptionImagesService = SubscriptionImagesService;
+class SubscriptionIntroductoryOffersService {
+    static subscriptionIntroductoryOffersCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionIntroductoryOffers'
+        });
+    }
+    static subscriptionIntroductoryOffersUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/subscriptionIntroductoryOffers/{id}'
+        });
+    }
+    static subscriptionIntroductoryOffersDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/subscriptionIntroductoryOffers/{id}'
+        });
+    }
+}
+exports.SubscriptionIntroductoryOffersService = SubscriptionIntroductoryOffersService;
+class SubscriptionLocalizationsService {
+    static subscriptionLocalizationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionLocalizations'
+        });
+    }
+    static subscriptionLocalizationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionLocalizations/{id}'
+        });
+    }
+    static subscriptionLocalizationsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/subscriptionLocalizations/{id}'
+        });
+    }
+    static subscriptionLocalizationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/subscriptionLocalizations/{id}'
+        });
+    }
+}
+exports.SubscriptionLocalizationsService = SubscriptionLocalizationsService;
+class SubscriptionOfferCodeCustomCodesService {
+    static subscriptionOfferCodeCustomCodesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionOfferCodeCustomCodes'
+        });
+    }
+    static subscriptionOfferCodeCustomCodesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionOfferCodeCustomCodes/{id}'
+        });
+    }
+    static subscriptionOfferCodeCustomCodesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/subscriptionOfferCodeCustomCodes/{id}'
+        });
+    }
+}
+exports.SubscriptionOfferCodeCustomCodesService = SubscriptionOfferCodeCustomCodesService;
+class SubscriptionOfferCodeOneTimeUseCodesService {
+    static subscriptionOfferCodeOneTimeUseCodesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionOfferCodeOneTimeUseCodes'
+        });
+    }
+    static subscriptionOfferCodeOneTimeUseCodesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionOfferCodeOneTimeUseCodes/{id}'
+        });
+    }
+    static subscriptionOfferCodeOneTimeUseCodesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/subscriptionOfferCodeOneTimeUseCodes/{id}'
+        });
+    }
+    static subscriptionOfferCodeOneTimeUseCodesValuesGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionOfferCodeOneTimeUseCodes/{id}/values'
+        });
+    }
+}
+exports.SubscriptionOfferCodeOneTimeUseCodesService = SubscriptionOfferCodeOneTimeUseCodesService;
+class SubscriptionOfferCodesService {
+    static subscriptionOfferCodesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionOfferCodes'
+        });
+    }
+    static subscriptionOfferCodesGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionOfferCodes/{id}'
+        });
+    }
+    static subscriptionOfferCodesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/subscriptionOfferCodes/{id}'
+        });
+    }
+    static subscriptionOfferCodesCustomCodesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionOfferCodes/{id}/customCodes'
+        });
+    }
+    static subscriptionOfferCodesOneTimeUseCodesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionOfferCodes/{id}/oneTimeUseCodes'
+        });
+    }
+    static subscriptionOfferCodesPricesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionOfferCodes/{id}/prices'
+        });
+    }
+}
+exports.SubscriptionOfferCodesService = SubscriptionOfferCodesService;
+class SubscriptionPricePointsService {
+    static subscriptionPricePointsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionPricePoints/{id}'
+        });
+    }
+    static subscriptionPricePointsEqualizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionPricePoints/{id}/equalizations'
+        });
+    }
+}
+exports.SubscriptionPricePointsService = SubscriptionPricePointsService;
+class SubscriptionPricesService {
+    static subscriptionPricesCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionPrices'
+        });
+    }
+    static subscriptionPricesDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/subscriptionPrices/{id}'
+        });
+    }
+}
+exports.SubscriptionPricesService = SubscriptionPricesService;
+class SubscriptionPromotionalOffersService {
+    static subscriptionPromotionalOffersCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionPromotionalOffers'
+        });
+    }
+    static subscriptionPromotionalOffersGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionPromotionalOffers/{id}'
+        });
+    }
+    static subscriptionPromotionalOffersUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/subscriptionPromotionalOffers/{id}'
+        });
+    }
+    static subscriptionPromotionalOffersDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/subscriptionPromotionalOffers/{id}'
+        });
+    }
+    static subscriptionPromotionalOffersPricesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptionPromotionalOffers/{id}/prices'
+        });
+    }
+}
+exports.SubscriptionPromotionalOffersService = SubscriptionPromotionalOffersService;
+class SubscriptionSubmissionsService {
+    static subscriptionSubmissionsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptionSubmissions'
+        });
+    }
+}
+exports.SubscriptionSubmissionsService = SubscriptionSubmissionsService;
+class SubscriptionsService {
+    static subscriptionsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/subscriptions'
+        });
+    }
+    static subscriptionsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}'
+        });
+    }
+    static subscriptionsUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/subscriptions/{id}'
+        });
+    }
+    static subscriptionsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/subscriptions/{id}'
+        });
+    }
+    static subscriptionsAppStoreReviewScreenshotGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}/appStoreReviewScreenshot'
+        });
+    }
+    static subscriptionsImagesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}/images'
+        });
+    }
+    static subscriptionsIntroductoryOffersGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}/relationships/introductoryOffers'
+        });
+    }
+    static subscriptionsIntroductoryOffersDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/subscriptions/{id}/relationships/introductoryOffers'
+        });
+    }
+    static subscriptionsIntroductoryOffersGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}/introductoryOffers'
+        });
+    }
+    static subscriptionsOfferCodesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}/offerCodes'
+        });
+    }
+    static subscriptionsPricePointsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}/pricePoints'
+        });
+    }
+    static subscriptionsPricesGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}/relationships/prices'
+        });
+    }
+    static subscriptionsPricesDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/subscriptions/{id}/relationships/prices'
+        });
+    }
+    static subscriptionsPricesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}/prices'
+        });
+    }
+    static subscriptionsPromotedPurchaseGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}/promotedPurchase'
+        });
+    }
+    static subscriptionsPromotionalOffersGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}/promotionalOffers'
+        });
+    }
+    static subscriptionsSubscriptionAvailabilityGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}/subscriptionAvailability'
+        });
+    }
+    static subscriptionsSubscriptionLocalizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}/subscriptionLocalizations'
+        });
+    }
+    static subscriptionsWinBackOffersGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/subscriptions/{id}/winBackOffers'
+        });
+    }
+}
+exports.SubscriptionsService = SubscriptionsService;
+class TerritoriesService {
+    static territoriesGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/territories'
+        });
+    }
+}
+exports.TerritoriesService = TerritoriesService;
+class TerritoryAvailabilitiesService {
+    static territoryAvailabilitiesUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/territoryAvailabilities/{id}'
+        });
+    }
+}
+exports.TerritoryAvailabilitiesService = TerritoryAvailabilitiesService;
+class UserInvitationsService {
+    static userInvitationsGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/userInvitations'
+        });
+    }
+    static userInvitationsCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/userInvitations'
+        });
+    }
+    static userInvitationsGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/userInvitations/{id}'
+        });
+    }
+    static userInvitationsDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/userInvitations/{id}'
+        });
+    }
+    static userInvitationsVisibleAppsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/userInvitations/{id}/visibleApps'
+        });
+    }
+}
+exports.UserInvitationsService = UserInvitationsService;
+class UsersService {
+    static usersGetCollection(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/users'
+        });
+    }
+    static usersGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/users/{id}'
+        });
+    }
+    static usersUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/users/{id}'
+        });
+    }
+    static usersDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/users/{id}'
+        });
+    }
+    static usersVisibleAppsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/users/{id}/relationships/visibleApps'
+        });
+    }
+    static usersVisibleAppsCreateToManyRelationship(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/users/{id}/relationships/visibleApps'
+        });
+    }
+    static usersVisibleAppsReplaceToManyRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/users/{id}/relationships/visibleApps'
+        });
+    }
+    static usersVisibleAppsDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/users/{id}/relationships/visibleApps'
+        });
+    }
+    static usersVisibleAppsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/users/{id}/visibleApps'
+        });
+    }
+}
+exports.UsersService = UsersService;
+class WinBackOffersService {
+    static winBackOffersCreateInstance(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/winBackOffers'
+        });
+    }
+    static winBackOffersGetInstance(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/winBackOffers/{id}'
+        });
+    }
+    static winBackOffersUpdateInstance(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/winBackOffers/{id}'
+        });
+    }
+    static winBackOffersDeleteInstance(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/winBackOffers/{id}'
+        });
+    }
+    static winBackOffersPricesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/winBackOffers/{id}/prices'
+        });
+    }
+}
+exports.WinBackOffersService = WinBackOffersService;
+class BuildBundlesService {
+    static buildBundlesAppClipDomainCacheStatusGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/buildBundles/{id}/appClipDomainCacheStatus'
+        });
+    }
+    static buildBundlesAppClipDomainDebugStatusGetToOneRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/buildBundles/{id}/appClipDomainDebugStatus'
+        });
+    }
+    static buildBundlesBetaAppClipInvocationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/buildBundles/{id}/betaAppClipInvocations'
+        });
+    }
+    static buildBundlesBuildBundleFileSizesGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/buildBundles/{id}/buildBundleFileSizes'
+        });
+    }
+}
+exports.BuildBundlesService = BuildBundlesService;
+class DiagnosticSignaturesService {
+    static diagnosticSignaturesLogsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/diagnosticSignatures/{id}/logs'
+        });
+    }
+}
+exports.DiagnosticSignaturesService = DiagnosticSignaturesService;
+class GameCenterEnabledVersionsService {
+    /**
+     * @deprecated
+     */
+    static gameCenterEnabledVersionsCompatibleVersionsGetToManyRelationship(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterEnabledVersions/{id}/relationships/compatibleVersions'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static gameCenterEnabledVersionsCompatibleVersionsCreateToManyRelationship(options) {
+        return (options?.client ?? exports.client).post({
+            ...options,
+            url: '/v1/gameCenterEnabledVersions/{id}/relationships/compatibleVersions'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static gameCenterEnabledVersionsCompatibleVersionsReplaceToManyRelationship(options) {
+        return (options?.client ?? exports.client).patch({
+            ...options,
+            url: '/v1/gameCenterEnabledVersions/{id}/relationships/compatibleVersions'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static gameCenterEnabledVersionsCompatibleVersionsDeleteToManyRelationship(options) {
+        return (options?.client ?? exports.client).delete({
+            ...options,
+            url: '/v1/gameCenterEnabledVersions/{id}/relationships/compatibleVersions'
+        });
+    }
+    /**
+     * @deprecated
+     */
+    static gameCenterEnabledVersionsCompatibleVersionsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterEnabledVersions/{id}/compatibleVersions'
+        });
+    }
+}
+exports.GameCenterEnabledVersionsService = GameCenterEnabledVersionsService;
+class InAppPurchasePricePointsService {
+    static inAppPurchasePricePointsEqualizationsGetToManyRelated(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/inAppPurchasePricePoints/{id}/equalizations'
+        });
+    }
+}
+exports.InAppPurchasePricePointsService = InAppPurchasePricePointsService;
+class MetricsService {
+    static appsBetaTesterUsagesGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/apps/{id}/metrics/betaTesterUsages'
+        });
+    }
+    static betaGroupsBetaTesterUsagesGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaGroups/{id}/metrics/betaTesterUsages'
+        });
+    }
+    static betaTestersBetaTesterUsagesGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/betaTesters/{id}/metrics/betaTesterUsages'
+        });
+    }
+    static buildsBetaBuildUsagesGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/builds/{id}/metrics/betaBuildUsages'
+        });
+    }
+    static gameCenterDetailsClassicMatchmakingRequestsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/metrics/classicMatchmakingRequests'
+        });
+    }
+    static gameCenterDetailsRuleBasedMatchmakingRequestsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterDetails/{id}/metrics/ruleBasedMatchmakingRequests'
+        });
+    }
+    static gameCenterMatchmakingQueuesExperimentMatchmakingQueueSizesGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/experimentMatchmakingQueueSizes'
+        });
+    }
+    static gameCenterMatchmakingQueuesExperimentMatchmakingRequestsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/experimentMatchmakingRequests'
+        });
+    }
+    static gameCenterMatchmakingQueuesMatchmakingQueueSizesGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/matchmakingQueueSizes'
+        });
+    }
+    static gameCenterMatchmakingQueuesMatchmakingRequestsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/matchmakingRequests'
+        });
+    }
+    static gameCenterMatchmakingQueuesMatchmakingSessionsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingQueues/{id}/metrics/matchmakingSessions'
+        });
+    }
+    static gameCenterMatchmakingRulesMatchmakingBooleanRuleResultsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRules/{id}/metrics/matchmakingBooleanRuleResults'
+        });
+    }
+    static gameCenterMatchmakingRulesMatchmakingNumberRuleResultsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRules/{id}/metrics/matchmakingNumberRuleResults'
+        });
+    }
+    static gameCenterMatchmakingRulesMatchmakingRuleErrorsGetMetrics(options) {
+        return (options?.client ?? exports.client).get({
+            ...options,
+            url: '/v1/gameCenterMatchmakingRules/{id}/metrics/matchmakingRuleErrors'
+        });
+    }
+}
+exports.MetricsService = MetricsService;
 
 
 /***/ }),
@@ -14869,13 +14083,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -14905,14 +14129,13 @@ class AppStoreConnectClient {
             this.bearerToken = this.appStoreConnectOptions.bearerToken;
         }
         else {
-            if (this.appStoreConnectOptions.privateKeyId &&
-                this.appStoreConnectOptions.issuerId &&
-                (this.appStoreConnectOptions.privateKey || this.appStoreConnectOptions.privateKeyFile)) {
+            const { privateKeyId, issuerId, privateKey, privateKeyFile, expirationTime } = this.appStoreConnectOptions;
+            if (privateKeyId && (privateKey || privateKeyFile)) {
                 const defaultExpirationTime = 600; // 10 minutes
-                const expirationTime = this.appStoreConnectOptions.expirationTime ?? defaultExpirationTime;
-                if (!this.bearerToken || this.bearerTokenGeneratedAt + expirationTime * 1000 < Date.now()) {
-                    if (this.appStoreConnectOptions.privateKeyFile) {
-                        const fileHandle = await fs_1.default.promises.open(this.appStoreConnectOptions.privateKeyFile, 'r');
+                const tokenExpirationTime = expirationTime ?? defaultExpirationTime;
+                if (!this.bearerToken || this.bearerTokenGeneratedAt + tokenExpirationTime * 1000 < Date.now()) {
+                    if (privateKeyFile) {
+                        const fileHandle = await fs_1.default.promises.open(privateKeyFile, fs_1.default.constants.O_RDONLY);
                         try {
                             this.appStoreConnectOptions.privateKey = await fileHandle.readFile('utf8');
                         }
@@ -14920,7 +14143,13 @@ class AppStoreConnectClient {
                             await fileHandle.close();
                         }
                     }
-                    this.bearerToken = await this.generateAuthToken(this.appStoreConnectOptions.issuerId, this.appStoreConnectOptions.privateKeyId, this.appStoreConnectOptions.privateKey, expirationTime);
+                    if (issuerId) {
+                        this.bearerToken = await this.generateAuthToken(issuerId, privateKeyId, this.appStoreConnectOptions.privateKey, tokenExpirationTime);
+                    }
+                    else {
+                        this.bearerToken = await this.generateUserAuthToken(privateKeyId, this.appStoreConnectOptions.privateKey, tokenExpirationTime);
+                    }
+                    this.bearerTokenGeneratedAt = Date.now();
                 }
             }
             else {
@@ -14934,12 +14163,27 @@ class AppStoreConnectClient {
      * @see https://developer.apple.com/documentation/appstoreconnectapi/generating_tokens_for_api_requests
     */
     async generateAuthToken(issuerId, privateKeyId, privateKey, expirationTime) {
-        const alg = "ES256";
+        const alg = 'ES256';
         const key = await jose.importPKCS8(privateKey, alg);
         const token = await new jose.SignJWT({})
-            .setProtectedHeader({ alg, kid: privateKeyId, typ: "JWT" })
+            .setProtectedHeader({ alg, kid: privateKeyId, typ: 'JWT' })
             .setIssuer(issuerId)
-            .setAudience("appstoreconnect-v1")
+            .setAudience('appstoreconnect-v1')
+            .setExpirationTime(new Date(Date.now() + expirationTime * 1000))
+            .sign(key);
+        return token;
+    }
+    /**
+     * Generates a user auth token for authenticating with the App Store Connect API.
+     * @see https://developer.apple.com/documentation/appstoreconnectapi/generating-tokens-for-api-requests#Create-the-JWT-Payload-for-Individual-Keys
+     */
+    async generateUserAuthToken(privateKeyId, privateKey, expirationTime) {
+        const alg = 'ES256';
+        const key = await jose.importPKCS8(privateKey, alg);
+        const token = await new jose.SignJWT({})
+            .setProtectedHeader({ alg, kid: privateKeyId, typ: 'JWT' })
+            .setSubject('user')
+            .setAudience('appstoreconnect-v1')
             .setExpirationTime(new Date(Date.now() + expirationTime * 1000))
             .sign(key);
         return token;
@@ -20965,7 +20209,7 @@ Object.defineProperty(exports, "cryptoRuntime", ({ enumerable: true, get: functi
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.compactDecrypt = void 0;
+exports.compactDecrypt = compactDecrypt;
 const decrypt_js_1 = __nccwpck_require__(7566);
 const errors_js_1 = __nccwpck_require__(4419);
 const buffer_utils_js_1 = __nccwpck_require__(1691);
@@ -20993,7 +20237,6 @@ async function compactDecrypt(jwe, key, options) {
     }
     return result;
 }
-exports.compactDecrypt = compactDecrypt;
 
 
 /***/ }),
@@ -21043,7 +20286,7 @@ exports.CompactEncrypt = CompactEncrypt;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.flattenedDecrypt = void 0;
+exports.flattenedDecrypt = flattenedDecrypt;
 const base64url_js_1 = __nccwpck_require__(518);
 const decrypt_js_1 = __nccwpck_require__(6137);
 const errors_js_1 = __nccwpck_require__(4419);
@@ -21205,7 +20448,6 @@ async function flattenedDecrypt(jwe, key, options) {
     }
     return result;
 }
-exports.flattenedDecrypt = flattenedDecrypt;
 
 
 /***/ }),
@@ -21389,7 +20631,7 @@ exports.FlattenedEncrypt = FlattenedEncrypt;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.generalDecrypt = void 0;
+exports.generalDecrypt = generalDecrypt;
 const decrypt_js_1 = __nccwpck_require__(7566);
 const errors_js_1 = __nccwpck_require__(4419);
 const is_object_js_1 = __nccwpck_require__(9127);
@@ -21421,7 +20663,6 @@ async function generalDecrypt(jwe, key, options) {
     }
     throw new errors_js_1.JWEDecryptionFailed();
 }
-exports.generalDecrypt = generalDecrypt;
 
 
 /***/ }),
@@ -21626,7 +20867,7 @@ exports.GeneralEncrypt = GeneralEncrypt;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.EmbeddedJWK = void 0;
+exports.EmbeddedJWK = EmbeddedJWK;
 const import_js_1 = __nccwpck_require__(4230);
 const is_object_js_1 = __nccwpck_require__(9127);
 const errors_js_1 = __nccwpck_require__(4419);
@@ -21644,7 +20885,6 @@ async function EmbeddedJWK(protectedHeader, token) {
     }
     return key;
 }
-exports.EmbeddedJWK = EmbeddedJWK;
 
 
 /***/ }),
@@ -21655,7 +20895,8 @@ exports.EmbeddedJWK = EmbeddedJWK;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.calculateJwkThumbprintUri = exports.calculateJwkThumbprint = void 0;
+exports.calculateJwkThumbprint = calculateJwkThumbprint;
+exports.calculateJwkThumbprintUri = calculateJwkThumbprintUri;
 const digest_js_1 = __nccwpck_require__(2355);
 const base64url_js_1 = __nccwpck_require__(518);
 const errors_js_1 = __nccwpck_require__(4419);
@@ -21704,13 +20945,11 @@ async function calculateJwkThumbprint(jwk, digestAlgorithm) {
     const data = buffer_utils_js_1.encoder.encode(JSON.stringify(components));
     return (0, base64url_js_1.encode)(await (0, digest_js_1.default)(digestAlgorithm, data));
 }
-exports.calculateJwkThumbprint = calculateJwkThumbprint;
 async function calculateJwkThumbprintUri(jwk, digestAlgorithm) {
     digestAlgorithm ??= 'sha256';
     const thumbprint = await calculateJwkThumbprint(jwk, digestAlgorithm);
     return `urn:ietf:params:oauth:jwk-thumbprint:sha-${digestAlgorithm.slice(-3)}:${thumbprint}`;
 }
-exports.calculateJwkThumbprintUri = calculateJwkThumbprintUri;
 
 
 /***/ }),
@@ -21721,7 +20960,7 @@ exports.calculateJwkThumbprintUri = calculateJwkThumbprintUri;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.createLocalJWKSet = void 0;
+exports.createLocalJWKSet = createLocalJWKSet;
 const import_js_1 = __nccwpck_require__(4230);
 const errors_js_1 = __nccwpck_require__(4419);
 const is_object_js_1 = __nccwpck_require__(9127);
@@ -21844,7 +21083,6 @@ function createLocalJWKSet(jwks) {
     });
     return localJWKSet;
 }
-exports.createLocalJWKSet = createLocalJWKSet;
 
 
 /***/ }),
@@ -21855,7 +21093,8 @@ exports.createLocalJWKSet = createLocalJWKSet;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.experimental_jwksCache = exports.createRemoteJWKSet = exports.jwksCache = void 0;
+exports.experimental_jwksCache = exports.jwksCache = void 0;
+exports.createRemoteJWKSet = createRemoteJWKSet;
 const fetch_jwks_js_1 = __nccwpck_require__(3650);
 const errors_js_1 = __nccwpck_require__(4419);
 const local_js_1 = __nccwpck_require__(9970);
@@ -21868,7 +21107,7 @@ function isCloudflareWorkers() {
 let USER_AGENT;
 if (typeof navigator === 'undefined' || !navigator.userAgent?.startsWith?.('Mozilla/5.0 ')) {
     const NAME = 'jose';
-    const VERSION = 'v5.9.4';
+    const VERSION = 'v5.9.6';
     USER_AGENT = `${NAME}/${VERSION}`;
 }
 exports.jwksCache = Symbol();
@@ -22003,7 +21242,6 @@ function createRemoteJWKSet(url, options) {
     });
     return remoteJWKSet;
 }
-exports.createRemoteJWKSet = createRemoteJWKSet;
 exports.experimental_jwksCache = exports.jwksCache;
 
 
@@ -22045,7 +21283,7 @@ exports.CompactSign = CompactSign;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.compactVerify = void 0;
+exports.compactVerify = compactVerify;
 const verify_js_1 = __nccwpck_require__(2095);
 const errors_js_1 = __nccwpck_require__(4419);
 const buffer_utils_js_1 = __nccwpck_require__(1691);
@@ -22067,7 +21305,6 @@ async function compactVerify(jws, key, options) {
     }
     return result;
 }
-exports.compactVerify = compactVerify;
 
 
 /***/ }),
@@ -22174,7 +21411,7 @@ exports.FlattenedSign = FlattenedSign;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.flattenedVerify = void 0;
+exports.flattenedVerify = flattenedVerify;
 const base64url_js_1 = __nccwpck_require__(518);
 const verify_js_1 = __nccwpck_require__(3569);
 const errors_js_1 = __nccwpck_require__(4419);
@@ -22297,7 +21534,6 @@ async function flattenedVerify(jws, key, options) {
     }
     return result;
 }
-exports.flattenedVerify = flattenedVerify;
 
 
 /***/ }),
@@ -22393,7 +21629,7 @@ exports.GeneralSign = GeneralSign;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.generalVerify = void 0;
+exports.generalVerify = generalVerify;
 const verify_js_1 = __nccwpck_require__(2095);
 const errors_js_1 = __nccwpck_require__(4419);
 const is_object_js_1 = __nccwpck_require__(9127);
@@ -22418,7 +21654,6 @@ async function generalVerify(jws, key, options) {
     }
     throw new errors_js_1.JWSSignatureVerificationFailed();
 }
-exports.generalVerify = generalVerify;
 
 
 /***/ }),
@@ -22429,7 +21664,7 @@ exports.generalVerify = generalVerify;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.jwtDecrypt = void 0;
+exports.jwtDecrypt = jwtDecrypt;
 const decrypt_js_1 = __nccwpck_require__(7651);
 const jwt_claims_set_js_1 = __nccwpck_require__(7274);
 const errors_js_1 = __nccwpck_require__(4419);
@@ -22453,7 +21688,6 @@ async function jwtDecrypt(jwt, key, options) {
     }
     return result;
 }
-exports.jwtDecrypt = jwtDecrypt;
 
 
 /***/ }),
@@ -22716,7 +21950,7 @@ exports.UnsecuredJWT = UnsecuredJWT;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.jwtVerify = void 0;
+exports.jwtVerify = jwtVerify;
 const verify_js_1 = __nccwpck_require__(5212);
 const jwt_claims_set_js_1 = __nccwpck_require__(7274);
 const errors_js_1 = __nccwpck_require__(4419);
@@ -22732,7 +21966,6 @@ async function jwtVerify(jwt, key, options) {
     }
     return result;
 }
-exports.jwtVerify = jwtVerify;
 
 
 /***/ }),
@@ -22743,22 +21976,21 @@ exports.jwtVerify = jwtVerify;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.exportJWK = exports.exportPKCS8 = exports.exportSPKI = void 0;
+exports.exportSPKI = exportSPKI;
+exports.exportPKCS8 = exportPKCS8;
+exports.exportJWK = exportJWK;
 const asn1_js_1 = __nccwpck_require__(858);
 const asn1_js_2 = __nccwpck_require__(858);
 const key_to_jwk_js_1 = __nccwpck_require__(997);
 async function exportSPKI(key) {
     return (0, asn1_js_1.toSPKI)(key);
 }
-exports.exportSPKI = exportSPKI;
 async function exportPKCS8(key) {
     return (0, asn1_js_2.toPKCS8)(key);
 }
-exports.exportPKCS8 = exportPKCS8;
 async function exportJWK(key) {
     return (0, key_to_jwk_js_1.default)(key);
 }
-exports.exportJWK = exportJWK;
 
 
 /***/ }),
@@ -22769,12 +22001,11 @@ exports.exportJWK = exportJWK;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.generateKeyPair = void 0;
+exports.generateKeyPair = generateKeyPair;
 const generate_js_1 = __nccwpck_require__(9378);
 async function generateKeyPair(alg, options) {
     return (0, generate_js_1.generateKeyPair)(alg, options);
 }
-exports.generateKeyPair = generateKeyPair;
 
 
 /***/ }),
@@ -22785,12 +22016,11 @@ exports.generateKeyPair = generateKeyPair;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.generateSecret = void 0;
+exports.generateSecret = generateSecret;
 const generate_js_1 = __nccwpck_require__(9378);
 async function generateSecret(alg, options) {
     return (0, generate_js_1.generateSecret)(alg, options);
 }
-exports.generateSecret = generateSecret;
 
 
 /***/ }),
@@ -22801,7 +22031,10 @@ exports.generateSecret = generateSecret;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.importJWK = exports.importPKCS8 = exports.importX509 = exports.importSPKI = void 0;
+exports.importSPKI = importSPKI;
+exports.importX509 = importX509;
+exports.importPKCS8 = importPKCS8;
+exports.importJWK = importJWK;
 const base64url_js_1 = __nccwpck_require__(518);
 const asn1_js_1 = __nccwpck_require__(858);
 const jwk_to_key_js_1 = __nccwpck_require__(2659);
@@ -22813,21 +22046,18 @@ async function importSPKI(spki, alg, options) {
     }
     return (0, asn1_js_1.fromSPKI)(spki, alg, options);
 }
-exports.importSPKI = importSPKI;
 async function importX509(x509, alg, options) {
     if (typeof x509 !== 'string' || x509.indexOf('-----BEGIN CERTIFICATE-----') !== 0) {
         throw new TypeError('"x509" must be X.509 formatted string');
     }
     return (0, asn1_js_1.fromX509)(x509, alg, options);
 }
-exports.importX509 = importX509;
 async function importPKCS8(pkcs8, alg, options) {
     if (typeof pkcs8 !== 'string' || pkcs8.indexOf('-----BEGIN PRIVATE KEY-----') !== 0) {
         throw new TypeError('"pkcs8" must be PKCS#8 formatted string');
     }
     return (0, asn1_js_1.fromPKCS8)(pkcs8, alg, options);
 }
-exports.importPKCS8 = importPKCS8;
 async function importJWK(jwk, alg) {
     if (!(0, is_object_js_1.default)(jwk)) {
         throw new TypeError('JWK must be an object');
@@ -22850,7 +22080,6 @@ async function importJWK(jwk, alg) {
             throw new errors_js_1.JOSENotSupported('Unsupported "kty" (Key Type) Parameter value');
     }
 }
-exports.importJWK = importJWK;
 
 
 /***/ }),
@@ -22861,7 +22090,8 @@ exports.importJWK = importJWK;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.unwrap = exports.wrap = void 0;
+exports.wrap = wrap;
+exports.unwrap = unwrap;
 const encrypt_js_1 = __nccwpck_require__(6476);
 const decrypt_js_1 = __nccwpck_require__(6137);
 const base64url_js_1 = __nccwpck_require__(518);
@@ -22874,12 +22104,10 @@ async function wrap(alg, key, cek, iv) {
         tag: (0, base64url_js_1.encode)(wrapped.tag),
     };
 }
-exports.wrap = wrap;
 async function unwrap(alg, key, encryptedKey, iv, tag) {
     const jweAlgorithm = alg.slice(0, 7);
     return (0, decrypt_js_1.default)(jweAlgorithm, key, encryptedKey, iv, tag, new Uint8Array(0));
 }
-exports.unwrap = unwrap;
 
 
 /***/ }),
@@ -22890,7 +22118,13 @@ exports.unwrap = unwrap;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.concatKdf = exports.lengthAndInput = exports.uint32be = exports.uint64be = exports.p2s = exports.concat = exports.decoder = exports.encoder = void 0;
+exports.decoder = exports.encoder = void 0;
+exports.concat = concat;
+exports.p2s = p2s;
+exports.uint64be = uint64be;
+exports.uint32be = uint32be;
+exports.lengthAndInput = lengthAndInput;
+exports.concatKdf = concatKdf;
 const digest_js_1 = __nccwpck_require__(2355);
 exports.encoder = new TextEncoder();
 exports.decoder = new TextDecoder();
@@ -22905,11 +22139,9 @@ function concat(...buffers) {
     }
     return buf;
 }
-exports.concat = concat;
 function p2s(alg, p2sInput) {
     return concat(exports.encoder.encode(alg), new Uint8Array([0]), p2sInput);
 }
-exports.p2s = p2s;
 function writeUInt32BE(buf, value, offset) {
     if (value < 0 || value >= MAX_INT32) {
         throw new RangeError(`value must be >= 0 and <= ${MAX_INT32 - 1}. Received ${value}`);
@@ -22924,17 +22156,14 @@ function uint64be(value) {
     writeUInt32BE(buf, low, 4);
     return buf;
 }
-exports.uint64be = uint64be;
 function uint32be(value) {
     const buf = new Uint8Array(4);
     writeUInt32BE(buf, value);
     return buf;
 }
-exports.uint32be = uint32be;
 function lengthAndInput(input) {
     return concat(uint32be(input.length), input);
 }
-exports.lengthAndInput = lengthAndInput;
 async function concatKdf(secret, bits, value) {
     const iterations = Math.ceil((bits >> 3) / 32);
     const res = new Uint8Array(iterations * 32);
@@ -22947,7 +22176,6 @@ async function concatKdf(secret, bits, value) {
     }
     return res.slice(0, bits >> 3);
 }
-exports.concatKdf = concatKdf;
 
 
 /***/ }),
@@ -22958,7 +22186,7 @@ exports.concatKdf = concatKdf;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.bitLength = void 0;
+exports.bitLength = bitLength;
 const errors_js_1 = __nccwpck_require__(4419);
 const random_js_1 = __nccwpck_require__(5770);
 function bitLength(alg) {
@@ -22978,7 +22206,6 @@ function bitLength(alg) {
             throw new errors_js_1.JOSENotSupported(`Unsupported JWE Algorithm: ${alg}`);
     }
 }
-exports.bitLength = bitLength;
 exports["default"] = (alg) => (0, random_js_1.default)(new Uint8Array(bitLength(alg) >> 3));
 
 
@@ -23096,13 +22323,13 @@ exports.checkKeyTypeWithJwk = checkKeyType.bind(undefined, true);
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = checkP2s;
 const errors_js_1 = __nccwpck_require__(4419);
 function checkP2s(p2s) {
     if (!(p2s instanceof Uint8Array) || p2s.length < 8) {
         throw new errors_js_1.JWEInvalid('PBES2 Salt Input must be 8 or more octets');
     }
 }
-exports["default"] = checkP2s;
 
 
 /***/ }),
@@ -23113,7 +22340,8 @@ exports["default"] = checkP2s;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.checkEncCryptoKey = exports.checkSigCryptoKey = void 0;
+exports.checkSigCryptoKey = checkSigCryptoKey;
+exports.checkEncCryptoKey = checkEncCryptoKey;
 function unusable(name, prop = 'algorithm.name') {
     return new TypeError(`CryptoKey does not support this operation, its ${prop} must be ${name}`);
 }
@@ -23208,7 +22436,6 @@ function checkSigCryptoKey(key, alg, ...usages) {
     }
     checkUsage(key, usages);
 }
-exports.checkSigCryptoKey = checkSigCryptoKey;
 function checkEncCryptoKey(key, alg, ...usages) {
     switch (alg) {
         case 'A128GCM':
@@ -23267,7 +22494,6 @@ function checkEncCryptoKey(key, alg, ...usages) {
     }
     checkUsage(key, usages);
 }
-exports.checkEncCryptoKey = checkEncCryptoKey;
 
 
 /***/ }),
@@ -23527,7 +22753,7 @@ exports["default"] = (date) => Math.floor(date.getTime() / 1000);
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.withAlg = void 0;
+exports.withAlg = withAlg;
 function message(msg, actual, ...types) {
     types = types.filter(Boolean);
     if (types.length > 2) {
@@ -23559,7 +22785,6 @@ exports["default"] = (actual, ...types) => {
 function withAlg(alg, actual, ...types) {
     return message(`Key for the ${alg} algorithm must be `, actual, ...types);
 }
-exports.withAlg = withAlg;
 
 
 /***/ }),
@@ -23602,24 +22827,23 @@ exports["default"] = isDisjoint;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.isSecretJWK = exports.isPublicJWK = exports.isPrivateJWK = exports.isJWK = void 0;
+exports.isJWK = isJWK;
+exports.isPrivateJWK = isPrivateJWK;
+exports.isPublicJWK = isPublicJWK;
+exports.isSecretJWK = isSecretJWK;
 const is_object_js_1 = __nccwpck_require__(9127);
 function isJWK(key) {
     return (0, is_object_js_1.default)(key) && typeof key.kty === 'string';
 }
-exports.isJWK = isJWK;
 function isPrivateJWK(key) {
     return key.kty !== 'oct' && typeof key.d === 'string';
 }
-exports.isPrivateJWK = isPrivateJWK;
 function isPublicJWK(key) {
     return key.kty !== 'oct' && typeof key.d === 'undefined';
 }
-exports.isPublicJWK = isPublicJWK;
 function isSecretJWK(key) {
     return isJWK(key) && key.kty === 'oct' && typeof key.k === 'string';
 }
-exports.isSecretJWK = isSecretJWK;
 
 
 /***/ }),
@@ -23630,6 +22854,7 @@ exports.isSecretJWK = isSecretJWK;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = isObject;
 function isObjectLike(value) {
     return typeof value === 'object' && value !== null;
 }
@@ -23646,7 +22871,6 @@ function isObject(input) {
     }
     return Object.getPrototypeOf(input) === proto;
 }
-exports["default"] = isObject;
 
 
 /***/ }),
@@ -23657,7 +22881,7 @@ exports["default"] = isObject;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.bitLength = void 0;
+exports.bitLength = bitLength;
 const errors_js_1 = __nccwpck_require__(4419);
 const random_js_1 = __nccwpck_require__(5770);
 function bitLength(alg) {
@@ -23677,7 +22901,6 @@ function bitLength(alg) {
             throw new errors_js_1.JOSENotSupported(`Unsupported JWE Algorithm: ${alg}`);
     }
 }
-exports.bitLength = bitLength;
 exports["default"] = (alg) => (0, random_js_1.default)(new Uint8Array(bitLength(alg) >> 3));
 
 
@@ -24098,6 +23321,7 @@ exports.decode = decode;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = cbcTag;
 const node_crypto_1 = __nccwpck_require__(6005);
 const buffer_utils_js_1 = __nccwpck_require__(1691);
 function cbcTag(aad, iv, ciphertext, macSize, macKey, keySize) {
@@ -24106,7 +23330,6 @@ function cbcTag(aad, iv, ciphertext, macSize, macKey, keySize) {
     hmac.update(macData);
     return hmac.digest().slice(0, keySize >> 3);
 }
-exports["default"] = cbcTag;
 
 
 /***/ }),
@@ -24328,6 +23551,7 @@ exports["default"] = digest;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = dsaDigest;
 const errors_js_1 = __nccwpck_require__(4419);
 function dsaDigest(alg) {
     switch (alg) {
@@ -24350,7 +23574,6 @@ function dsaDigest(alg) {
             throw new errors_js_1.JOSENotSupported(`alg ${alg} is not supported either by JOSE or your javascript runtime`);
     }
 }
-exports["default"] = dsaDigest;
 
 
 /***/ }),
@@ -24361,7 +23584,9 @@ exports["default"] = dsaDigest;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ecdhAllowed = exports.generateEpk = exports.deriveKey = void 0;
+exports.ecdhAllowed = void 0;
+exports.deriveKey = deriveKey;
+exports.generateEpk = generateEpk;
 const node_crypto_1 = __nccwpck_require__(6005);
 const node_util_1 = __nccwpck_require__(7261);
 const get_named_curve_js_1 = __nccwpck_require__(9302);
@@ -24400,7 +23625,6 @@ async function deriveKey(publicKee, privateKee, algorithm, keyLength, apu = new 
     const sharedSecret = (0, node_crypto_1.diffieHellman)({ privateKey, publicKey });
     return (0, buffer_utils_js_1.concatKdf)(sharedSecret, keyLength, value);
 }
-exports.deriveKey = deriveKey;
 async function generateEpk(kee) {
     let key;
     if ((0, webcrypto_js_1.isCryptoKey)(kee)) {
@@ -24426,7 +23650,6 @@ async function generateEpk(kee) {
             throw new errors_js_1.JOSENotSupported('Invalid or unsupported EPK');
     }
 }
-exports.generateEpk = generateEpk;
 const ecdhAllowed = (key) => ['P-256', 'P-384', 'P-521', 'X25519', 'X448'].includes((0, get_named_curve_js_1.default)(key));
 exports.ecdhAllowed = ecdhAllowed;
 
@@ -24580,7 +23803,8 @@ exports["default"] = fetchJwks;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.generateKeyPair = exports.generateSecret = void 0;
+exports.generateSecret = generateSecret;
+exports.generateKeyPair = generateKeyPair;
 const node_crypto_1 = __nccwpck_require__(6005);
 const node_util_1 = __nccwpck_require__(7261);
 const random_js_1 = __nccwpck_require__(5770);
@@ -24613,7 +23837,6 @@ async function generateSecret(alg, options) {
     }
     return (0, node_crypto_1.createSecretKey)((0, random_js_1.default)(new Uint8Array(length >> 3)));
 }
-exports.generateSecret = generateSecret;
 async function generateKeyPair(alg, options) {
     switch (alg) {
         case 'RS256':
@@ -24679,7 +23902,6 @@ async function generateKeyPair(alg, options) {
             throw new errors_js_1.JOSENotSupported('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
     }
 }
-exports.generateKeyPair = generateKeyPair;
 
 
 /***/ }),
@@ -24759,6 +23981,7 @@ exports["default"] = getNamedCurve;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = getSignVerifyKey;
 const node_crypto_1 = __nccwpck_require__(6005);
 const webcrypto_js_1 = __nccwpck_require__(6852);
 const crypto_key_js_1 = __nccwpck_require__(3386);
@@ -24787,7 +24010,6 @@ function getSignVerifyKey(alg, key, usage) {
     }
     throw new TypeError((0, invalid_key_input_js_1.default)(key, ...is_key_like_js_1.types, 'Uint8Array', 'JSON Web Key'));
 }
-exports["default"] = getSignVerifyKey;
 
 
 /***/ }),
@@ -24798,6 +24020,7 @@ exports["default"] = getSignVerifyKey;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = hmacDigest;
 const errors_js_1 = __nccwpck_require__(4419);
 function hmacDigest(alg) {
     switch (alg) {
@@ -24811,7 +24034,6 @@ function hmacDigest(alg) {
             throw new errors_js_1.JOSENotSupported(`alg ${alg} is not supported either by JOSE or your javascript runtime`);
     }
 }
-exports["default"] = hmacDigest;
 
 
 /***/ }),
@@ -24915,6 +24137,7 @@ exports["default"] = keyToJWK;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports["default"] = keyForCrypto;
 const node_crypto_1 = __nccwpck_require__(6005);
 const get_named_curve_js_1 = __nccwpck_require__(9302);
 const errors_js_1 = __nccwpck_require__(4419);
@@ -25018,7 +24241,6 @@ function keyForCrypto(alg, key) {
     }
     return options ? { ...options, key } : key;
 }
-exports["default"] = keyForCrypto;
 
 
 /***/ }),
@@ -25309,7 +24531,7 @@ exports.decode = base64url.decode;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.decodeJwt = void 0;
+exports.decodeJwt = decodeJwt;
 const base64url_js_1 = __nccwpck_require__(3238);
 const buffer_utils_js_1 = __nccwpck_require__(1691);
 const is_object_js_1 = __nccwpck_require__(9127);
@@ -25342,7 +24564,6 @@ function decodeJwt(jwt) {
         throw new errors_js_1.JWTInvalid('Invalid JWT Claims Set');
     return result;
 }
-exports.decodeJwt = decodeJwt;
 
 
 /***/ }),
@@ -25353,7 +24574,7 @@ exports.decodeJwt = decodeJwt;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.decodeProtectedHeader = void 0;
+exports.decodeProtectedHeader = decodeProtectedHeader;
 const base64url_js_1 = __nccwpck_require__(3238);
 const buffer_utils_js_1 = __nccwpck_require__(1691);
 const is_object_js_1 = __nccwpck_require__(9127);
@@ -25388,7 +24609,6 @@ function decodeProtectedHeader(token) {
         throw new TypeError('Invalid Token or Protected Header formatting');
     }
 }
-exports.decodeProtectedHeader = decodeProtectedHeader;
 
 
 /***/ }),
@@ -27078,7 +26298,7 @@ module.exports = Comparator
 const parseOptions = __nccwpck_require__(785)
 const { safeRe: re, t } = __nccwpck_require__(9523)
 const cmp = __nccwpck_require__(5098)
-const debug = __nccwpck_require__(106)
+const debug = __nccwpck_require__(427)
 const SemVer = __nccwpck_require__(8088)
 const Range = __nccwpck_require__(9828)
 
@@ -27307,7 +26527,7 @@ const cache = new LRU()
 
 const parseOptions = __nccwpck_require__(785)
 const Comparator = __nccwpck_require__(1532)
-const debug = __nccwpck_require__(106)
+const debug = __nccwpck_require__(427)
 const SemVer = __nccwpck_require__(8088)
 const {
   safeRe: re,
@@ -27649,9 +26869,9 @@ const testSet = (set, version, options) => {
 /***/ 8088:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const debug = __nccwpck_require__(106)
+const debug = __nccwpck_require__(427)
 const { MAX_LENGTH, MAX_SAFE_INTEGER } = __nccwpck_require__(2293)
-const { safeRe: re, t } = __nccwpck_require__(9523)
+const { safeRe: re, safeSrc: src, t } = __nccwpck_require__(9523)
 
 const parseOptions = __nccwpck_require__(785)
 const { compareIdentifiers } = __nccwpck_require__(2463)
@@ -27661,7 +26881,7 @@ class SemVer {
 
     if (version instanceof SemVer) {
       if (version.loose === !!options.loose &&
-          version.includePrerelease === !!options.includePrerelease) {
+        version.includePrerelease === !!options.includePrerelease) {
         return version
       } else {
         version = version.version
@@ -27827,6 +27047,20 @@ class SemVer {
   // preminor will bump the version up to the next minor release, and immediately
   // down to pre-release. premajor and prepatch work the same way.
   inc (release, identifier, identifierBase) {
+    if (release.startsWith('pre')) {
+      if (!identifier && identifierBase === false) {
+        throw new Error('invalid increment argument: identifier is empty')
+      }
+      // Avoid an invalid semver results
+      if (identifier) {
+        const r = new RegExp(`^${this.options.loose ? src[t.PRERELEASELOOSE] : src[t.PRERELEASE]}$`)
+        const match = `-${identifier}`.match(r)
+        if (!match || match[1] !== identifier) {
+          throw new Error(`invalid identifier: ${identifier}`)
+        }
+      }
+    }
+
     switch (release) {
       case 'premajor':
         this.prerelease.length = 0
@@ -27856,6 +27090,12 @@ class SemVer {
           this.inc('patch', identifier, identifierBase)
         }
         this.inc('pre', identifier, identifierBase)
+        break
+      case 'release':
+        if (this.prerelease.length === 0) {
+          throw new Error(`version ${this.raw} is not a prerelease`)
+        }
+        this.prerelease.length = 0
         break
 
       case 'major':
@@ -27899,10 +27139,6 @@ class SemVer {
       // 1.0.0 'pre' would become 1.0.0-0 which is the wrong direction.
       case 'pre': {
         const base = Number(identifierBase) ? 1 : 0
-
-        if (!identifier && identifierBase === false) {
-          throw new Error('invalid increment argument: identifier is empty')
-        }
 
         if (this.prerelease.length === 0) {
           this.prerelease = [base]
@@ -28162,20 +27398,13 @@ const diff = (version1, version2) => {
       return 'major'
     }
 
-    // Otherwise it can be determined by checking the high version
-
-    if (highVersion.patch) {
-      // anything higher than a patch bump would result in the wrong version
+    // If the main part has no difference
+    if (lowVersion.compareMain(highVersion) === 0) {
+      if (lowVersion.minor && !lowVersion.patch) {
+        return 'minor'
+      }
       return 'patch'
     }
-
-    if (highVersion.minor) {
-      // anything higher than a minor bump would result in the wrong version
-      return 'minor'
-    }
-
-    // bumping major/minor/patch all have same result
-    return 'major'
   }
 
   // add the `pre` prefix if we are going to a prerelease version
@@ -28552,7 +27781,7 @@ module.exports = {
 
 /***/ }),
 
-/***/ 106:
+/***/ 427:
 /***/ ((module) => {
 
 const debug = (
@@ -28675,13 +27904,14 @@ const {
   MAX_SAFE_BUILD_LENGTH,
   MAX_LENGTH,
 } = __nccwpck_require__(2293)
-const debug = __nccwpck_require__(106)
+const debug = __nccwpck_require__(427)
 exports = module.exports = {}
 
 // The actual regexps go on exports.re
 const re = exports.re = []
 const safeRe = exports.safeRe = []
 const src = exports.src = []
+const safeSrc = exports.safeSrc = []
 const t = exports.t = {}
 let R = 0
 
@@ -28714,6 +27944,7 @@ const createToken = (name, value, isGlobal) => {
   debug(name, index, value)
   t[name] = index
   src[index] = value
+  safeSrc[index] = safe
   re[index] = new RegExp(value, isGlobal ? 'g' : undefined)
   safeRe[index] = new RegExp(safe, isGlobal ? 'g' : undefined)
 }
@@ -36671,7 +35902,7 @@ class Request {
       }
 
       if (!extractBody) {
-        extractBody = (__nccwpck_require__(9990).extractBody)
+        extractBody = (__nccwpck_require__(1472).extractBody)
       }
 
       const [bodyStream, contentType] = extractBody(body)
@@ -37798,7 +37029,7 @@ module.exports = Dispatcher
 
 /***/ }),
 
-/***/ 9990:
+/***/ 1472:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 "use strict";
@@ -40532,7 +39763,7 @@ const {
 } = __nccwpck_require__(2538)
 const { kState, kHeaders, kGuard, kRealm } = __nccwpck_require__(5861)
 const assert = __nccwpck_require__(9491)
-const { safelyExtractBody } = __nccwpck_require__(9990)
+const { safelyExtractBody } = __nccwpck_require__(1472)
 const {
   redirectStatusSet,
   nullBodyStatus,
@@ -42646,7 +41877,7 @@ module.exports = {
 
 
 
-const { extractBody, mixinBody, cloneBody } = __nccwpck_require__(9990)
+const { extractBody, mixinBody, cloneBody } = __nccwpck_require__(1472)
 const { Headers, fill: fillHeaders, HeadersList } = __nccwpck_require__(554)
 const { FinalizationRegistry } = __nccwpck_require__(6436)()
 const util = __nccwpck_require__(3983)
@@ -43599,7 +42830,7 @@ module.exports = { Request, makeRequest }
 
 
 const { Headers, HeadersList, fill } = __nccwpck_require__(554)
-const { extractBody, cloneBody, mixinBody } = __nccwpck_require__(9990)
+const { extractBody, cloneBody, mixinBody } = __nccwpck_require__(1472)
 const util = __nccwpck_require__(3983)
 const { kEnumerableProperty } = util
 const {
@@ -52066,7 +51297,7 @@ var _v5 = _interopRequireDefault(__nccwpck_require__(8080));
 var _v6ToV = _interopRequireDefault(__nccwpck_require__(3343));
 var _v6 = _interopRequireDefault(__nccwpck_require__(2778));
 var _validate = _interopRequireDefault(__nccwpck_require__(6900));
-var _version = _interopRequireDefault(__nccwpck_require__(2414));
+var _version = _interopRequireDefault(__nccwpck_require__(1595));
 function _interopRequireDefault(e) { return e && e.__esModule ? e : { default: e }; }
 
 /***/ }),
@@ -52871,7 +52102,7 @@ var _default = exports["default"] = validate;
 
 /***/ }),
 
-/***/ 2414:
+/***/ 1595:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
 "use strict";
@@ -58171,7 +57402,7 @@ async function GetAppId(project) {
         return project;
     }
     await getOrCreateClient(project);
-    const { data: response, error } = await appStoreConnectClient.api.appsGetCollection({
+    const { data: response, error } = await appStoreConnectClient.api.AppsService.appsGetCollection({
         query: { 'filter[bundleId]': [project.bundleId] }
     });
     if (error) {
@@ -58230,7 +57461,7 @@ async function getLastPreReleaseVersionAndBuild(project) {
         }
     };
     (0, utilities_1.log)(`/preReleaseVersions?${JSON.stringify(preReleaseVersionRequest.query)}`);
-    const { data: preReleaseResponse, error: preReleaseError } = await appStoreConnectClient.api.preReleaseVersionsGetCollection(preReleaseVersionRequest);
+    const { data: preReleaseResponse, error: preReleaseError } = await appStoreConnectClient.api.PreReleaseVersionsService.preReleaseVersionsGetCollection(preReleaseVersionRequest);
     const responseJson = JSON.stringify(preReleaseResponse, null, 2);
     if (preReleaseError) {
         checkAuthError(preReleaseError);
@@ -58268,7 +57499,7 @@ async function getLastPrereleaseBuild(prereleaseVersion) {
         }
     };
     (0, utilities_1.log)(`/builds?${JSON.stringify(buildsRequest.query)}`);
-    const { data: buildsResponse, error: buildsError } = await appStoreConnectClient.api.buildsGetCollection(buildsRequest);
+    const { data: buildsResponse, error: buildsError } = await appStoreConnectClient.api.BuildsService.buildsGetCollection(buildsRequest);
     const responseJson = JSON.stringify(buildsResponse, null, 2);
     if (buildsError) {
         checkAuthError(buildsError);
@@ -58289,7 +57520,7 @@ async function getBetaBuildLocalization(build) {
         }
     };
     (0, utilities_1.log)(`/betaBuildLocalizations?${JSON.stringify(betaBuildLocalizationRequest.query)}`);
-    const { data: betaBuildLocalizationResponse, error: betaBuildLocalizationError } = await appStoreConnectClient.api.betaBuildLocalizationsGetCollection(betaBuildLocalizationRequest);
+    const { data: betaBuildLocalizationResponse, error: betaBuildLocalizationError } = await appStoreConnectClient.api.BetaBuildLocalizationsService.betaBuildLocalizationsGetCollection(betaBuildLocalizationRequest);
     const responseJson = JSON.stringify(betaBuildLocalizationResponse, null, 2);
     if (betaBuildLocalizationError) {
         checkAuthError(betaBuildLocalizationError);
@@ -58320,7 +57551,7 @@ async function createBetaBuildLocalization(build, whatsNew) {
         }
     };
     (0, utilities_1.log)(`/betaBuildLocalizations\n${JSON.stringify(betaBuildLocalizationRequest, null, 2)}`);
-    const { data: response, error: responseError } = await appStoreConnectClient.api.betaBuildLocalizationsCreateInstance({
+    const { data: response, error: responseError } = await appStoreConnectClient.api.BetaBuildLocalizationsService.betaBuildLocalizationsCreateInstance({
         body: betaBuildLocalizationRequest
     });
     const responseJson = JSON.stringify(betaBuildLocalizationRequest, null, 2);
@@ -58342,7 +57573,7 @@ async function updateBetaBuildLocalization(betaBuildLocalization, whatsNew) {
         }
     };
     (0, utilities_1.log)(`/betaBuildLocalizations/${betaBuildLocalization.id}\n${JSON.stringify(updateBuildLocalization, null, 2)}`);
-    const { error: updateError } = await appStoreConnectClient.api.betaBuildLocalizationsUpdateInstance({
+    const { error: updateError } = await appStoreConnectClient.api.BetaBuildLocalizationsService.betaBuildLocalizationsUpdateInstance({
         path: { id: betaBuildLocalization.id },
         body: updateBuildLocalization
     });
