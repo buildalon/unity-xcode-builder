@@ -1,6 +1,6 @@
 {
   "name": "unity-xcode-builder",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "A GitHub Action to build, archive, and upload Unity exported xcode projects.",
   "author": "buildalon",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "@actions/exec": "^1.1.1",
     "@actions/github": "^6.0.0",
     "@actions/glob": "^0.5.0",
-    "@rage-against-the-pixel/app-store-connect-api": "^3.7.1",
+    "@rage-against-the-pixel/app-store-connect-api": "^3.8.0",
     "plist": "^3.1.0",
     "semver": "^7.7.1",
     "uuid": "^10.0.0"
