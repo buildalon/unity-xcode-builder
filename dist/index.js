@@ -4790,11 +4790,11 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // pkg/dist-src/index.js
-var dist_src_exports = {};
-__export(dist_src_exports, {
+var index_exports = {};
+__export(index_exports, {
   Octokit: () => Octokit
 });
-module.exports = __toCommonJS(dist_src_exports);
+module.exports = __toCommonJS(index_exports);
 var import_universal_user_agent = __nccwpck_require__(5030);
 var import_before_after_hook = __nccwpck_require__(3682);
 var import_request = __nccwpck_require__(6234);
@@ -4802,7 +4802,7 @@ var import_graphql = __nccwpck_require__(8467);
 var import_auth_token = __nccwpck_require__(334);
 
 // pkg/dist-src/version.js
-var VERSION = "5.2.0";
+var VERSION = "5.2.1";
 
 // pkg/dist-src/index.js
 var noop = () => {
@@ -5343,18 +5343,18 @@ var __copyProps = (to, from, except, desc) => {
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // pkg/dist-src/index.js
-var dist_src_exports = {};
-__export(dist_src_exports, {
+var index_exports = {};
+__export(index_exports, {
   GraphqlResponseError: () => GraphqlResponseError,
   graphql: () => graphql2,
   withCustomRequest: () => withCustomRequest
 });
-module.exports = __toCommonJS(dist_src_exports);
+module.exports = __toCommonJS(index_exports);
 var import_request3 = __nccwpck_require__(6234);
 var import_universal_user_agent = __nccwpck_require__(5030);
 
 // pkg/dist-src/version.js
-var VERSION = "7.1.0";
+var VERSION = "7.1.1";
 
 // pkg/dist-src/with-defaults.js
 var import_request2 = __nccwpck_require__(6234);
@@ -5402,8 +5402,7 @@ function graphql(request2, query, options) {
       );
     }
     for (const key in options) {
-      if (!FORBIDDEN_VARIABLE_OPTIONS.includes(key))
-        continue;
+      if (!FORBIDDEN_VARIABLE_OPTIONS.includes(key)) continue;
       return Promise.reject(
         new Error(
           `[@octokit/graphql] "${key}" cannot be used as variable name`
@@ -21104,9 +21103,6 @@ class LocalJWKSet {
             if (candidate && Array.isArray(jwk.key_ops)) {
                 candidate = jwk.key_ops.includes('verify');
             }
-            if (candidate && alg === 'EdDSA') {
-                candidate = jwk.crv === 'Ed25519' || jwk.crv === 'Ed448';
-            }
             if (candidate) {
                 switch (alg) {
                     case 'ES256':
@@ -21120,6 +21116,12 @@ class LocalJWKSet {
                         break;
                     case 'ES512':
                         candidate = jwk.crv === 'P-521';
+                        break;
+                    case 'Ed25519':
+                        candidate = jwk.crv === 'Ed25519';
+                        break;
+                    case 'EdDSA':
+                        candidate = jwk.crv === 'Ed25519' || jwk.crv === 'Ed448';
                         break;
                 }
             }
@@ -21193,7 +21195,7 @@ function isCloudflareWorkers() {
 let USER_AGENT;
 if (typeof navigator === 'undefined' || !navigator.userAgent?.startsWith?.('Mozilla/5.0 ')) {
     const NAME = 'jose';
-    const VERSION = 'v5.9.6';
+    const VERSION = 'v5.10.0';
     USER_AGENT = `${NAME}/${VERSION}`;
 }
 exports.jwksCache = Symbol();
@@ -22156,7 +22158,7 @@ async function importJWK(jwk, alg) {
             }
             return (0, base64url_js_1.decode)(jwk.k);
         case 'RSA':
-            if (jwk.oth !== undefined) {
+            if ('oth' in jwk && jwk.oth !== undefined) {
                 throw new errors_js_1.JOSENotSupported('RSA JWK "oth" (Other Primes Info) Parameter value is not supported');
             }
         case 'EC':
@@ -22504,6 +22506,11 @@ function checkSigCryptoKey(key, alg, ...usages) {
             if (key.algorithm.name !== 'Ed25519' && key.algorithm.name !== 'Ed448') {
                 throw unusable('Ed25519 or Ed448');
             }
+            break;
+        }
+        case 'Ed25519': {
+            if (!isAlgorithm(key.algorithm, 'Ed25519'))
+                throw unusable('Ed25519');
             break;
         }
         case 'ES256':
@@ -23654,6 +23661,7 @@ function dsaDigest(alg) {
         case 'RS512':
         case 'ES512':
             return 'sha512';
+        case 'Ed25519':
         case 'EdDSA':
             return undefined;
         default:
@@ -23954,6 +23962,8 @@ async function generateKeyPair(alg, options) {
             return generate('ec', { namedCurve: 'P-384' });
         case 'ES512':
             return generate('ec', { namedCurve: 'P-521' });
+        case 'Ed25519':
+            return generate('ed25519');
         case 'EdDSA': {
             switch (options?.crv) {
                 case undefined:
@@ -24268,6 +24278,11 @@ function keyForCrypto(alg, key) {
     }
     let options;
     switch (alg) {
+        case 'Ed25519':
+            if (asymmetricKeyType !== 'ed25519') {
+                throw new TypeError(`Invalid key for this operation, its asymmetricKeyType must be ed25519`);
+            }
+            break;
         case 'EdDSA':
             if (!['ed25519', 'ed448'].includes(asymmetricKeyType)) {
                 throw new TypeError('Invalid key for this operation, its asymmetricKeyType must be ed25519 or ed448');
@@ -34411,7 +34426,7 @@ module.exports = {
 
 
 const { parseSetCookie } = __nccwpck_require__(4408)
-const { stringify, getHeadersList } = __nccwpck_require__(3121)
+const { stringify } = __nccwpck_require__(3121)
 const { webidl } = __nccwpck_require__(1744)
 const { Headers } = __nccwpck_require__(554)
 
@@ -34487,14 +34502,13 @@ function getSetCookies (headers) {
 
   webidl.brandCheck(headers, Headers, { strict: false })
 
-  const cookies = getHeadersList(headers).cookies
+  const cookies = headers.getSetCookie()
 
   if (!cookies) {
     return []
   }
 
-  // In older versions of undici, cookies is a list of name:value.
-  return cookies.map((pair) => parseSetCookie(Array.isArray(pair) ? pair[1] : pair))
+  return cookies.map((pair) => parseSetCookie(pair))
 }
 
 /**
@@ -34922,14 +34936,15 @@ module.exports = {
 /***/ }),
 
 /***/ 3121:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+/***/ ((module) => {
 
 "use strict";
 
 
-const assert = __nccwpck_require__(9491)
-const { kHeadersList } = __nccwpck_require__(2785)
-
+/**
+ * @param {string} value
+ * @returns {boolean}
+ */
 function isCTLExcludingHtab (value) {
   if (value.length === 0) {
     return false
@@ -35190,31 +35205,13 @@ function stringify (cookie) {
   return out.join('; ')
 }
 
-let kHeadersListNode
-
-function getHeadersList (headers) {
-  if (headers[kHeadersList]) {
-    return headers[kHeadersList]
-  }
-
-  if (!kHeadersListNode) {
-    kHeadersListNode = Object.getOwnPropertySymbols(headers).find(
-      (symbol) => symbol.description === 'headers list'
-    )
-
-    assert(kHeadersListNode, 'Headers cannot be parsed')
-  }
-
-  const headersList = headers[kHeadersListNode]
-  assert(headersList)
-
-  return headersList
-}
-
 module.exports = {
   isCTLExcludingHtab,
-  stringify,
-  getHeadersList
+  validateCookieName,
+  validateCookiePath,
+  validateCookieValue,
+  toIMFDate,
+  stringify
 }
 
 
@@ -39218,6 +39215,7 @@ const {
   isValidHeaderName,
   isValidHeaderValue
 } = __nccwpck_require__(2538)
+const util = __nccwpck_require__(3837)
 const { webidl } = __nccwpck_require__(1744)
 const assert = __nccwpck_require__(9491)
 
@@ -39771,6 +39769,9 @@ Object.defineProperties(Headers.prototype, {
   [Symbol.toStringTag]: {
     value: 'Headers',
     configurable: true
+  },
+  [util.inspect.custom]: {
+    enumerable: false
   }
 })
 
@@ -48947,6 +48948,20 @@ class Pool extends PoolBase {
       ? { ...options.interceptors }
       : undefined
     this[kFactory] = factory
+
+    this.on('connectionError', (origin, targets, error) => {
+      // If a connection error occurs, we remove the client from the pool,
+      // and emit a connectionError event. They will not be re-used.
+      // Fixes https://github.com/nodejs/undici/issues/3895
+      for (const target of targets) {
+        // Do not use kRemoveClient here, as it will close the client,
+        // but the client cannot be closed in this state.
+        const idx = this[kClients].indexOf(target)
+        if (idx !== -1) {
+          this[kClients].splice(idx, 1)
+        }
+      }
+    })
   }
 
   [kGetDispatcher] () {
@@ -57985,11 +58000,12 @@ async function GetProjectDetails() {
     let projectPath = undefined;
     const globber = await glob.create(projectPathInput);
     const files = await globber.glob();
+    const excludedProjects = ['GameAssembly', 'UnityFramework', 'Pods'];
     for (const file of files) {
-        if (file.endsWith(`GameAssembly.xcodeproj`)) {
-            continue;
-        }
         if (file.endsWith('.xcodeproj')) {
+            if (excludedProjects.some(p => file.includes(`/${p}.xcodeproj`))) {
+                continue;
+            }
             core.debug(`Found Xcode project: ${file}`);
             projectPath = file;
             break;

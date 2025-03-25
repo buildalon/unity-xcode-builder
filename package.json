@@ -1,6 +1,6 @@
 {
   "name": "unity-xcode-builder",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "A GitHub Action to build, archive, and upload Unity exported xcode projects.",
   "author": "buildalon",
   "license": "MIT",
@@ -25,13 +25,13 @@
     "uuid": "^10.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.13.4",
+    "@types/node": "^22.13.13",
     "@types/plist": "^3.0.5",
     "@types/semver": "^7.5.8",
     "@types/uuid": "^10.0.0",
     "@vercel/ncc": "^0.34.0",
     "shx": "^0.3.4",
-    "typescript": "^5.7.3"
+    "typescript": "^5.8.2"
   },
   "scripts": {
     "build": "npm run clean && npm run bundle",
