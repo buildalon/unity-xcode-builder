@@ -28,7 +28,8 @@ export async function GetProjectDetails(): Promise<XcodeProject> {
     const excludedProjects = ['GameAssembly', 'UnityFramework', 'Pods'];
     for (const file of files) {
         if (file.endsWith('.xcodeproj')) {
-            if (excludedProjects.some(p => file.includes(`/${p}.xcodeproj`))) {
+            const projectBaseName = path.basename(file, '.xcodeproj');
+            if (excludedProjects.includes(projectBaseName)) {
                 continue;
             }
             core.debug(`Found Xcode project: ${file}`);
