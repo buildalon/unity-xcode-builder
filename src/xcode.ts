@@ -69,7 +69,6 @@ export async function GetProjectDetails(): Promise<XcodeProject> {
         await infoPlistHandle.close();
     }
     const infoPlistJson = plist.parse(infoPlistContent);
-    core.info(`Info.plist content: ${JSON.stringify(infoPlistJson, null, 2)}`);
     const versionString = infoPlistJson['CFBundleShortVersionString'];
     core.info(`Version string: ${versionString}`);
     const buildString = infoPlistJson['CFBundleVersion'];
@@ -527,8 +526,20 @@ async function parseBundleLog(errorOutput: string) {
     const logFilePath = logFilePathMatch[1];
     log(`Log file path: ${logFilePath}`, 'info');
     try {
-        const logFileContents = await fs.promises.readFile(logFilePath, 'utf8');
-        log(`${logFilePath}:\n${logFileContents}`, 'error');
+        await fs.promises.access(logFilePath, fs.constants.R_OK);
+        const isDirectory = (await fs.promises.stat(logFilePath)).isDirectory();
+        if (isDirectory) {
+            log(`Log file path is a directory: ${logFilePath}`, 'warning');
+            return;
+        }
+        const logFileHandle = await fs.promises.open(logFilePath, 'r');
+        let logFileContent: string;
+        try {
+            logFileContent = await fs.promises.readFile(logFileHandle, 'utf8');
+        } finally {
+            await logFileHandle.close();
+        }
+        log(`----- Log content: -----\n${logFileContent}\n-----------------------------------`, 'info');
     } catch (error) {
         log(`Error reading log file: ${error.message}`, 'error');
     }
@@ -624,7 +635,7 @@ export async function UploadApp(projectRef: XcodeProject) {
         if (error instanceof UnauthorizedError) {
             throw error;
         } else {
-            log(`Failed to get the latest bundle version!\n${error}`, 'info');
+            log(`Failed to get the latest bundle version!\n${error}`, 'warning');
         }
     }
     const platforms = {

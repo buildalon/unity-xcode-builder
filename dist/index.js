@@ -58045,7 +58045,6 @@ async function GetProjectDetails() {
         await infoPlistHandle.close();
     }
     const infoPlistJson = plist.parse(infoPlistContent);
-    core.info(`Info.plist content: ${JSON.stringify(infoPlistJson, null, 2)}`);
     const versionString = infoPlistJson['CFBundleShortVersionString'];
     core.info(`Version string: ${versionString}`);
     const buildString = infoPlistJson['CFBundleVersion'];
@@ -58490,8 +58489,21 @@ async function parseBundleLog(errorOutput) {
     const logFilePath = logFilePathMatch[1];
     (0, utilities_1.log)(`Log file path: ${logFilePath}`, 'info');
     try {
-        const logFileContents = await fs.promises.readFile(logFilePath, 'utf8');
-        (0, utilities_1.log)(`${logFilePath}:\n${logFileContents}`, 'error');
+        await fs.promises.access(logFilePath, fs.constants.R_OK);
+        const isDirectory = (await fs.promises.stat(logFilePath)).isDirectory();
+        if (isDirectory) {
+            (0, utilities_1.log)(`Log file path is a directory: ${logFilePath}`, 'warning');
+            return;
+        }
+        const logFileHandle = await fs.promises.open(logFilePath, 'r');
+        let logFileContent;
+        try {
+            logFileContent = await fs.promises.readFile(logFileHandle, 'utf8');
+        }
+        finally {
+            await logFileHandle.close();
+        }
+        (0, utilities_1.log)(`----- Log content: -----\n${logFileContent}\n-----------------------------------`, 'info');
     }
     catch (error) {
         (0, utilities_1.log)(`Error reading log file: ${error.message}`, 'error');
@@ -58589,7 +58601,7 @@ async function UploadApp(projectRef) {
             throw error;
         }
         else {
-            (0, utilities_1.log)(`Failed to get the latest bundle version!\n${error}`, 'info');
+            (0, utilities_1.log)(`Failed to get the latest bundle version!\n${error}`, 'warning');
         }
     }
     const platforms = {
