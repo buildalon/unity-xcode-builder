@@ -58036,6 +58036,7 @@ async function GetProjectDetails() {
     }
     core.info(`Info.plist path: ${infoPlistPath}`);
     let infoPlistContent = plist.parse(fs.readFileSync(infoPlistPath, 'utf8'));
+    core.info(`Info.plist content: ${JSON.stringify(infoPlistContent, null, 2)}`);
     const versionString = infoPlistContent['CFBundleShortVersionString'];
     core.info(`Version string: ${versionString}`);
     const buildString = infoPlistContent['CFBundleVersion'];
