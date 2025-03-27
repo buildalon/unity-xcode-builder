@@ -58022,6 +58022,12 @@ async function GetProjectDetails() {
     const projectName = path.basename(projectPath, '.xcodeproj');
     const scheme = await getProjectScheme(projectPath);
     const [platform, bundleId] = await parseBuildSettings(projectPath, scheme);
+    try {
+        await (0, exec_1.exec)(xcrun, ['agvtool', 'what-version'], { cwd: projectDirectory });
+    }
+    catch (error) {
+        core.error(`Failed to get the build number: ${error.message}`);
+    }
     core.info(`Platform: ${platform}`);
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
@@ -58359,6 +58365,9 @@ async function getExportOptions(projectRef) {
             signingStyle: projectRef.credential.signingIdentity ? 'manual' : 'automatic',
             teamID: `${projectRef.credential.teamId}`
         };
+        if (method === 'app-store-connect') {
+            exportOptions['manageAppVersionAndBuildNumber'] = true;
+        }
         projectRef.exportOption = method;
         exportOptionsPath = await writeExportOptions(projectRef.projectPath, exportOptions);
     }
@@ -58548,9 +58557,8 @@ async function ValidateApp(projectRef) {
         silent: !core.isDebug(),
         ignoreReturnCode: true
     });
-    const outputJson = JSON.stringify(JSON.parse(output), null, 2);
     if (exitCode > 0) {
-        throw new Error(`Failed to validate app: ${outputJson}`);
+        throw new Error(`Failed to validate app: ${JSON.stringify(JSON.parse(output), null, 2)}`);
     }
 }
 async function getAppId(projectRef) {
