@@ -61,6 +61,8 @@ export async function GetProjectDetails(): Promise<XcodeProject> {
     }
     core.info(`Info.plist path: ${infoPlistPath}`);
     let infoPlistContent = plist.parse(fs.readFileSync(infoPlistPath, 'utf8'));
+    // print the info.plist content
+    core.info(`Info.plist content: ${JSON.stringify(infoPlistContent, null, 2)}`);
     const versionString = infoPlistContent['CFBundleShortVersionString'];
     core.info(`Version string: ${versionString}`);
     const buildString = infoPlistContent['CFBundleVersion'];
