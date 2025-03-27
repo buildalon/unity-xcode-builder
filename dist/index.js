@@ -58035,11 +58035,20 @@ async function GetProjectDetails() {
         infoPlistPath = `${projectDirectory}/Info.plist`;
     }
     core.info(`Info.plist path: ${infoPlistPath}`);
-    let infoPlistContent = plist.parse(fs.readFileSync(infoPlistPath, 'utf8'));
-    core.info(`Info.plist content: ${JSON.stringify(infoPlistContent, null, 2)}`);
-    const versionString = infoPlistContent['CFBundleShortVersionString'];
+    const infoPlistHandle = await fs.promises.open(infoPlistPath, 'r');
+    let infoPlistContent;
+    try {
+        infoPlistContent = await fs.promises.readFile(infoPlistHandle, 'utf8');
+        core.info(`----- Info.plist content: -----\n${infoPlistContent}\n-----------------------------------`);
+    }
+    finally {
+        await infoPlistHandle.close();
+    }
+    const infoPlistJson = plist.parse(infoPlistContent);
+    core.info(`Info.plist content: ${JSON.stringify(infoPlistJson, null, 2)}`);
+    const versionString = infoPlistJson['CFBundleShortVersionString'];
     core.info(`Version string: ${versionString}`);
-    const buildString = infoPlistContent['CFBundleVersion'];
+    const buildString = infoPlistJson['CFBundleVersion'];
     core.info(`Build string: ${buildString}`);
     return new XcodeProject_1.XcodeProject(projectPath, projectName, platform, bundleId, projectDirectory, versionString, scheme);
 }
@@ -58178,7 +58187,7 @@ async function ArchiveXcodeProject(projectRef) {
         const entitlementsHandle = await fs.promises.open(projectRef.entitlementsPath, 'r');
         try {
             const entitlementsContent = await fs.promises.readFile(entitlementsHandle, 'utf8');
-            core.debug(`----- Entitlements content: -----\n${entitlementsContent}\n---------------------------------`);
+            core.debug(`----- Entitlements content: -----\n${entitlementsContent}\n-----------------------------------`);
         }
         finally {
             await entitlementsHandle.close();
@@ -58364,7 +58373,7 @@ async function getExportOptions(projectRef) {
     const exportOptionsHandle = await fs.promises.open(exportOptionsPath, 'r');
     try {
         const exportOptionContent = await fs.promises.readFile(exportOptionsHandle, 'utf8');
-        core.info(`----- Export options content: -----\n${exportOptionContent}\n---------------------------------`);
+        core.info(`----- Export options content: -----\n${exportOptionContent}\n-----------------------------------`);
         const exportOptions = plist.parse(exportOptionContent);
         projectRef.exportOption = exportOptions['method'];
     }
