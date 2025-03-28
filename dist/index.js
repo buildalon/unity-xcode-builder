@@ -58042,7 +58042,6 @@ async function GetProjectDetails(credential, xcodeVersion) {
     let infoPlistContent;
     try {
         infoPlistContent = await fs.promises.readFile(infoPlistHandle, 'utf8');
-        core.info(`----- Info.plist content: -----\n${infoPlistContent}\n-----------------------------------`);
     }
     finally {
         await infoPlistHandle.close();
@@ -58081,14 +58080,14 @@ async function GetProjectDetails(credential, xcodeVersion) {
             const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
             try {
                 core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
-                const updatedInfoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
-                core.info(`----- Updated Info.plist content: -----\n${updatedInfoPlistContent}\n--------------------------------`);
+                infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
             }
             finally {
                 await plistHandle.close();
             }
         }
     }
+    core.info(`----- Info.plist content: -----\n${infoPlistContent}\n-----------------------------------`);
     return projectRef;
 }
 async function parseBuildSettings(projectPath, scheme) {
