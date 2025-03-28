@@ -14,12 +14,13 @@ import {
 } from './AppStoreConnectClient';
 import { log } from './utilities';
 import core = require('@actions/core');
+import { AppleCredential } from './AppleCredential';
 
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
 
-export async function GetProjectDetails(): Promise<XcodeProject> {
+export async function GetProjectDetails(credential: AppleCredential): Promise<XcodeProject> {
     const projectPathInput = core.getInput('project-path') || `${WORKSPACE}/**/*.xcodeproj`;
     core.debug(`Project path input: ${projectPathInput}`);
     let projectPath = undefined;
@@ -81,7 +82,8 @@ export async function GetProjectDetails(): Promise<XcodeProject> {
         projectDirectory,
         cFBundleShortVersionString,
         cFBundleVersion,
-        scheme
+        scheme,
+        credential
     );
     projectRef.credential.appleId = await getAppId(projectRef);
     let bundleVersion = -1;
