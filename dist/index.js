@@ -57576,7 +57576,7 @@ async function getLastPreReleaseVersionAndBuild(project) {
     const buildsData = (_b = (_a = preReleaseResponse.data[0].relationships) === null || _a === void 0 ? void 0 : _a.builds) === null || _b === void 0 ? void 0 : _b.data;
     if (buildsData && buildsData.length > 0) {
         const lastBuildId = (_d = (_c = buildsData[0]) === null || _c === void 0 ? void 0 : _c.id) !== null && _d !== void 0 ? _d : null;
-        if (!lastBuildId) {
+        if (lastBuildId) {
             lastBuild = (_e = preReleaseResponse.included) === null || _e === void 0 ? void 0 : _e.find(i => i.type == 'builds' && i.id == lastBuildId);
         }
     }
@@ -60696,7 +60696,7 @@ const main = async () => {
             }
             xcodeVersionString = xcodeVersionMatch.groups.version;
             if (!xcodeVersionString) {
-                throw new Error('Failed to prase Xcode version!');
+                throw new Error('Failed to parse Xcode version!');
             }
             const credential = await (0, AppleCredential_1.ImportCredentials)();
             let projectRef = await (0, xcode_1.GetProjectDetails)(credential, semver.coerce(xcodeVersionString));

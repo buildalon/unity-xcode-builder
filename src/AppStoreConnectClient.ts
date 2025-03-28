@@ -124,7 +124,7 @@ async function getLastPreReleaseVersionAndBuild(project: XcodeProject): Promise<
     const buildsData = preReleaseResponse.data[0].relationships?.builds?.data;
     if (buildsData && buildsData.length > 0) {
         const lastBuildId = buildsData[0]?.id ?? null;
-        if (!lastBuildId) {
+        if (lastBuildId) {
             lastBuild = preReleaseResponse.included?.find(i => i.type == 'builds' && i.id == lastBuildId) as Build;
         }
     }

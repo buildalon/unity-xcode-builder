@@ -38,7 +38,7 @@ const main = async () => {
             }
             xcodeVersionString = xcodeVersionMatch.groups.version;
             if (!xcodeVersionString) {
-                throw new Error('Failed to prase Xcode version!');
+                throw new Error('Failed to parse Xcode version!');
             }
             const credential = await ImportCredentials();
             let projectRef = await GetProjectDetails(credential, semver.coerce(xcodeVersionString));
