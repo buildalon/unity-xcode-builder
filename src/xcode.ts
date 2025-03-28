@@ -102,7 +102,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         if (projectRef.bundleVersion <= bundleVersion) {
             projectRef.bundleVersion = bundleVersion + 1;
             core.debug(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
-            infoPlist['CFBundleVersion'] = projectRef.bundleVersion;
+            infoPlist['CFBundleVersion'] = projectRef.bundleVersion.toString();
             try {
                 await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
             } catch (error) {
