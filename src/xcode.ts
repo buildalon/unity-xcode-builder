@@ -87,7 +87,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         xcodeVersion
     );
     await getExportOptions(projectRef);
-    if (projectRef.isAppStoreUpload()) {
+    if (projectRef.isAppStoreUpload() && core.getInput('auto-increment-build-number') === 'true') {
         projectRef.credential.appleId = await getAppId(projectRef);
         let bundleVersion = -1;
         try {
