@@ -15,12 +15,13 @@ import {
 import { log } from './utilities';
 import core = require('@actions/core');
 import { AppleCredential } from './AppleCredential';
+import { SemVer } from 'semver';
 
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
 
-export async function GetProjectDetails(credential: AppleCredential): Promise<XcodeProject> {
+export async function GetProjectDetails(credential: AppleCredential, xcodeVersion: SemVer): Promise<XcodeProject> {
     const projectPathInput = core.getInput('project-path') || `${WORKSPACE}/**/*.xcodeproj`;
     core.debug(`Project path input: ${projectPathInput}`);
     let projectPath = undefined;
@@ -83,7 +84,8 @@ export async function GetProjectDetails(credential: AppleCredential): Promise<Xc
         cFBundleShortVersionString,
         cFBundleVersion,
         scheme,
-        credential
+        credential,
+        xcodeVersion
     );
     await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload()) {
@@ -106,7 +108,6 @@ export async function GetProjectDetails(credential: AppleCredential): Promise<Xc
             try {
                 await fs.promises.writeFile(plistHandle, plist.build(infoPlistJson));
                 core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
-                // read it back
                 const updatedInfoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
                 core.info(`----- Updated Info.plist content: -----\n${updatedInfoPlistContent}\n--------------------------------`);
             } finally {

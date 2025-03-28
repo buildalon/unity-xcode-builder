@@ -57910,7 +57910,7 @@ async function RemoveCredentials() {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.XcodeProject = void 0;
 class XcodeProject {
-    constructor(projectPath, projectName, platform, bundleId, projectDirectory, versionString, bundleVersion, scheme, credential) {
+    constructor(projectPath, projectName, platform, bundleId, projectDirectory, versionString, bundleVersion, scheme, credential, xcodeVersion) {
         this.projectPath = projectPath;
         this.projectName = projectName;
         this.platform = platform;
@@ -57920,6 +57920,7 @@ class XcodeProject {
         this.bundleVersion = bundleVersion;
         this.scheme = scheme;
         this.credential = credential;
+        this.xcodeVersion = xcodeVersion;
     }
     isAppStoreUpload() {
         return this.exportOption === 'app-store' || this.exportOption === 'app-store-connect';
@@ -57996,7 +57997,7 @@ const core = __nccwpck_require__(2186);
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
-async function GetProjectDetails(credential) {
+async function GetProjectDetails(credential, xcodeVersion) {
     const projectPathInput = core.getInput('project-path') || `${WORKSPACE}/**/*.xcodeproj`;
     core.debug(`Project path input: ${projectPathInput}`);
     let projectPath = undefined;
@@ -58051,7 +58052,7 @@ async function GetProjectDetails(credential) {
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlistJson['CFBundleVersion'];
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
-    const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential);
+    const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
     await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload()) {
         projectRef.credential.appleId = await getAppId(projectRef);
@@ -60701,8 +60702,7 @@ const main = async () => {
                 throw new Error('Failed to prase Xcode version!');
             }
             const credential = await (0, AppleCredential_1.ImportCredentials)();
-            let projectRef = await (0, xcode_1.GetProjectDetails)(credential);
-            projectRef.xcodeVersion = semver.coerce(xcodeVersionString);
+            let projectRef = await (0, xcode_1.GetProjectDetails)(credential, semver.coerce(xcodeVersionString));
             projectRef = await (0, xcode_1.ArchiveXcodeProject)(projectRef);
             projectRef = await (0, xcode_1.ExportXcodeArchive)(projectRef);
             const uploadInput = core.getInput('upload') || projectRef.isAppStoreUpload().toString();

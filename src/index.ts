@@ -41,8 +41,7 @@ const main = async () => {
                 throw new Error('Failed to prase Xcode version!');
             }
             const credential = await ImportCredentials();
-            let projectRef = await GetProjectDetails(credential);
-            projectRef.xcodeVersion = semver.coerce(xcodeVersionString);
+            let projectRef = await GetProjectDetails(credential, semver.coerce(xcodeVersionString));
             projectRef = await ArchiveXcodeProject(projectRef);
             projectRef = await ExportXcodeArchive(projectRef);
             const uploadInput = core.getInput('upload') || projectRef.isAppStoreUpload().toString();

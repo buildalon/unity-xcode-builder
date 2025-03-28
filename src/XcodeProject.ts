@@ -11,7 +11,8 @@ export class XcodeProject {
         versionString: string,
         bundleVersion: number,
         scheme: string,
-        credential: AppleCredential
+        credential: AppleCredential,
+        xcodeVersion: SemVer
     ) {
         this.projectPath = projectPath;
         this.projectName = projectName;
@@ -22,6 +23,7 @@ export class XcodeProject {
         this.bundleVersion = bundleVersion;
         this.scheme = scheme;
         this.credential = credential
+        this.xcodeVersion = xcodeVersion;
     }
     projectPath: string;
     projectName: string;
