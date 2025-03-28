@@ -58052,30 +58052,35 @@ async function GetProjectDetails(credential) {
     const cFBundleVersion = infoPlistJson['CFBundleVersion'];
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
     const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential);
-    projectRef.credential.appleId = await getAppId(projectRef);
-    let bundleVersion = -1;
-    try {
-        bundleVersion = await (0, AppStoreConnectClient_1.GetLatestBundleVersion)(projectRef);
-    }
-    catch (error) {
-        if (error instanceof AppStoreConnectClient_1.UnauthorizedError) {
-            throw error;
-        }
-        else {
-            (0, utilities_1.log)(`Failed to get the latest bundle version!\n${error}`, 'warning');
-        }
-    }
-    if (projectRef.bundleVersion <= bundleVersion) {
-        projectRef.bundleVersion = bundleVersion + 1;
-        core.debug(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
-        infoPlistJson['CFBundleVersion'] = projectRef.bundleVersion;
-        const plistHandle = await fs.promises.open(infoPlistPath, 'w');
+    await getExportOptions(projectRef);
+    if (projectRef.isAppStoreUpload()) {
+        projectRef.credential.appleId = await getAppId(projectRef);
+        let bundleVersion = -1;
         try {
-            await fs.promises.writeFile(plistHandle, plist.build(infoPlistJson));
-            core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
+            bundleVersion = await (0, AppStoreConnectClient_1.GetLatestBundleVersion)(projectRef);
         }
-        finally {
-            await plistHandle.close();
+        catch (error) {
+            if (error instanceof AppStoreConnectClient_1.UnauthorizedError) {
+                throw error;
+            }
+            else {
+                (0, utilities_1.log)(`Failed to get the latest bundle version!\n${error}`, 'warning');
+            }
+        }
+        if (projectRef.bundleVersion <= bundleVersion) {
+            projectRef.bundleVersion = bundleVersion + 1;
+            core.debug(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
+            infoPlistJson['CFBundleVersion'] = projectRef.bundleVersion;
+            const plistHandle = await fs.promises.open(infoPlistPath, 'w');
+            try {
+                await fs.promises.writeFile(plistHandle, plist.build(infoPlistJson));
+                core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
+                const updatedInfoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
+                core.info(`----- Updated Info.plist content: -----\n${updatedInfoPlistContent}\n--------------------------------`);
+            }
+            finally {
+                await plistHandle.close();
+            }
         }
     }
     return projectRef;
@@ -58174,7 +58179,6 @@ async function ArchiveXcodeProject(projectRef) {
     core.debug(`Using destination: ${destination}`);
     const configuration = core.getInput('configuration') || 'Release';
     core.debug(`Configuration: ${configuration}`);
-    await getExportOptions(projectRef);
     let entitlementsPath = core.getInput('entitlements-plist');
     if (!entitlementsPath && projectRef.platform === 'macOS') {
         await getDefaultEntitlementsMacOS(projectRef);

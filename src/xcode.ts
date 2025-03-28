@@ -85,27 +85,33 @@ export async function GetProjectDetails(credential: AppleCredential): Promise<Xc
         scheme,
         credential
     );
-    projectRef.credential.appleId = await getAppId(projectRef);
-    let bundleVersion = -1;
-    try {
-        bundleVersion = await GetLatestBundleVersion(projectRef);
-    } catch (error) {
-        if (error instanceof UnauthorizedError) {
-            throw error;
-        } else {
-            log(`Failed to get the latest bundle version!\n${error}`, 'warning');
-        }
-    }
-    if (projectRef.bundleVersion <= bundleVersion) {
-        projectRef.bundleVersion = bundleVersion + 1;
-        core.debug(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
-        infoPlistJson['CFBundleVersion'] = projectRef.bundleVersion;
-        const plistHandle = await fs.promises.open(infoPlistPath, 'w');
+    await getExportOptions(projectRef);
+    if (projectRef.isAppStoreUpload()) {
+        projectRef.credential.appleId = await getAppId(projectRef);
+        let bundleVersion = -1;
         try {
-            await fs.promises.writeFile(plistHandle, plist.build(infoPlistJson));
-            core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
-        } finally {
-            await plistHandle.close();
+            bundleVersion = await GetLatestBundleVersion(projectRef);
+        } catch (error) {
+            if (error instanceof UnauthorizedError) {
+                throw error;
+            } else {
+                log(`Failed to get the latest bundle version!\n${error}`, 'warning');
+            }
+        }
+        if (projectRef.bundleVersion <= bundleVersion) {
+            projectRef.bundleVersion = bundleVersion + 1;
+            core.debug(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
+            infoPlistJson['CFBundleVersion'] = projectRef.bundleVersion;
+            const plistHandle = await fs.promises.open(infoPlistPath, 'w');
+            try {
+                await fs.promises.writeFile(plistHandle, plist.build(infoPlistJson));
+                core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
+                // read it back
+                const updatedInfoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
+                core.info(`----- Updated Info.plist content: -----\n${updatedInfoPlistContent}\n--------------------------------`);
+            } finally {
+                await plistHandle.close();
+            }
         }
     }
     return projectRef;
@@ -205,7 +211,6 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     core.debug(`Using destination: ${destination}`);
     const configuration = core.getInput('configuration') || 'Release';
     core.debug(`Configuration: ${configuration}`);
-    await getExportOptions(projectRef);
     let entitlementsPath = core.getInput('entitlements-plist');
     if (!entitlementsPath && projectRef.platform === 'macOS') {
         await getDefaultEntitlementsMacOS(projectRef);
