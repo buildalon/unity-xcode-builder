@@ -57910,13 +57910,14 @@ async function RemoveCredentials() {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.XcodeProject = void 0;
 class XcodeProject {
-    constructor(projectPath, projectName, platform, bundleId, projectDirectory, versionString, scheme) {
+    constructor(projectPath, projectName, platform, bundleId, projectDirectory, versionString, bundleVersion, scheme) {
         this.projectPath = projectPath;
         this.projectName = projectName;
         this.platform = platform;
         this.bundleId = bundleId;
         this.projectDirectory = projectDirectory;
         this.versionString = versionString;
+        this.bundleVersion = bundleVersion;
         this.scheme = scheme;
     }
     isAppStoreUpload() {
@@ -58022,12 +58023,6 @@ async function GetProjectDetails() {
     const projectName = path.basename(projectPath, '.xcodeproj');
     const scheme = await getProjectScheme(projectPath);
     const [platform, bundleId] = await parseBuildSettings(projectPath, scheme);
-    try {
-        await (0, exec_1.exec)(xcrun, ['agvtool', 'what-version'], { cwd: projectDirectory });
-    }
-    catch (error) {
-        core.error(`Failed to get the build number: ${error.message}`);
-    }
     core.info(`Platform: ${platform}`);
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
@@ -58051,11 +58046,38 @@ async function GetProjectDetails() {
         await infoPlistHandle.close();
     }
     const infoPlistJson = plist.parse(infoPlistContent);
-    const versionString = infoPlistJson['CFBundleShortVersionString'];
-    core.info(`CFBundleShortVersionString: ${versionString}`);
-    const buildString = infoPlistJson['CFBundleVersion'];
-    core.info(`CFBundleVersion: ${buildString}`);
-    return new XcodeProject_1.XcodeProject(projectPath, projectName, platform, bundleId, projectDirectory, versionString, scheme);
+    const cFBundleShortVersionString = infoPlistJson['CFBundleShortVersionString'];
+    core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
+    const cFBundleVersion = infoPlistJson['CFBundleVersion'];
+    core.info(`CFBundleVersion: ${cFBundleVersion}`);
+    const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme);
+    projectRef.credential.appleId = await getAppId(projectRef);
+    let bundleVersion = -1;
+    try {
+        bundleVersion = await (0, AppStoreConnectClient_1.GetLatestBundleVersion)(projectRef);
+    }
+    catch (error) {
+        if (error instanceof AppStoreConnectClient_1.UnauthorizedError) {
+            throw error;
+        }
+        else {
+            (0, utilities_1.log)(`Failed to get the latest bundle version!\n${error}`, 'warning');
+        }
+    }
+    if (projectRef.bundleVersion <= bundleVersion) {
+        projectRef.bundleVersion = bundleVersion + 1;
+        core.debug(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
+        infoPlistJson['CFBundleVersion'] = projectRef.bundleVersion;
+        const plistHandle = await fs.promises.open(infoPlistPath, 'w');
+        try {
+            await fs.promises.writeFile(plistHandle, plist.build(infoPlistJson));
+            core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
+        }
+        finally {
+            await plistHandle.close();
+        }
+    }
+    return projectRef;
 }
 async function parseBuildSettings(projectPath, scheme) {
     let buildSettingsOutput = '';
@@ -58558,17 +58580,6 @@ async function ValidateApp(projectRef) {
         ignoreReturnCode: true
     });
     if (exitCode > 0) {
-        const outputJson = JSON.parse(output);
-        if (outputJson['product-errors'] &&
-            outputJson['product-errors'].length > 0) {
-            const productErrors = outputJson['product-errors'];
-            const duplicateBundleVersionError = productErrors.find((error) => error.code === -19232);
-            if (duplicateBundleVersionError) {
-                if (productErrors.length === 1) {
-                    return;
-                }
-            }
-        }
         throw new Error(`Failed to validate app: ${JSON.stringify(JSON.parse(output), null, 2)}`);
     }
 }
@@ -58606,37 +58617,22 @@ async function getAppId(projectRef) {
     if (!app.AppleID) {
         throw new Error(`AppleID not found for app: ${JSON.stringify(app, null, 2)}`);
     }
-    projectRef.credential.appleId = app.AppleID;
-    return projectRef;
+    return app.AppleID;
 }
 async function UploadApp(projectRef) {
-    projectRef = await getAppId(projectRef);
-    let bundleVersion = -1;
-    try {
-        bundleVersion = await (0, AppStoreConnectClient_1.GetLatestBundleVersion)(projectRef);
-    }
-    catch (error) {
-        if (error instanceof AppStoreConnectClient_1.UnauthorizedError) {
-            throw error;
-        }
-        else {
-            (0, utilities_1.log)(`Failed to get the latest bundle version!\n${error}`, 'warning');
-        }
-    }
     const platforms = {
         'iOS': 'ios',
         'macOS': 'macos',
         'tvOS': 'appletvos',
         'visionOS': 'xros'
     };
-    bundleVersion++;
     const uploadArgs = [
         'altool',
         '--upload-package', projectRef.executablePath,
         '--type', platforms[projectRef.platform],
         '--apple-id', projectRef.credential.appleId,
         '--bundle-id', projectRef.bundleId,
-        '--bundle-version', bundleVersion,
+        '--bundle-version', projectRef.bundleVersion,
         '--bundle-short-version-string', projectRef.versionString,
         '--apiKey', projectRef.credential.appStoreConnectKeyId,
         '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
@@ -58667,7 +58663,7 @@ async function UploadApp(projectRef) {
     try {
         const whatsNew = await getWhatsNew();
         core.info(`Uploading test details...\n${whatsNew}`);
-        await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, bundleVersion, whatsNew);
+        await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, projectRef.bundleVersion, whatsNew);
     }
     catch (error) {
         (0, utilities_1.log)(`Failed to upload test details!\n${JSON.stringify(error)}`, 'error');
