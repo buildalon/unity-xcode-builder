@@ -57546,7 +57546,7 @@ function reMapPlatform(project) {
     }
 }
 async function getLastPreReleaseVersionAndBuild(project) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     if (!project.appId) {
         project = await GetAppId(project);
     }
@@ -57575,9 +57575,9 @@ async function getLastPreReleaseVersionAndBuild(project) {
     let lastBuild = null;
     const buildsData = (_b = (_a = preReleaseResponse.data[0].relationships) === null || _a === void 0 ? void 0 : _a.builds) === null || _b === void 0 ? void 0 : _b.data;
     if (buildsData && buildsData.length > 0) {
-        const lastBuildId = (_c = buildsData[0]) === null || _c === void 0 ? void 0 : _c.id;
+        const lastBuildId = (_d = (_c = buildsData[0]) === null || _c === void 0 ? void 0 : _c.id) !== null && _d !== void 0 ? _d : null;
         if (!lastBuildId) {
-            lastBuild = (_d = preReleaseResponse.included) === null || _d === void 0 ? void 0 : _d.find(i => i.type == 'builds' && i.id == lastBuildId);
+            lastBuild = (_e = preReleaseResponse.included) === null || _e === void 0 ? void 0 : _e.find(i => i.type == 'builds' && i.id == lastBuildId);
         }
     }
     return new PreReleaseVersionWithBuild({
@@ -58062,9 +58062,6 @@ async function GetProjectDetails(credential, xcodeVersion) {
         catch (error) {
             if (error instanceof AppStoreConnectClient_1.UnauthorizedError) {
                 throw error;
-            }
-            else {
-                (0, utilities_1.log)(`Failed to get the latest bundle version!\n${error}`, 'warning');
             }
         }
         if (projectRef.bundleVersion <= bundleVersion) {

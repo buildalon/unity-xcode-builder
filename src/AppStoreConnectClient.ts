@@ -18,7 +18,7 @@ import core = require('@actions/core');
 
 let appStoreConnectClient: AppStoreConnectClient | null = null;
 
-class UnauthorizedError extends Error {
+export class UnauthorizedError extends Error {
     constructor(message: string) {
         super(message);
         this.name = 'UnauthorizedError';
@@ -48,7 +48,7 @@ function checkAuthError(error: any) {
     }
 }
 
-async function GetAppId(project: XcodeProject): Promise<XcodeProject> {
+export async function GetAppId(project: XcodeProject): Promise<XcodeProject> {
     if (project.appId) { return project; }
     await getOrCreateClient(project);
     const { data: response, error } = await appStoreConnectClient.api.AppsService.appsGetCollection({
@@ -68,7 +68,7 @@ async function GetAppId(project: XcodeProject): Promise<XcodeProject> {
     return project;
 }
 
-async function GetLatestBundleVersion(project: XcodeProject): Promise<number> {
+export async function GetLatestBundleVersion(project: XcodeProject): Promise<number> {
     await getOrCreateClient(project);
     let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
     if (!build) {
@@ -123,7 +123,7 @@ async function getLastPreReleaseVersionAndBuild(project: XcodeProject): Promise<
     let lastBuild: Build = null;
     const buildsData = preReleaseResponse.data[0].relationships?.builds?.data;
     if (buildsData && buildsData.length > 0) {
-        const lastBuildId = buildsData[0]?.id;
+        const lastBuildId = buildsData[0]?.id ?? null;
         if (!lastBuildId) {
             lastBuild = preReleaseResponse.included?.find(i => i.type == 'builds' && i.id == lastBuildId) as Build;
         }
@@ -284,14 +284,7 @@ async function pollForValidBuild(project: XcodeProject, buildVersion: number, wh
     throw new Error('Timed out waiting for valid build!');
 }
 
-async function UpdateTestDetails(project: XcodeProject, buildVersion: number, whatsNew: string): Promise<void> {
+export async function UpdateTestDetails(project: XcodeProject, buildVersion: number, whatsNew: string): Promise<void> {
     await getOrCreateClient(project);
     await pollForValidBuild(project, buildVersion, whatsNew);
-}
-
-export {
-    GetAppId,
-    GetLatestBundleVersion,
-    UpdateTestDetails,
-    UnauthorizedError
 }

@@ -95,8 +95,6 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         } catch (error) {
             if (error instanceof UnauthorizedError) {
                 throw error;
-            } else {
-                log(`Failed to get the latest bundle version!\n${error}`, 'warning');
             }
         }
         if (projectRef.bundleVersion <= bundleVersion) {
