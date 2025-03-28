@@ -58052,9 +58052,9 @@ async function GetProjectDetails() {
     }
     const infoPlistJson = plist.parse(infoPlistContent);
     const versionString = infoPlistJson['CFBundleShortVersionString'];
-    core.info(`Version string: ${versionString}`);
+    core.info(`CFBundleShortVersionString: ${versionString}`);
     const buildString = infoPlistJson['CFBundleVersion'];
-    core.info(`Build string: ${buildString}`);
+    core.info(`CFBundleVersion: ${buildString}`);
     return new XcodeProject_1.XcodeProject(projectPath, projectName, platform, bundleId, projectDirectory, versionString, scheme);
 }
 async function parseBuildSettings(projectPath, scheme) {
@@ -58558,6 +58558,17 @@ async function ValidateApp(projectRef) {
         ignoreReturnCode: true
     });
     if (exitCode > 0) {
+        const outputJson = JSON.parse(output);
+        if (outputJson['product-errors'] &&
+            outputJson['product-errors'].length > 0) {
+            const productErrors = outputJson['product-errors'];
+            const duplicateBundleVersionError = productErrors.find((error) => error.code === -19232);
+            if (duplicateBundleVersionError) {
+                if (productErrors.length === 1) {
+                    return;
+                }
+            }
+        }
         throw new Error(`Failed to validate app: ${JSON.stringify(JSON.parse(output), null, 2)}`);
     }
 }
