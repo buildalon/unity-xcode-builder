@@ -62,7 +62,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         infoPlistPath = `${projectDirectory}/Info.plist`;
     }
     core.info(`Info.plist path: ${infoPlistPath}`);
-    const infoPlistHandle = await fs.promises.open(infoPlistPath, 'r');
+    const infoPlistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDWR);
     let infoPlistContent: string;
     try {
         infoPlistContent = await fs.promises.readFile(infoPlistHandle, 'utf8');
@@ -104,7 +104,8 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             projectRef.bundleVersion = bundleVersion + 1;
             core.debug(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
             infoPlistJson['CFBundleVersion'] = projectRef.bundleVersion;
-            const plistHandle = await fs.promises.open(infoPlistPath, 'w');
+            // read and write handle
+            const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDWR);
             try {
                 await fs.promises.writeFile(plistHandle, plist.build(infoPlistJson));
                 core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
@@ -254,7 +255,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     }
     if (projectRef.entitlementsPath) {
         core.debug(`Entitlements path: ${projectRef.entitlementsPath}`);
-        const entitlementsHandle = await fs.promises.open(projectRef.entitlementsPath, 'r');
+        const entitlementsHandle = await fs.promises.open(projectRef.entitlementsPath, fs.constants.O_RDONLY);
         try {
             const entitlementsContent = await fs.promises.readFile(entitlementsHandle, 'utf8');
             core.debug(`----- Entitlements content: -----\n${entitlementsContent}\n-----------------------------------`);
@@ -441,7 +442,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
     if (!exportOptionsPath) {
         throw new Error(`Invalid path for export-option-plist: ${exportOptionsPath}`);
     }
-    const exportOptionsHandle = await fs.promises.open(exportOptionsPath, 'r');
+    const exportOptionsHandle = await fs.promises.open(exportOptionsPath, fs.constants.O_RDONLY);
     try {
         const exportOptionContent = await fs.promises.readFile(exportOptionsHandle, 'utf8');
         core.info(`----- Export options content: -----\n${exportOptionContent}\n-----------------------------------`);
@@ -568,8 +569,8 @@ async function parseBundleLog(errorOutput: string) {
             log(`Log file path is a directory: ${logFilePath}`, 'warning');
             return;
         }
-        const logFileHandle = await fs.promises.open(logFilePath, 'r');
         let logFileContent: string;
+        const logFileHandle = await fs.promises.open(logFilePath, fs.constants.O_RDONLY);
         try {
             logFileContent = await fs.promises.readFile(logFileHandle, 'utf8');
         } finally {
