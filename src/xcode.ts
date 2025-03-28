@@ -70,10 +70,10 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     } finally {
         await infoPlistHandle.close();
     }
-    const infoPlistJson = plist.parse(infoPlistContent);
-    const cFBundleShortVersionString = infoPlistJson['CFBundleShortVersionString'];
+    const infoPlist = plist.parse(infoPlistContent) as any;
+    const cFBundleShortVersionString = infoPlist['CFBundleShortVersionString'];
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
-    const cFBundleVersion = infoPlistJson['CFBundleVersion'] as number;
+    const cFBundleVersion = infoPlist['CFBundleVersion'] as number;
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
     const projectRef = new XcodeProject(
         projectPath,
@@ -103,11 +103,14 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         if (projectRef.bundleVersion <= bundleVersion) {
             projectRef.bundleVersion = bundleVersion + 1;
             core.debug(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
-            infoPlistJson['CFBundleVersion'] = projectRef.bundleVersion;
-            // read and write handle
-            const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDWR);
+            infoPlist['CFBundleVersion'] = projectRef.bundleVersion;
             try {
-                await fs.promises.writeFile(plistHandle, plist.build(infoPlistJson));
+                await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
+            } catch (error) {
+                log(`Failed to update Info.plist!\n${error}`, 'error');
+            }
+            const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
+            try {
                 core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
                 const updatedInfoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
                 core.info(`----- Updated Info.plist content: -----\n${updatedInfoPlistContent}\n--------------------------------`);
