@@ -58401,7 +58401,8 @@ async function getExportOptions(projectRef) {
             exportOptions['manageAppVersionAndBuildNumber'] = true;
         }
         projectRef.exportOption = method;
-        exportOptionsPath = await writeExportOptions(projectRef.projectPath, exportOptions);
+        exportOptionsPath = `${projectRef.projectPath}/exportOptions.plist`;
+        await fs.promises.writeFile(exportOptionsPath, plist.build(exportOptions));
     }
     else {
         exportOptionsPath = exportOptionPlistInput;
@@ -58421,11 +58422,6 @@ async function getExportOptions(projectRef) {
         await exportOptionsHandle.close();
     }
     projectRef.exportOptionsPath = exportOptionsPath;
-}
-async function writeExportOptions(projectPath, exportOptions) {
-    const exportOptionsPath = `${projectPath}/exportOptions.plist`;
-    await fs.promises.writeFile(exportOptionsPath, plist.build(exportOptions));
-    return exportOptionsPath;
 }
 async function getDefaultEntitlementsMacOS(projectRef) {
     const entitlementsPath = `${projectRef.projectPath}/Entitlements.plist`;
