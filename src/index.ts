@@ -19,6 +19,7 @@ const main = async () => {
     try {
         if (!IS_POST) {
             core.saveState('isPost', true);
+            const credential = await ImportCredentials();
             let xcodeVersionString = core.getInput('xcode-version');
             if (xcodeVersionString) {
                 core.info(`Setting xcode version to ${xcodeVersionString}`);
@@ -44,7 +45,6 @@ const main = async () => {
             if (!xcodeVersionString) {
                 throw new Error('Failed to parse Xcode version!');
             }
-            const credential = await ImportCredentials();
             let projectRef = await GetProjectDetails(credential, semver.coerce(xcodeVersionString));
             projectRef = await ArchiveXcodeProject(projectRef);
             projectRef = await ExportXcodeArchive(projectRef);
