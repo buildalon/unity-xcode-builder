@@ -60682,7 +60682,7 @@ const main = async () => {
                 core.info(`Setting xcode version to ${xcodeVersionString}`);
                 if (xcodeVersionString.includes('latest')) {
                     await exec.exec('xcodes', ['install', '--latest', '--select']);
-                    await exec.exec('xcodebuild', ['-license accept']);
+                    await exec.exec('xcodebuild', ['-license', 'accept']);
                     await exec.exec('xcodebuild', ['-runFirstLaunch']);
                 }
                 else {
