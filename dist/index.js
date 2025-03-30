@@ -58116,6 +58116,7 @@ async function getPlatformSdkVersion(projectPath, scheme, platform) {
         'build',
         '-project', projectPath,
         '-scheme', scheme,
+        '-destination', `generic/platform=${platform}`,
         '-showBuildSettings'
     ];
     if (!core.isDebug()) {
