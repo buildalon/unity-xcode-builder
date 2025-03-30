@@ -20,13 +20,6 @@ import { SemVer } from 'semver';
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
-const platformMap = {
-    'iphoneos': 'iOS',
-    'macosx': 'macOS',
-    'appletvos': 'tvOS',
-    'watchos': 'watchOS',
-    'xros': 'visionOS'
-};
 
 export async function GetProjectDetails(credential: AppleCredential, xcodeVersion: SemVer): Promise<XcodeProject> {
     const projectPathInput = core.getInput('project-path') || `${WORKSPACE}/**/*.xcodeproj`;
@@ -55,18 +48,19 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     core.info(`Project directory: ${projectDirectory}`);
     const projectName = path.basename(projectPath, '.xcodeproj');
     const scheme = await getProjectScheme(projectPath);
-    const [platform, bundleId] = await parseBuildSettings(projectPath);
+    const platform = await getSupportedPlatform(projectPath);
     core.info(`Platform: ${platform}`);
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
     }
+    await checkSimulatorsAvailable(platform);
+    const destination = core.getInput('destination') || `generic/platform=${platform}`;
+    core.debug(`Using destination: ${destination}`);
+    const bundleId = await getBuildSettings(projectPath, scheme, platform, destination);
     core.info(`Bundle ID: ${bundleId}`);
     if (!bundleId) {
         throw new Error('Unable to determine the bundle ID');
     }
-    const destination = core.getInput('destination') || `generic/platform=${platform}`;
-    core.debug(`Using destination: ${destination}`);
-    await getPlatformSdkVersion(projectPath, scheme, platform, destination);
     let infoPlistPath = `${projectDirectory}/${projectName}/Info.plist`;
     if (!fs.existsSync(infoPlistPath)) {
         infoPlistPath = `${projectDirectory}/Info.plist`;
@@ -130,7 +124,42 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     return projectRef;
 }
 
-async function parseBuildSettings(projectPath: string): Promise<[string, string]> {
+async function checkSimulatorsAvailable(platform: string): Promise<void> {
+    const destinationArgs = [
+        'simctl',
+        'list',
+        platform,
+        '--json'
+    ];
+    let output = '';
+    if (!core.isDebug()) {
+        core.info(`[command]${xcrun} ${destinationArgs.join(' ')}`);
+    }
+    await exec(xcrun, destinationArgs, {
+        listeners: {
+            stdout: (data: Buffer) => {
+                output += data.toString();
+            }
+        },
+        silent: !core.isDebug()
+    });
+    const response = JSON.parse(output);
+    const devices = response.devices as any[];
+    if (devices.length > 0) {
+        return;
+    }
+    const simulators = response.simulators as any[];
+    if (simulators.length > 0) {
+        return;
+    }
+    const availableDestinations = response.availableDestinations as any[];
+    if (availableDestinations.length > 0) {
+        return;
+    }
+    await exec(xcodebuild, ['-downloadPlatform', platform]);
+}
+
+async function getSupportedPlatform(projectPath: string): Promise<string> {
     const projectFilePath = `${projectPath}/project.pbxproj`;
     core.debug(`.pbxproj file path: ${projectFilePath}`);
     await fs.promises.access(projectFilePath, fs.constants.R_OK);
@@ -139,15 +168,17 @@ async function parseBuildSettings(projectPath: string): Promise<[string, string]
     if (!platform) {
         throw new Error('Unable to determine the platform name from the build settings');
     }
-    const bundleId = core.getInput('bundle-id') || matchRegexPattern(content, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
-    if (!bundleId || bundleId === 'NO') {
-        throw new Error('Unable to determine the bundle ID from the build settings');
-    }
-    return [platformMap[platform], bundleId];
+    const platformMap = {
+        'iphoneos': 'iOS',
+        'macosx': 'macOS',
+        'appletvos': 'tvOS',
+        'watchos': 'watchOS',
+        'xros': 'visionOS'
+    };
+    return platformMap[platform];
 }
 
-async function getPlatformSdkVersion(projectPath: string, scheme: string, platform: string, destination: string): Promise<void> {
-    await exec(xcodebuild, ['-downloadPlatform', platform]);
+async function getBuildSettings(projectPath: string, scheme: string, platform: string, destination: string): Promise<string> {
     let buildSettingsOutput = '';
     const projectSettingsArgs = [
         'build',
@@ -174,6 +205,11 @@ async function getPlatformSdkVersion(projectPath: string, scheme: string, platfo
     if (platform !== 'macOS') {
         await downloadPlatformSdkIfMissing(platform, platformSdkVersion);
     }
+    const bundleId = core.getInput('bundle-id') || matchRegexPattern(buildSettingsOutput, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
+    if (!bundleId || bundleId === 'NO') {
+        throw new Error('Unable to determine the bundle ID from the build settings');
+    }
+    return bundleId;
 }
 
 function matchRegexPattern(string: string, pattern: RegExp, group: string | null): string {

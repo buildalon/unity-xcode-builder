@@ -57998,13 +57998,6 @@ const core = __nccwpck_require__(2186);
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
-const platformMap = {
-    'iphoneos': 'iOS',
-    'macosx': 'macOS',
-    'appletvos': 'tvOS',
-    'watchos': 'watchOS',
-    'xros': 'visionOS'
-};
 async function GetProjectDetails(credential, xcodeVersion) {
     const projectPathInput = core.getInput('project-path') || `${WORKSPACE}/**/*.xcodeproj`;
     core.debug(`Project path input: ${projectPathInput}`);
@@ -58032,18 +58025,19 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`Project directory: ${projectDirectory}`);
     const projectName = path.basename(projectPath, '.xcodeproj');
     const scheme = await getProjectScheme(projectPath);
-    const [platform, bundleId] = await parseBuildSettings(projectPath);
+    const platform = await getSupportedPlatform(projectPath);
     core.info(`Platform: ${platform}`);
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
     }
+    await checkSimulatorsAvailable(platform);
+    const destination = core.getInput('destination') || `generic/platform=${platform}`;
+    core.debug(`Using destination: ${destination}`);
+    const bundleId = await getBuildSettings(projectPath, scheme, platform, destination);
     core.info(`Bundle ID: ${bundleId}`);
     if (!bundleId) {
         throw new Error('Unable to determine the bundle ID');
     }
-    const destination = core.getInput('destination') || `generic/platform=${platform}`;
-    core.debug(`Using destination: ${destination}`);
-    await getPlatformSdkVersion(projectPath, scheme, platform, destination);
     let infoPlistPath = `${projectDirectory}/${projectName}/Info.plist`;
     if (!fs.existsSync(infoPlistPath)) {
         infoPlistPath = `${projectDirectory}/Info.plist`;
@@ -58098,7 +58092,41 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`----- Info.plist content: -----\n${infoPlistContent}\n-----------------------------------`);
     return projectRef;
 }
-async function parseBuildSettings(projectPath) {
+async function checkSimulatorsAvailable(platform) {
+    const destinationArgs = [
+        'simctl',
+        'list',
+        platform,
+        '--json'
+    ];
+    let output = '';
+    if (!core.isDebug()) {
+        core.info(`[command]${xcrun} ${destinationArgs.join(' ')}`);
+    }
+    await (0, exec_1.exec)(xcrun, destinationArgs, {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            }
+        },
+        silent: !core.isDebug()
+    });
+    const response = JSON.parse(output);
+    const devices = response.devices;
+    if (devices.length > 0) {
+        return;
+    }
+    const simulators = response.simulators;
+    if (simulators.length > 0) {
+        return;
+    }
+    const availableDestinations = response.availableDestinations;
+    if (availableDestinations.length > 0) {
+        return;
+    }
+    await (0, exec_1.exec)(xcodebuild, ['-downloadPlatform', platform]);
+}
+async function getSupportedPlatform(projectPath) {
     const projectFilePath = `${projectPath}/project.pbxproj`;
     core.debug(`.pbxproj file path: ${projectFilePath}`);
     await fs.promises.access(projectFilePath, fs.constants.R_OK);
@@ -58107,14 +58135,16 @@ async function parseBuildSettings(projectPath) {
     if (!platform) {
         throw new Error('Unable to determine the platform name from the build settings');
     }
-    const bundleId = core.getInput('bundle-id') || matchRegexPattern(content, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
-    if (!bundleId || bundleId === 'NO') {
-        throw new Error('Unable to determine the bundle ID from the build settings');
-    }
-    return [platformMap[platform], bundleId];
+    const platformMap = {
+        'iphoneos': 'iOS',
+        'macosx': 'macOS',
+        'appletvos': 'tvOS',
+        'watchos': 'watchOS',
+        'xros': 'visionOS'
+    };
+    return platformMap[platform];
 }
-async function getPlatformSdkVersion(projectPath, scheme, platform, destination) {
-    await (0, exec_1.exec)(xcodebuild, ['-downloadPlatform', platform]);
+async function getBuildSettings(projectPath, scheme, platform, destination) {
     let buildSettingsOutput = '';
     const projectSettingsArgs = [
         'build',
@@ -58141,6 +58171,11 @@ async function getPlatformSdkVersion(projectPath, scheme, platform, destination)
     if (platform !== 'macOS') {
         await downloadPlatformSdkIfMissing(platform, platformSdkVersion);
     }
+    const bundleId = core.getInput('bundle-id') || matchRegexPattern(buildSettingsOutput, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
+    if (!bundleId || bundleId === 'NO') {
+        throw new Error('Unable to determine the bundle ID from the build settings');
+    }
+    return bundleId;
 }
 function matchRegexPattern(string, pattern, group) {
     var _a;
