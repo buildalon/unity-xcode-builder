@@ -58138,8 +58138,8 @@ async function getPlatformSdkVersion(projectPath, scheme, platform, destination)
     if (!platformSdkVersion) {
         platformSdkVersion = matchRegexPattern(buildSettingsOutput, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion') || null;
     }
-    if (platformMap[platform] !== 'macOS') {
-        await downloadPlatformSdkIfMissing(platformMap[platform], platformSdkVersion);
+    if (platform !== 'macOS') {
+        await downloadPlatformSdkIfMissing(platform, platformSdkVersion);
     }
 }
 function matchRegexPattern(string, pattern, group) {
