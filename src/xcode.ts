@@ -128,7 +128,7 @@ async function checkSimulatorsAvailable(platform: string): Promise<void> {
     const destinationArgs = [
         'simctl',
         'list',
-        platform,
+        'devices',
         '--json'
     ];
     let output = '';
@@ -144,16 +144,11 @@ async function checkSimulatorsAvailable(platform: string): Promise<void> {
         silent: !core.isDebug()
     });
     const response = JSON.parse(output);
-    const devices = response.devices as any[];
-    if (devices.length > 0) {
-        return;
-    }
-    const simulators = response.simulators as any[];
-    if (simulators.length > 0) {
-        return;
-    }
-    const availableDestinations = response.availableDestinations as any[];
-    if (availableDestinations.length > 0) {
+    const devices = response.devices;
+    const platformDevices = Object.keys(devices)
+        .filter(key => key.toLowerCase().includes(platform.toLowerCase()))
+        .flatMap(key => devices[key]);
+    if (platformDevices.length > 0) {
         return;
     }
     await exec(xcodebuild, ['-downloadPlatform', platform]);

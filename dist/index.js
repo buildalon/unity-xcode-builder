@@ -58096,7 +58096,7 @@ async function checkSimulatorsAvailable(platform) {
     const destinationArgs = [
         'simctl',
         'list',
-        platform,
+        'devices',
         '--json'
     ];
     let output = '';
@@ -58113,15 +58113,10 @@ async function checkSimulatorsAvailable(platform) {
     });
     const response = JSON.parse(output);
     const devices = response.devices;
-    if (devices.length > 0) {
-        return;
-    }
-    const simulators = response.simulators;
-    if (simulators.length > 0) {
-        return;
-    }
-    const availableDestinations = response.availableDestinations;
-    if (availableDestinations.length > 0) {
+    const platformDevices = Object.keys(devices)
+        .filter(key => key.toLowerCase().includes(platform.toLowerCase()))
+        .flatMap(key => devices[key]);
+    if (platformDevices.length > 0) {
         return;
     }
     await (0, exec_1.exec)(xcodebuild, ['-downloadPlatform', platform]);
