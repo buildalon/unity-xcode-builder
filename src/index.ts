@@ -23,10 +23,11 @@ const main = async () => {
             let xcodeVersionString = core.getInput('xcode-version');
             if (xcodeVersionString) {
                 core.info(`Setting xcode version to ${xcodeVersionString}`);
+                await exec.exec('xcodes', ['list']);
                 if (xcodeVersionString.includes('latest')) {
                     await exec.exec('xcodes', ['install', '--latest', '--select']);
                 } else {
-                    await exec.exec('xcodes', ['select', xcodeVersionString]);
+                    await exec.exec('xcodes', ['install', xcodeVersionString, '--select']);
                 }
             }
             let xcodeVersionOutput = '';

@@ -58024,7 +58024,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`Project directory: ${projectDirectory}`);
     const projectName = path.basename(projectPath, '.xcodeproj');
     const scheme = await getProjectScheme(projectPath);
-    const [platform, bundleId] = await parseBuildSettings(projectPath, scheme);
+    const [platform, bundleId] = await parseBuildSettings(projectPath);
     core.info(`Platform: ${platform}`);
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
@@ -58087,36 +58087,20 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`----- Info.plist content: -----\n${infoPlistContent}\n-----------------------------------`);
     return projectRef;
 }
-async function parseBuildSettings(projectPath, scheme) {
-    let buildSettingsOutput = '';
-    let platformSdkVersion = core.getInput('platform-sdk-version') || null;
-    const projectSettingsArgs = [
-        'build',
-        '-project', projectPath,
-        '-scheme', scheme,
-        '-showBuildSettings'
-    ];
-    if (!core.isDebug()) {
-        core.info(`[command]${xcodebuild} ${projectSettingsArgs.join(' ')}`);
-    }
-    await (0, exec_1.exec)(xcodebuild, projectSettingsArgs, {
-        listeners: {
-            stdout: (data) => {
-                buildSettingsOutput += data.toString();
-            }
-        },
-        silent: !core.isDebug()
-    });
-    const platformName = core.getInput('platform') || matchRegexPattern(buildSettingsOutput, /\s+PLATFORM_NAME = (?<platformName>\w+)/, 'platformName');
+async function parseBuildSettings(projectPath) {
+    await fs.promises.access(projectPath, fs.constants.R_OK);
+    const xCodeProjContent = await fs.promises.readFile(projectPath, 'utf8');
+    const platformName = core.getInput('platform') || matchRegexPattern(xCodeProjContent, /\s+PLATFORM_NAME = (?<platformName>\w+)/, 'platformName');
     if (!platformName) {
         throw new Error('Unable to determine the platform name from the build settings');
     }
-    const bundleId = core.getInput('bundle-id') || matchRegexPattern(buildSettingsOutput, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
+    const bundleId = core.getInput('bundle-id') || matchRegexPattern(xCodeProjContent, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
     if (!bundleId || bundleId === 'NO') {
         throw new Error('Unable to determine the bundle ID from the build settings');
     }
+    let platformSdkVersion = core.getInput('platform-sdk-version') || null;
     if (!platformSdkVersion) {
-        platformSdkVersion = matchRegexPattern(buildSettingsOutput, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion') || null;
+        platformSdkVersion = matchRegexPattern(xCodeProjContent, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion') || null;
     }
     const platforms = {
         'iphoneos': 'iOS',
@@ -60674,11 +60658,12 @@ const main = async () => {
             let xcodeVersionString = core.getInput('xcode-version');
             if (xcodeVersionString) {
                 core.info(`Setting xcode version to ${xcodeVersionString}`);
+                await exec.exec('xcodes', ['list']);
                 if (xcodeVersionString.includes('latest')) {
                     await exec.exec('xcodes', ['install', '--latest', '--select']);
                 }
                 else {
-                    await exec.exec('xcodes', ['select', xcodeVersionString]);
+                    await exec.exec('xcodes', ['install', xcodeVersionString, '--select']);
                 }
             }
             let xcodeVersionOutput = '';

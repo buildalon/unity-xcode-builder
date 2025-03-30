@@ -8,9 +8,6 @@ inputs:
     description: The version of Xcode to use for building the Xcode project. Defaults to the active version of Xcode on the runner.
     required: false
     default: latest
-  platform-sdk-version:
-    description: The version of the platform SDK to use for building the Xcode project. Defaults to the latest version of the platform SDK defined in the `.xcodeproj`.
-    required: false
   project-path:
     description: The directory that contains the exported xcode project from Unity.
     required: true
@@ -56,6 +53,9 @@ inputs:
     required: false
   platform:
     description: The platform to build for. Can be one of `iOS`, `macOS`, `visionOS`, `tvOS`. Defaults to parsing platform from `.xcodeproj`.
+    required: false
+  platform-sdk-version:
+    description: The version of the platform SDK to use for building the Xcode project. Defaults to the latest version of the platform SDK defined in the `.xcodeproj`.
     required: false
   export-option:
     description: The export option to use for exporting the Xcode project. Can be one of `app-store-connect`, `steam`, `release-testing`, `package`, `enterprise`, `debugging`, `developer-id`, `mac-application`.
