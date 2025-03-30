@@ -60,11 +60,11 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
     }
-    await getPlatformSdkVersion(projectPath, scheme, platform);
     core.info(`Bundle ID: ${bundleId}`);
     if (!bundleId) {
         throw new Error('Unable to determine the bundle ID');
     }
+    await getPlatformSdkVersion(projectPath, scheme, platform);
     let infoPlistPath = `${projectDirectory}/${projectName}/Info.plist`;
     if (!fs.existsSync(infoPlistPath)) {
         infoPlistPath = `${projectDirectory}/Info.plist`;
