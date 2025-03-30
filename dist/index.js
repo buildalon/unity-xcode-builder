@@ -58093,12 +58093,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     return projectRef;
 }
 async function checkSimulatorsAvailable(platform) {
-    const destinationArgs = [
-        'simctl',
-        'list',
-        'devices',
-        '--json'
-    ];
+    const destinationArgs = ['simctl', 'list', 'devices', '--json'];
     let output = '';
     if (!core.isDebug()) {
         core.info(`[command]${xcrun} ${destinationArgs.join(' ')}`);
@@ -58220,7 +58215,9 @@ async function getProjectScheme(projectPath) {
     return scheme;
 }
 async function downloadPlatformSdkIfMissing(platform, version) {
-    await (0, exec_1.exec)('xcodes', ['runtimes']);
+    if (core.isDebug()) {
+        await (0, exec_1.exec)('xcodes', ['runtimes']);
+    }
     if (version) {
         await (0, exec_1.exec)('xcodes', ['runtimes', 'install', `${platform} ${version}`]);
     }
@@ -58556,7 +58553,8 @@ async function parseBundleLog(errorOutput) {
         await fs.promises.access(logFilePath, fs.constants.R_OK);
         const isDirectory = (await fs.promises.stat(logFilePath)).isDirectory();
         if (isDirectory) {
-            (0, utilities_1.log)(`Log file path is a directory: ${logFilePath}`, 'warning');
+            const files = await fs.promises.readdir(logFilePath);
+            (0, utilities_1.log)(`Log file is a directory. Files: ${files.join(', ')}`, 'info');
             return;
         }
         let logFileContent;

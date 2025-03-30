@@ -590,7 +590,9 @@ async function parseBundleLog(errorOutput: string) {
         await fs.promises.access(logFilePath, fs.constants.R_OK);
         const isDirectory = (await fs.promises.stat(logFilePath)).isDirectory();
         if (isDirectory) {
-            log(`Log file path is a directory: ${logFilePath}`, 'warning');
+            // list all files in the directory
+            const files = await fs.promises.readdir(logFilePath);
+            log(`Log file is a directory. Files: ${files.join(', ')}`, 'info');
             return;
         }
         let logFileContent: string;
