@@ -20,6 +20,13 @@ import { SemVer } from 'semver';
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
+const platforms = {
+    'iphoneos': 'iOS',
+    'macosx': 'macOS',
+    'appletvos': 'tvOS',
+    'watchos': 'watchOS',
+    'xros': 'visionOS'
+};
 
 export async function GetProjectDetails(credential: AppleCredential, xcodeVersion: SemVer): Promise<XcodeProject> {
     const projectPathInput = core.getInput('project-path') || `${WORKSPACE}/**/*.xcodeproj`;
@@ -53,6 +60,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
     }
+    await getPlatformSdkVersion(projectPath, scheme, platform);
     core.info(`Bundle ID: ${bundleId}`);
     if (!bundleId) {
         throw new Error('Unable to determine the bundle ID');
@@ -121,9 +129,10 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 
 async function parseBuildSettings(projectPath: string): Promise<[string, string]> {
     const projectFilePath = `${projectPath}/project.pbxproj`;
+    core.debug(`.pbxproj file path: ${projectFilePath}`);
     await fs.promises.access(projectFilePath, fs.constants.R_OK);
     const content = await fs.promises.readFile(projectFilePath, 'utf8');
-    const platformName = core.getInput('platform') || matchRegexPattern(content, /\s+PLATFORM_NAME = (?<platformName>\w+)/, 'platformName');
+    const platformName = core.getInput('platform') || matchRegexPattern(content, /\s+SDK_ROOT = (?<platform>\w+)/, 'platform');
     if (!platformName) {
         throw new Error('Unable to determine the platform name from the build settings');
     }
@@ -131,21 +140,35 @@ async function parseBuildSettings(projectPath: string): Promise<[string, string]
     if (!bundleId || bundleId === 'NO') {
         throw new Error('Unable to determine the bundle ID from the build settings');
     }
+    return [platforms[platformName], bundleId];
+}
+
+async function getPlatformSdkVersion(projectPath: string, scheme: string, platform: string) {
+    let buildSettingsOutput = '';
+    const projectSettingsArgs = [
+        'build',
+        '-project', projectPath,
+        '-scheme', scheme,
+        '-showBuildSettings'
+    ];
+    if (!core.isDebug()) {
+        core.info(`[command]${xcodebuild} ${projectSettingsArgs.join(' ')}`);
+    }
+    await exec(xcodebuild, projectSettingsArgs, {
+        listeners: {
+            stdout: (data: Buffer) => {
+                buildSettingsOutput += data.toString();
+            }
+        },
+        silent: !core.isDebug()
+    });
     let platformSdkVersion = core.getInput('platform-sdk-version') || null;
     if (!platformSdkVersion) {
-        platformSdkVersion = matchRegexPattern(content, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion') || null;
+        platformSdkVersion = matchRegexPattern(buildSettingsOutput, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion') || null;
     }
-    const platforms = {
-        'iphoneos': 'iOS',
-        'macosx': 'macOS',
-        'appletvos': 'tvOS',
-        'watchos': 'watchOS',
-        'xros': 'visionOS'
-    };
-    if (platforms[platformName] !== 'macOS') {
-        await downloadPlatformSdkIfMissing(platforms[platformName], platformSdkVersion);
+    if (platforms[platform] !== 'macOS') {
+        await downloadPlatformSdkIfMissing(platforms[platform], platformSdkVersion);
     }
-    return [platforms[platformName], bundleId];
 }
 
 function matchRegexPattern(string: string, pattern: RegExp, group: string | null): string {
