@@ -58121,8 +58121,8 @@ async function getSupportedPlatform(projectPath) {
     core.debug(`.pbxproj file path: ${projectFilePath}`);
     await fs.promises.access(projectFilePath, fs.constants.R_OK);
     const content = await fs.promises.readFile(projectFilePath, 'utf8');
-    const platform = core.getInput('platform') || matchRegexPattern(content, /\s+SUPPORTED_PLATFORMS = (?<platform>\w+)/, 'platform');
-    if (!platform) {
+    const platformName = core.getInput('platform') || matchRegexPattern(content, /\s+SDKROOT = (?<platform>\w+)/, 'platform');
+    if (!platformName) {
         throw new Error('Unable to determine the platform name from the build settings');
     }
     const platformMap = {
@@ -58132,7 +58132,7 @@ async function getSupportedPlatform(projectPath) {
         'watchos': 'watchOS',
         'xros': 'visionOS'
     };
-    return platformMap[platform];
+    return platformMap[platformName];
 }
 async function getBuildSettings(projectPath, scheme, platform, destination) {
     let buildSettingsOutput = '';
@@ -58557,14 +58557,7 @@ async function parseBundleLog(errorOutput) {
             (0, utilities_1.log)(`Log file is a directory. Files: ${files.join(', ')}`, 'info');
             return;
         }
-        let logFileContent;
-        const logFileHandle = await fs.promises.open(logFilePath, fs.constants.O_RDONLY);
-        try {
-            logFileContent = await fs.promises.readFile(logFileHandle, 'utf8');
-        }
-        finally {
-            await logFileHandle.close();
-        }
+        const logFileContent = await fs.promises.readFile(logFilePath, 'utf8');
         (0, utilities_1.log)(`----- Log content: -----\n${logFileContent}\n-----------------------------------`, 'info');
     }
     catch (error) {
