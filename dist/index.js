@@ -57910,10 +57910,11 @@ async function RemoveCredentials() {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.XcodeProject = void 0;
 class XcodeProject {
-    constructor(projectPath, projectName, platform, bundleId, projectDirectory, versionString, bundleVersion, scheme, credential, xcodeVersion) {
+    constructor(projectPath, projectName, platform, destination, bundleId, projectDirectory, versionString, bundleVersion, scheme, credential, xcodeVersion) {
         this.projectPath = projectPath;
         this.projectName = projectName;
         this.platform = platform;
+        this.destination = destination;
         this.bundleId = bundleId;
         this.projectDirectory = projectDirectory;
         this.versionString = versionString;
@@ -58040,7 +58041,9 @@ async function GetProjectDetails(credential, xcodeVersion) {
     if (!bundleId) {
         throw new Error('Unable to determine the bundle ID');
     }
-    await getPlatformSdkVersion(projectPath, scheme, platform);
+    const destination = core.getInput('destination') || `generic/platform=${platform}`;
+    core.debug(`Using destination: ${destination}`);
+    await getPlatformSdkVersion(projectPath, scheme, platform, destination);
     let infoPlistPath = `${projectDirectory}/${projectName}/Info.plist`;
     if (!fs.existsSync(infoPlistPath)) {
         infoPlistPath = `${projectDirectory}/Info.plist`;
@@ -58059,7 +58062,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'];
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
-    const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
+    const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, destination, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
     await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload() && core.getInput('auto-increment-build-number') === 'true') {
         projectRef.credential.appleId = await getAppId(projectRef);
@@ -58110,13 +58113,14 @@ async function parseBuildSettings(projectPath) {
     }
     return [platformMap[platform], bundleId];
 }
-async function getPlatformSdkVersion(projectPath, scheme, platform) {
+async function getPlatformSdkVersion(projectPath, scheme, platform, destination) {
+    await (0, exec_1.exec)(xcodebuild, ['-downloadPlatform', platform]);
     let buildSettingsOutput = '';
     const projectSettingsArgs = [
         'build',
         '-project', projectPath,
         '-scheme', scheme,
-        '-destination', `generic/platform=${platform}`,
+        '-destination', destination,
         '-showBuildSettings'
     ];
     if (!core.isDebug()) {
@@ -58190,16 +58194,11 @@ async function downloadPlatformSdkIfMissing(platform, version) {
     if (version) {
         await (0, exec_1.exec)('xcodes', ['runtimes', 'install', `${platform} ${version}`]);
     }
-    else {
-        await (0, exec_1.exec)(xcodebuild, ['-downloadPlatform', platform]);
-    }
 }
 async function ArchiveXcodeProject(projectRef) {
     const { projectPath, projectName, projectDirectory } = projectRef;
     const archivePath = `${projectDirectory}/${projectName}.xcarchive`;
     core.debug(`Archive path: ${archivePath}`);
-    let destination = core.getInput('destination') || `generic/platform=${projectRef.platform}`;
-    core.debug(`Using destination: ${destination}`);
     const configuration = core.getInput('configuration') || 'Release';
     core.debug(`Configuration: ${configuration}`);
     let entitlementsPath = core.getInput('entitlements-plist');
@@ -58213,7 +58212,7 @@ async function ArchiveXcodeProject(projectRef) {
         'archive',
         '-project', projectPath,
         '-scheme', projectRef.scheme,
-        '-destination', destination,
+        '-destination', projectRef.destination,
         '-configuration', configuration,
         '-archivePath', archivePath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,

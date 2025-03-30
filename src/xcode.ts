@@ -64,7 +64,9 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     if (!bundleId) {
         throw new Error('Unable to determine the bundle ID');
     }
-    await getPlatformSdkVersion(projectPath, scheme, platform);
+    const destination = core.getInput('destination') || `generic/platform=${platform}`;
+    core.debug(`Using destination: ${destination}`);
+    await getPlatformSdkVersion(projectPath, scheme, platform, destination);
     let infoPlistPath = `${projectDirectory}/${projectName}/Info.plist`;
     if (!fs.existsSync(infoPlistPath)) {
         infoPlistPath = `${projectDirectory}/Info.plist`;
@@ -86,6 +88,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         projectPath,
         projectName,
         platform,
+        destination,
         bundleId,
         projectDirectory,
         cFBundleShortVersionString,
@@ -143,13 +146,14 @@ async function parseBuildSettings(projectPath: string): Promise<[string, string]
     return [platformMap[platform], bundleId];
 }
 
-async function getPlatformSdkVersion(projectPath: string, scheme: string, platform: string) {
+async function getPlatformSdkVersion(projectPath: string, scheme: string, platform: string, destination: string): Promise<void> {
+    await exec(xcodebuild, ['-downloadPlatform', platform]);
     let buildSettingsOutput = '';
     const projectSettingsArgs = [
         'build',
         '-project', projectPath,
         '-scheme', scheme,
-        '-destination', `generic/platform=${platform}`,
+        '-destination', destination,
         '-showBuildSettings'
     ];
     if (!core.isDebug()) {
@@ -223,17 +227,12 @@ async function downloadPlatformSdkIfMissing(platform: string, version: string | 
     if (version) {
         await exec('xcodes', ['runtimes', 'install', `${platform} ${version}`]);
     }
-    else {
-        await exec(xcodebuild, ['-downloadPlatform', platform]);
-    }
 }
 
 export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<XcodeProject> {
     const { projectPath, projectName, projectDirectory } = projectRef;
     const archivePath = `${projectDirectory}/${projectName}.xcarchive`;
     core.debug(`Archive path: ${archivePath}`);
-    let destination = core.getInput('destination') || `generic/platform=${projectRef.platform}`;
-    core.debug(`Using destination: ${destination}`);
     const configuration = core.getInput('configuration') || 'Release';
     core.debug(`Configuration: ${configuration}`);
     let entitlementsPath = core.getInput('entitlements-plist');
@@ -246,7 +245,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         'archive',
         '-project', projectPath,
         '-scheme', projectRef.scheme,
-        '-destination', destination,
+        '-destination', projectRef.destination,
         '-configuration', configuration,
         '-archivePath', archivePath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
