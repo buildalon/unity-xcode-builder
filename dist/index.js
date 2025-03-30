@@ -58030,7 +58030,9 @@ async function GetProjectDetails(credential, xcodeVersion) {
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
     }
-    await checkSimulatorsAvailable(platform);
+    if (platform !== 'macOS') {
+        await checkSimulatorsAvailable(platform);
+    }
     const destination = core.getInput('destination') || `generic/platform=${platform}`;
     core.debug(`Using destination: ${destination}`);
     const bundleId = await getBuildSettings(projectPath, scheme, platform, destination);
