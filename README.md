@@ -47,6 +47,7 @@ This action requires several secrets that need to be setup in the repository or 
 | name | description | required |
 | ---- | ----------- | -------- |
 | `xcode-version` | The version of Xcode to use for building the Xcode project. | Defaults to the [latest version of Xcode on the runner](https://github.com/actions/runner-images#available-images). |
+| `platform-sdk-version` | The version of the platform SDK to use for building the Xcode project. | Defaults to the latest version of the platform SDK defined in the `.xcodeproj`. |
 | `project-path` | The directory that contains the exported xcode project from Unity. | Defaults to searching the workspace for `.xcodeproj` |
 | `app-store-connect-key` | The App Store Connect API AuthKey_*.p8 key encoded as base64 string. | true |
 | `app-store-connect-key-id` | The App Store Connect API key id. | true |

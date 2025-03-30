@@ -58089,6 +58089,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
 }
 async function parseBuildSettings(projectPath, scheme) {
     let buildSettingsOutput = '';
+    let platformSdkVersion = core.getInput('platform-sdk-version') || null;
     const projectSettingsArgs = [
         'build',
         '-project', projectPath,
@@ -58114,6 +58115,9 @@ async function parseBuildSettings(projectPath, scheme) {
     if (!bundleId || bundleId === 'NO') {
         throw new Error('Unable to determine the bundle ID from the build settings');
     }
+    if (!platformSdkVersion) {
+        platformSdkVersion = matchRegexPattern(buildSettingsOutput, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion') || null;
+    }
     const platforms = {
         'iphoneos': 'iOS',
         'macosx': 'macOS',
@@ -58122,7 +58126,7 @@ async function parseBuildSettings(projectPath, scheme) {
         'xros': 'visionOS'
     };
     if (platforms[platformName] !== 'macOS') {
-        await downloadPlatformSdkIfMissing(platforms[platformName]);
+        await downloadPlatformSdkIfMissing(platforms[platformName], platformSdkVersion);
     }
     return [platforms[platformName], bundleId];
 }
@@ -58172,6 +58176,15 @@ async function getProjectScheme(projectPath) {
     }
     core.debug(`Using scheme: ${scheme}`);
     return scheme;
+}
+async function downloadPlatformSdkIfMissing(platform, version) {
+    await (0, exec_1.exec)('xcodes', ['runtimes']);
+    if (version) {
+        await (0, exec_1.exec)('xcodes', ['runtimes', 'install', `${platform} ${version}`]);
+    }
+    else {
+        await (0, exec_1.exec)(xcodebuild, ['-downloadPlatform', platform]);
+    }
 }
 async function ArchiveXcodeProject(projectRef) {
     const { projectPath, projectName, projectDirectory } = projectRef;
@@ -58332,26 +58345,6 @@ async function createMacOSInstallerPkg(projectRef) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
     return pkgPath;
-}
-async function downloadPlatformSdkIfMissing(platform) {
-    await (0, exec_1.exec)(xcodebuild, ['-runFirstLaunch']);
-    let output = '';
-    if (!core.isDebug()) {
-        core.info(`[command]${xcrun} simctl list`);
-    }
-    await (0, exec_1.exec)(xcrun, ['simctl', 'list'], {
-        listeners: {
-            stdout: (data) => {
-                output += data.toString();
-            }
-        },
-        silent: !core.isDebug()
-    });
-    if (output.includes(platform)) {
-        return;
-    }
-    await (0, exec_1.exec)(xcodebuild, ['-downloadPlatform', platform]);
-    await (0, exec_1.exec)(xcodebuild, ['-runFirstLaunch']);
 }
 async function getExportOptions(projectRef) {
     const exportOptionPlistInput = core.getInput('export-option-plist');

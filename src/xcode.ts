@@ -121,6 +121,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 
 async function parseBuildSettings(projectPath: string, scheme: string): Promise<[string, string]> {
     let buildSettingsOutput = '';
+    let platformSdkVersion = core.getInput('platform-sdk-version') || null;
     const projectSettingsArgs = [
         'build',
         '-project', projectPath,
@@ -146,6 +147,9 @@ async function parseBuildSettings(projectPath: string, scheme: string): Promise<
     if (!bundleId || bundleId === 'NO') {
         throw new Error('Unable to determine the bundle ID from the build settings');
     }
+    if (!platformSdkVersion) {
+        platformSdkVersion = matchRegexPattern(buildSettingsOutput, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion') || null;
+    }
     const platforms = {
         'iphoneos': 'iOS',
         'macosx': 'macOS',
@@ -154,7 +158,7 @@ async function parseBuildSettings(projectPath: string, scheme: string): Promise<
         'xros': 'visionOS'
     };
     if (platforms[platformName] !== 'macOS') {
-        await downloadPlatformSdkIfMissing(platforms[platformName]);
+        await downloadPlatformSdkIfMissing(platforms[platformName], platformSdkVersion);
     }
     return [platforms[platformName], bundleId];
 }
@@ -203,6 +207,16 @@ async function getProjectScheme(projectPath: string): Promise<string> {
     }
     core.debug(`Using scheme: ${scheme}`);
     return scheme;
+}
+
+async function downloadPlatformSdkIfMissing(platform: string, version: string | null) {
+    await exec('xcodes', ['runtimes']);
+    if (version) {
+        await exec('xcodes', ['runtimes', 'install', `${platform} ${version}`]);
+    }
+    else {
+        await exec(xcodebuild, ['-downloadPlatform', platform]);
+    }
 }
 
 export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<XcodeProject> {
@@ -365,27 +379,6 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
     return pkgPath;
-}
-
-async function downloadPlatformSdkIfMissing(platform: string) {
-    await exec(xcodebuild, ['-runFirstLaunch']);
-    let output = '';
-    if (!core.isDebug()) {
-        core.info(`[command]${xcrun} simctl list`);
-    }
-    await exec(xcrun, ['simctl', 'list'], {
-        listeners: {
-            stdout: (data: Buffer) => {
-                output += data.toString();
-            }
-        },
-        silent: !core.isDebug()
-    });
-    if (output.includes(platform)) {
-        return;
-    }
-    await exec(xcodebuild, ['-downloadPlatform', platform]);
-    await exec(xcodebuild, ['-runFirstLaunch']);
 }
 
 async function getExportOptions(projectRef: XcodeProject): Promise<void> {
