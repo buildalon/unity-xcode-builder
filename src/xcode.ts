@@ -20,7 +20,7 @@ import { SemVer } from 'semver';
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
-const platforms = {
+const platformMap = {
     'iphoneos': 'iOS',
     'macosx': 'macOS',
     'appletvos': 'tvOS',
@@ -132,15 +132,15 @@ async function parseBuildSettings(projectPath: string): Promise<[string, string]
     core.debug(`.pbxproj file path: ${projectFilePath}`);
     await fs.promises.access(projectFilePath, fs.constants.R_OK);
     const content = await fs.promises.readFile(projectFilePath, 'utf8');
-    const platformName = core.getInput('platform') || matchRegexPattern(content, /\s+SDK_ROOT = (?<platform>\w+)/, 'platform');
-    if (!platformName) {
+    const platform = core.getInput('platform') || matchRegexPattern(content, /\s+SUPPORTED_PLATFORMS = (?<platform>\w+)/, 'platform');
+    if (!platform) {
         throw new Error('Unable to determine the platform name from the build settings');
     }
     const bundleId = core.getInput('bundle-id') || matchRegexPattern(content, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
     if (!bundleId || bundleId === 'NO') {
         throw new Error('Unable to determine the bundle ID from the build settings');
     }
-    return [platforms[platformName], bundleId];
+    return [platformMap[platform], bundleId];
 }
 
 async function getPlatformSdkVersion(projectPath: string, scheme: string, platform: string) {
@@ -166,8 +166,8 @@ async function getPlatformSdkVersion(projectPath: string, scheme: string, platfo
     if (!platformSdkVersion) {
         platformSdkVersion = matchRegexPattern(buildSettingsOutput, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion') || null;
     }
-    if (platforms[platform] !== 'macOS') {
-        await downloadPlatformSdkIfMissing(platforms[platform], platformSdkVersion);
+    if (platformMap[platform] !== 'macOS') {
+        await downloadPlatformSdkIfMissing(platformMap[platform], platformSdkVersion);
     }
 }
 
