@@ -60704,7 +60704,9 @@ const main = async () => {
             let xcodeVersionString = core.getInput('xcode-version');
             if (xcodeVersionString) {
                 core.info(`Setting xcode version to ${xcodeVersionString}`);
-                await exec.exec('xcodes', ['list']);
+                if (core.isDebug()) {
+                    await exec.exec('xcodes', ['list']);
+                }
                 if (xcodeVersionString.includes('latest')) {
                     await exec.exec('xcodes', ['install', '--latest', '--select']);
                 }
