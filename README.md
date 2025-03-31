@@ -47,7 +47,6 @@ This action requires several secrets that need to be setup in the repository or 
 | name | description | required |
 | ---- | ----------- | -------- |
 | `xcode-version` | The version of Xcode to use for building the Xcode project. | Defaults to the [latest version of Xcode on the runner](https://github.com/actions/runner-images#available-images). |
-| `platform-sdk-version` | The version of the platform SDK to use for building the Xcode project. | Defaults to the latest version of the platform SDK defined in the `.xcodeproj`. |
 | `project-path` | The directory that contains the exported xcode project from Unity. | Defaults to searching the workspace for `.xcodeproj` |
 | `app-store-connect-key` | The App Store Connect API AuthKey_*.p8 key encoded as base64 string. | true |
 | `app-store-connect-key-id` | The App Store Connect API key id. | true |
@@ -63,6 +62,7 @@ This action requires several secrets that need to be setup in the repository or 
 | `scheme` | The scheme to use when building the xcode project. | false |
 | `destination` | The destination to use when building the xcode project. | Defaults to `generic/platform={platform}`. |
 | `platform` | The platform to build for. Can be one of `iOS`, `macOS`, `tvOS`, `visionOS`. | Defaults to parsing platform from `.xcodeproj`. |
+| `platform-sdk-version` | The version of the platform SDK to use for building the Xcode project. | Defaults to the latest version of the platform SDK defined in the `.xcodeproj`. |
 | `export-option` | The export option to use for exporting the Xcode project. Can be one of `app-store-connect`, `steam`, `release-testing`, `package`, `enterprise`, `debugging`, `developer-id`, `mac-application`. | Defaults to `development` |
 | `export-option-plist` | The path to custom export option plist file to use when exporting the Xcode project. | Overrides `export-option`. |
 | `entitlements-plist` | The path to custom entitlements plist file. | Generates [default hardened runtime entitlements](https://developer.apple.com/documentation/security/hardened-runtime) if not provided. |
