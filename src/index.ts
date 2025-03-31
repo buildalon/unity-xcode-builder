@@ -19,10 +19,18 @@ const main = async () => {
     try {
         if (!IS_POST) {
             core.saveState('isPost', true);
+            const credential = await ImportCredentials();
             let xcodeVersionString = core.getInput('xcode-version');
             if (xcodeVersionString) {
                 core.info(`Setting xcode version to ${xcodeVersionString}`);
-                await exec.exec('xcodes', ['select', xcodeVersionString]);
+                if (core.isDebug()) {
+                    await exec.exec('xcodes', ['list']);
+                }
+                if (xcodeVersionString.includes('latest')) {
+                    await exec.exec('xcodes', ['install', '--latest', '--select']);
+                } else {
+                    await exec.exec('xcodes', ['install', xcodeVersionString, '--select']);
+                }
             }
             let xcodeVersionOutput = '';
             await exec.exec('xcodebuild', ['-version'], {
@@ -38,12 +46,9 @@ const main = async () => {
             }
             xcodeVersionString = xcodeVersionMatch.groups.version;
             if (!xcodeVersionString) {
-                throw new Error('Failed to prase Xcode version!');
+                throw new Error('Failed to parse Xcode version!');
             }
-            const credential = await ImportCredentials();
-            let projectRef = await GetProjectDetails();
-            projectRef.credential = credential;
-            projectRef.xcodeVersion = semver.coerce(xcodeVersionString);
+            let projectRef = await GetProjectDetails(credential, semver.coerce(xcodeVersionString));
             projectRef = await ArchiveXcodeProject(projectRef);
             projectRef = await ExportXcodeArchive(projectRef);
             const uploadInput = core.getInput('upload') || projectRef.isAppStoreUpload().toString();

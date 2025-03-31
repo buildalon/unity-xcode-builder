@@ -7,6 +7,7 @@ inputs:
   xcode-version:
     description: The version of Xcode to use for building the Xcode project. Defaults to the active version of Xcode on the runner.
     required: false
+    default: latest
   project-path:
     description: The directory that contains the exported xcode project from Unity.
     required: true
@@ -53,8 +54,11 @@ inputs:
   platform:
     description: The platform to build for. Can be one of `iOS`, `macOS`, `visionOS`, `tvOS`. Defaults to parsing platform from `.xcodeproj`.
     required: false
+  platform-sdk-version:
+    description: The version of the platform SDK to use for building the Xcode project. Defaults to the latest version of the platform SDK defined in the `.xcodeproj`.
+    required: false
   export-option:
-    description: The export option to use for exporting the Xcode project. Can be one of `app-store`, `steam`, `ad-hoc`, `package`, `enterprise`, `development`, `developer-id`, `mac-application`.
+    description: The export option to use for exporting the Xcode project. Can be one of `app-store-connect`, `steam`, `release-testing`, `package`, `enterprise`, `debugging`, `developer-id`, `mac-application`.
     required: false
     default: development
   export-option-plist:
@@ -67,11 +71,15 @@ inputs:
     description: Whether to notarize the exported Xcode project. Apps to be uploaded to Steam must be notarized by Apple. Defaults to `true` if `export-option === steam`.
     required: false
   upload:
-    description: Whether to upload the exported Xcode project to App Store Connect. Defaults to `true` if `export-option === app-store`.
+    description: Whether to upload the exported Xcode project to App Store Connect. Defaults to `true` if `export-option === app-store-connect`.
     required: false
   whats-new:
     description: 'When `uploading === true`, Let your testers know what you would like them to test in this build. This information will be available to testers in all groups who have access to this build. Defaults to the last git commit sha, current branch name, and commit message.'
     required: false
+  auto-increment-build-number:
+    description: Whether to automatically increment the CFBundleVersion in the Xcode project. Defaults to `true` if `export-option === app-store-connect`.
+    required: false
+    default: 'true'
 outputs:
   executable:
     description: The path to the generated archive executable.

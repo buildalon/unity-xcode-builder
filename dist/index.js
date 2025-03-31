@@ -57546,7 +57546,7 @@ function reMapPlatform(project) {
     }
 }
 async function getLastPreReleaseVersionAndBuild(project) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     if (!project.appId) {
         project = await GetAppId(project);
     }
@@ -57575,9 +57575,9 @@ async function getLastPreReleaseVersionAndBuild(project) {
     let lastBuild = null;
     const buildsData = (_b = (_a = preReleaseResponse.data[0].relationships) === null || _a === void 0 ? void 0 : _a.builds) === null || _b === void 0 ? void 0 : _b.data;
     if (buildsData && buildsData.length > 0) {
-        const lastBuildId = (_c = buildsData[0]) === null || _c === void 0 ? void 0 : _c.id;
-        if (!lastBuildId) {
-            lastBuild = (_d = preReleaseResponse.included) === null || _d === void 0 ? void 0 : _d.find(i => i.type == 'builds' && i.id == lastBuildId);
+        const lastBuildId = (_d = (_c = buildsData[0]) === null || _c === void 0 ? void 0 : _c.id) !== null && _d !== void 0 ? _d : null;
+        if (lastBuildId) {
+            lastBuild = (_e = preReleaseResponse.included) === null || _e === void 0 ? void 0 : _e.find(i => i.type == 'builds' && i.id == lastBuildId);
         }
     }
     return new PreReleaseVersionWithBuild({
@@ -57910,14 +57910,18 @@ async function RemoveCredentials() {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.XcodeProject = void 0;
 class XcodeProject {
-    constructor(projectPath, projectName, platform, bundleId, projectDirectory, versionString, scheme) {
+    constructor(projectPath, projectName, platform, destination, bundleId, projectDirectory, versionString, bundleVersion, scheme, credential, xcodeVersion) {
         this.projectPath = projectPath;
         this.projectName = projectName;
         this.platform = platform;
+        this.destination = destination;
         this.bundleId = bundleId;
         this.projectDirectory = projectDirectory;
         this.versionString = versionString;
+        this.bundleVersion = bundleVersion;
         this.scheme = scheme;
+        this.credential = credential;
+        this.xcodeVersion = xcodeVersion;
     }
     isAppStoreUpload() {
         return this.exportOption === 'app-store' || this.exportOption === 'app-store-connect';
@@ -57994,7 +57998,7 @@ const core = __nccwpck_require__(2186);
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
-async function GetProjectDetails() {
+async function GetProjectDetails(credential, xcodeVersion) {
     const projectPathInput = core.getInput('project-path') || `${WORKSPACE}/**/*.xcodeproj`;
     core.debug(`Project path input: ${projectPathInput}`);
     let projectPath = undefined;
@@ -58021,11 +58025,17 @@ async function GetProjectDetails() {
     core.info(`Project directory: ${projectDirectory}`);
     const projectName = path.basename(projectPath, '.xcodeproj');
     const scheme = await getProjectScheme(projectPath);
-    const [platform, bundleId] = await parseBuildSettings(projectPath, scheme);
+    const platform = await getSupportedPlatform(projectPath);
     core.info(`Platform: ${platform}`);
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
     }
+    if (platform !== 'macOS') {
+        await checkSimulatorsAvailable(platform);
+    }
+    const destination = core.getInput('destination') || `generic/platform=${platform}`;
+    core.debug(`Using destination: ${destination}`);
+    const bundleId = await getBuildSettings(projectPath, scheme, platform, destination);
     core.info(`Bundle ID: ${bundleId}`);
     if (!bundleId) {
         throw new Error('Unable to determine the bundle ID');
@@ -58035,19 +58045,104 @@ async function GetProjectDetails() {
         infoPlistPath = `${projectDirectory}/Info.plist`;
     }
     core.info(`Info.plist path: ${infoPlistPath}`);
-    let infoPlistContent = plist.parse(fs.readFileSync(infoPlistPath, 'utf8'));
-    const versionString = infoPlistContent['CFBundleShortVersionString'];
-    core.info(`Version string: ${versionString}`);
-    const buildString = infoPlistContent['CFBundleVersion'];
-    core.info(`Build string: ${buildString}`);
-    return new XcodeProject_1.XcodeProject(projectPath, projectName, platform, bundleId, projectDirectory, versionString, scheme);
+    const infoPlistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDWR);
+    let infoPlistContent;
+    try {
+        infoPlistContent = await fs.promises.readFile(infoPlistHandle, 'utf8');
+    }
+    finally {
+        await infoPlistHandle.close();
+    }
+    const infoPlist = plist.parse(infoPlistContent);
+    const cFBundleShortVersionString = infoPlist['CFBundleShortVersionString'];
+    core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
+    const cFBundleVersion = infoPlist['CFBundleVersion'];
+    core.info(`CFBundleVersion: ${cFBundleVersion}`);
+    const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, destination, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
+    await getExportOptions(projectRef);
+    if (projectRef.isAppStoreUpload() && core.getInput('auto-increment-build-number') === 'true') {
+        projectRef.credential.appleId = await getAppId(projectRef);
+        let bundleVersion = -1;
+        try {
+            bundleVersion = await (0, AppStoreConnectClient_1.GetLatestBundleVersion)(projectRef);
+        }
+        catch (error) {
+            if (error instanceof AppStoreConnectClient_1.UnauthorizedError) {
+                throw error;
+            }
+        }
+        if (projectRef.bundleVersion <= bundleVersion) {
+            projectRef.bundleVersion = bundleVersion + 1;
+            core.debug(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
+            infoPlist['CFBundleVersion'] = projectRef.bundleVersion.toString();
+            try {
+                await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
+            }
+            catch (error) {
+                (0, utilities_1.log)(`Failed to update Info.plist!\n${error}`, 'error');
+            }
+            const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
+            try {
+                core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
+                infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
+            }
+            finally {
+                await plistHandle.close();
+            }
+        }
+    }
+    core.info(`----- Info.plist content: -----\n${infoPlistContent}\n-----------------------------------`);
+    return projectRef;
 }
-async function parseBuildSettings(projectPath, scheme) {
+async function checkSimulatorsAvailable(platform) {
+    const destinationArgs = ['simctl', 'list', 'devices', '--json'];
+    let output = '';
+    if (!core.isDebug()) {
+        core.info(`[command]${xcrun} ${destinationArgs.join(' ')}`);
+    }
+    await (0, exec_1.exec)(xcrun, destinationArgs, {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            }
+        },
+        silent: !core.isDebug()
+    });
+    const response = JSON.parse(output);
+    const devices = response.devices;
+    const platformDevices = Object.keys(devices)
+        .filter(key => key.toLowerCase().includes(platform.toLowerCase()))
+        .flatMap(key => devices[key]);
+    if (platformDevices.length > 0) {
+        return;
+    }
+    await (0, exec_1.exec)(xcodebuild, ['-downloadPlatform', platform]);
+}
+async function getSupportedPlatform(projectPath) {
+    const projectFilePath = `${projectPath}/project.pbxproj`;
+    core.debug(`.pbxproj file path: ${projectFilePath}`);
+    await fs.promises.access(projectFilePath, fs.constants.R_OK);
+    const content = await fs.promises.readFile(projectFilePath, 'utf8');
+    const platformName = core.getInput('platform') || matchRegexPattern(content, /\s+SDKROOT = (?<platform>\w+)/, 'platform');
+    if (!platformName) {
+        throw new Error('Unable to determine the platform name from the build settings');
+    }
+    const platformMap = {
+        'iphoneos': 'iOS',
+        'macosx': 'macOS',
+        'appletvos': 'tvOS',
+        'watchos': 'watchOS',
+        'xros': 'visionOS'
+    };
+    return platformMap[platformName];
+}
+async function getBuildSettings(projectPath, scheme, platform, destination) {
     let buildSettingsOutput = '';
     const projectSettingsArgs = [
         'build',
         '-project', projectPath,
         '-scheme', scheme,
+        '-destination', destination,
         '-showBuildSettings'
     ];
     if (!core.isDebug()) {
@@ -58061,25 +58156,18 @@ async function parseBuildSettings(projectPath, scheme) {
         },
         silent: !core.isDebug()
     });
-    const platformName = core.getInput('platform') || matchRegexPattern(buildSettingsOutput, /\s+PLATFORM_NAME = (?<platformName>\w+)/, 'platformName');
-    if (!platformName) {
-        throw new Error('Unable to determine the platform name from the build settings');
+    let platformSdkVersion = core.getInput('platform-sdk-version') || null;
+    if (!platformSdkVersion) {
+        platformSdkVersion = matchRegexPattern(buildSettingsOutput, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion') || null;
+    }
+    if (platform !== 'macOS') {
+        await downloadPlatformSdkIfMissing(platform, platformSdkVersion);
     }
     const bundleId = core.getInput('bundle-id') || matchRegexPattern(buildSettingsOutput, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
     if (!bundleId || bundleId === 'NO') {
         throw new Error('Unable to determine the bundle ID from the build settings');
     }
-    const platforms = {
-        'iphoneos': 'iOS',
-        'macosx': 'macOS',
-        'appletvos': 'tvOS',
-        'watchos': 'watchOS',
-        'xros': 'visionOS'
-    };
-    if (platforms[platformName] !== 'macOS') {
-        await downloadPlatformSdkIfMissing(platforms[platformName]);
-    }
-    return [platforms[platformName], bundleId];
+    return bundleId;
 }
 function matchRegexPattern(string, pattern, group) {
     var _a;
@@ -58128,15 +58216,20 @@ async function getProjectScheme(projectPath) {
     core.debug(`Using scheme: ${scheme}`);
     return scheme;
 }
+async function downloadPlatformSdkIfMissing(platform, version) {
+    if (core.isDebug()) {
+        await (0, exec_1.exec)('xcodes', ['runtimes']);
+    }
+    if (version) {
+        await (0, exec_1.exec)('xcodes', ['runtimes', 'install', `${platform} ${version}`]);
+    }
+}
 async function ArchiveXcodeProject(projectRef) {
     const { projectPath, projectName, projectDirectory } = projectRef;
     const archivePath = `${projectDirectory}/${projectName}.xcarchive`;
     core.debug(`Archive path: ${archivePath}`);
-    let destination = core.getInput('destination') || `generic/platform=${projectRef.platform}`;
-    core.debug(`Using destination: ${destination}`);
     const configuration = core.getInput('configuration') || 'Release';
     core.debug(`Configuration: ${configuration}`);
-    await getExportOptions(projectRef);
     let entitlementsPath = core.getInput('entitlements-plist');
     if (!entitlementsPath && projectRef.platform === 'macOS') {
         await getDefaultEntitlementsMacOS(projectRef);
@@ -58148,7 +58241,7 @@ async function ArchiveXcodeProject(projectRef) {
         'archive',
         '-project', projectPath,
         '-scheme', projectRef.scheme,
-        '-destination', destination,
+        '-destination', projectRef.destination,
         '-configuration', configuration,
         '-archivePath', archivePath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
@@ -58174,10 +58267,10 @@ async function ArchiveXcodeProject(projectRef) {
     }
     if (projectRef.entitlementsPath) {
         core.debug(`Entitlements path: ${projectRef.entitlementsPath}`);
-        const entitlementsHandle = await fs.promises.open(projectRef.entitlementsPath, 'r');
+        const entitlementsHandle = await fs.promises.open(projectRef.entitlementsPath, fs.constants.O_RDONLY);
         try {
             const entitlementsContent = await fs.promises.readFile(entitlementsHandle, 'utf8');
-            core.debug(`----- Entitlements content: -----\n${entitlementsContent}\n---------------------------------`);
+            core.debug(`----- Entitlements content: -----\n${entitlementsContent}\n-----------------------------------`);
         }
         finally {
             await entitlementsHandle.close();
@@ -58289,26 +58382,6 @@ async function createMacOSInstallerPkg(projectRef) {
     }
     return pkgPath;
 }
-async function downloadPlatformSdkIfMissing(platform) {
-    await (0, exec_1.exec)(xcodebuild, ['-runFirstLaunch']);
-    let output = '';
-    if (!core.isDebug()) {
-        core.info(`[command]${xcrun} simctl list`);
-    }
-    await (0, exec_1.exec)(xcrun, ['simctl', 'list'], {
-        listeners: {
-            stdout: (data) => {
-                output += data.toString();
-            }
-        },
-        silent: !core.isDebug()
-    });
-    if (output.includes(platform)) {
-        return;
-    }
-    await (0, exec_1.exec)(xcodebuild, ['-downloadPlatform', platform]);
-    await (0, exec_1.exec)(xcodebuild, ['-runFirstLaunch']);
-}
 async function getExportOptions(projectRef) {
     const exportOptionPlistInput = core.getInput('export-option-plist');
     let exportOptionsPath = undefined;
@@ -58350,8 +58423,12 @@ async function getExportOptions(projectRef) {
             signingStyle: projectRef.credential.signingIdentity ? 'manual' : 'automatic',
             teamID: `${projectRef.credential.teamId}`
         };
+        if (method === 'app-store-connect') {
+            exportOptions['manageAppVersionAndBuildNumber'] = true;
+        }
         projectRef.exportOption = method;
-        exportOptionsPath = await writeExportOptions(projectRef.projectPath, exportOptions);
+        exportOptionsPath = `${projectRef.projectPath}/exportOptions.plist`;
+        await fs.promises.writeFile(exportOptionsPath, plist.build(exportOptions));
     }
     else {
         exportOptionsPath = exportOptionPlistInput;
@@ -58360,10 +58437,10 @@ async function getExportOptions(projectRef) {
     if (!exportOptionsPath) {
         throw new Error(`Invalid path for export-option-plist: ${exportOptionsPath}`);
     }
-    const exportOptionsHandle = await fs.promises.open(exportOptionsPath, 'r');
+    const exportOptionsHandle = await fs.promises.open(exportOptionsPath, fs.constants.O_RDONLY);
     try {
         const exportOptionContent = await fs.promises.readFile(exportOptionsHandle, 'utf8');
-        core.info(`----- Export options content: -----\n${exportOptionContent}\n---------------------------------`);
+        core.info(`----- Export options content: -----\n${exportOptionContent}\n-----------------------------------`);
         const exportOptions = plist.parse(exportOptionContent);
         projectRef.exportOption = exportOptions['method'];
     }
@@ -58371,11 +58448,6 @@ async function getExportOptions(projectRef) {
         await exportOptionsHandle.close();
     }
     projectRef.exportOptionsPath = exportOptionsPath;
-}
-async function writeExportOptions(projectPath, exportOptions) {
-    const exportOptionsPath = `${projectPath}/exportOptions.plist`;
-    await fs.promises.writeFile(exportOptionsPath, plist.build(exportOptions));
-    return exportOptionsPath;
 }
 async function getDefaultEntitlementsMacOS(projectRef) {
     const entitlementsPath = `${projectRef.projectPath}/Entitlements.plist`;
@@ -58480,8 +58552,15 @@ async function parseBundleLog(errorOutput) {
     const logFilePath = logFilePathMatch[1];
     (0, utilities_1.log)(`Log file path: ${logFilePath}`, 'info');
     try {
-        const logFileContents = await fs.promises.readFile(logFilePath, 'utf8');
-        (0, utilities_1.log)(`${logFilePath}:\n${logFileContents}`, 'error');
+        await fs.promises.access(logFilePath, fs.constants.R_OK);
+        const isDirectory = (await fs.promises.stat(logFilePath)).isDirectory();
+        if (isDirectory) {
+            const files = await fs.promises.readdir(logFilePath);
+            (0, utilities_1.log)(`Log file is a directory. Files: ${files.join(', ')}`, 'info');
+            return;
+        }
+        const logFileContent = await fs.promises.readFile(logFilePath, 'utf8');
+        (0, utilities_1.log)(`----- Log content: -----\n${logFileContent}\n-----------------------------------`, 'info');
     }
     catch (error) {
         (0, utilities_1.log)(`Error reading log file: ${error.message}`, 'error');
@@ -58526,9 +58605,8 @@ async function ValidateApp(projectRef) {
         silent: !core.isDebug(),
         ignoreReturnCode: true
     });
-    const outputJson = JSON.stringify(JSON.parse(output), null, 2);
     if (exitCode > 0) {
-        throw new Error(`Failed to validate app: ${outputJson}`);
+        throw new Error(`Failed to validate app: ${JSON.stringify(JSON.parse(output), null, 2)}`);
     }
 }
 async function getAppId(projectRef) {
@@ -58565,37 +58643,22 @@ async function getAppId(projectRef) {
     if (!app.AppleID) {
         throw new Error(`AppleID not found for app: ${JSON.stringify(app, null, 2)}`);
     }
-    projectRef.credential.appleId = app.AppleID;
-    return projectRef;
+    return app.AppleID;
 }
 async function UploadApp(projectRef) {
-    projectRef = await getAppId(projectRef);
-    let bundleVersion = -1;
-    try {
-        bundleVersion = await (0, AppStoreConnectClient_1.GetLatestBundleVersion)(projectRef);
-    }
-    catch (error) {
-        if (error instanceof AppStoreConnectClient_1.UnauthorizedError) {
-            throw error;
-        }
-        else {
-            (0, utilities_1.log)(`Failed to get the latest bundle version!\n${error}`, 'info');
-        }
-    }
     const platforms = {
         'iOS': 'ios',
         'macOS': 'macos',
         'tvOS': 'appletvos',
         'visionOS': 'xros'
     };
-    bundleVersion++;
     const uploadArgs = [
         'altool',
         '--upload-package', projectRef.executablePath,
         '--type', platforms[projectRef.platform],
         '--apple-id', projectRef.credential.appleId,
         '--bundle-id', projectRef.bundleId,
-        '--bundle-version', bundleVersion,
+        '--bundle-version', projectRef.bundleVersion,
         '--bundle-short-version-string', projectRef.versionString,
         '--apiKey', projectRef.credential.appStoreConnectKeyId,
         '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
@@ -58626,7 +58689,7 @@ async function UploadApp(projectRef) {
     try {
         const whatsNew = await getWhatsNew();
         core.info(`Uploading test details...\n${whatsNew}`);
-        await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, bundleVersion, whatsNew);
+        await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, projectRef.bundleVersion, whatsNew);
     }
     catch (error) {
         (0, utilities_1.log)(`Failed to upload test details!\n${JSON.stringify(error)}`, 'error');
@@ -60637,10 +60700,19 @@ const main = async () => {
     try {
         if (!IS_POST) {
             core.saveState('isPost', true);
+            const credential = await (0, AppleCredential_1.ImportCredentials)();
             let xcodeVersionString = core.getInput('xcode-version');
             if (xcodeVersionString) {
                 core.info(`Setting xcode version to ${xcodeVersionString}`);
-                await exec.exec('xcodes', ['select', xcodeVersionString]);
+                if (core.isDebug()) {
+                    await exec.exec('xcodes', ['list']);
+                }
+                if (xcodeVersionString.includes('latest')) {
+                    await exec.exec('xcodes', ['install', '--latest', '--select']);
+                }
+                else {
+                    await exec.exec('xcodes', ['install', xcodeVersionString, '--select']);
+                }
             }
             let xcodeVersionOutput = '';
             await exec.exec('xcodebuild', ['-version'], {
@@ -60656,12 +60728,9 @@ const main = async () => {
             }
             xcodeVersionString = xcodeVersionMatch.groups.version;
             if (!xcodeVersionString) {
-                throw new Error('Failed to prase Xcode version!');
+                throw new Error('Failed to parse Xcode version!');
             }
-            const credential = await (0, AppleCredential_1.ImportCredentials)();
-            let projectRef = await (0, xcode_1.GetProjectDetails)();
-            projectRef.credential = credential;
-            projectRef.xcodeVersion = semver.coerce(xcodeVersionString);
+            let projectRef = await (0, xcode_1.GetProjectDetails)(credential, semver.coerce(xcodeVersionString));
             projectRef = await (0, xcode_1.ArchiveXcodeProject)(projectRef);
             projectRef = await (0, xcode_1.ExportXcodeArchive)(projectRef);
             const uploadInput = core.getInput('upload') || projectRef.isAppStoreUpload().toString();
