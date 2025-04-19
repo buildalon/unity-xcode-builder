@@ -30,6 +30,7 @@ export class XcodeProject {
     projectPath: string;
     projectName: string;
     bundleId: string;
+    appId: string;
     projectDirectory: string;
     credential: AppleCredential;
     platform: string;
@@ -43,7 +44,6 @@ export class XcodeProject {
     versionString: string;
     bundleVersion: number;
     scheme: string;
-    appId: string | null;
     xcodeVersion: SemVer;
     isAppStoreUpload(): boolean {
         return this.exportOption === 'app-store' || this.exportOption === 'app-store-connect';

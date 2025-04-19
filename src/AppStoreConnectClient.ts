@@ -98,7 +98,7 @@ async function getLastPreReleaseVersionAndBuild(project: XcodeProject): Promise<
     if (!project.appId) { project.appId = await GetAppId(project); }
     const preReleaseVersionRequest: PreReleaseVersionsGetCollectionData = {
         query: {
-            'filter[app]': [project.appId!],
+            'filter[app]': [project.appId],
             'filter[platform]': [reMapPlatform(project)],
             'filter[version]': [project.versionString],
             'limit[builds]': 1,
