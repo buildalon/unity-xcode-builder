@@ -28,6 +28,9 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     let projectPath = undefined;
     const globber = await glob.create(projectPathInput);
     const files = await globber.glob();
+    if (!files || files.length === 0) {
+        throw new Error(`No project found at: ${projectPathInput}`);
+    }
     const excludedProjects = ['GameAssembly', 'UnityFramework', 'Pods'];
     for (const file of files) {
         if (file.endsWith('.xcodeproj')) {
