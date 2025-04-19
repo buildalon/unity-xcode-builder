@@ -57499,9 +57499,6 @@ function checkAuthError(error) {
     }
 }
 async function GetAppId(project) {
-    if (project.appId) {
-        return project;
-    }
     await getOrCreateClient(project);
     const { data: response, error } = await appStoreConnectClient.api.AppsService.appsGetCollection({
         query: { 'filter[bundleId]': [project.bundleId] }
@@ -57516,8 +57513,7 @@ async function GetAppId(project) {
     if (response.data.length === 0) {
         throw new Error(`No apps found for bundle id ${project.bundleId}`);
     }
-    project.appId = response.data[0].id;
-    return project;
+    return response.data[0].id;
 }
 async function GetLatestBundleVersion(project) {
     await getOrCreateClient(project);
@@ -57548,7 +57544,7 @@ function reMapPlatform(project) {
 async function getLastPreReleaseVersionAndBuild(project) {
     var _a, _b, _c, _d, _e;
     if (!project.appId) {
-        project = await GetAppId(project);
+        project.appId = await GetAppId(project);
     }
     const preReleaseVersionRequest = {
         query: {
@@ -58004,6 +58000,9 @@ async function GetProjectDetails(credential, xcodeVersion) {
     let projectPath = undefined;
     const globber = await glob.create(projectPathInput);
     const files = await globber.glob();
+    if (!files || files.length === 0) {
+        throw new Error(`No project found at: ${projectPathInput}`);
+    }
     const excludedProjects = ['GameAssembly', 'UnityFramework', 'Pods'];
     for (const file of files) {
         if (file.endsWith('.xcodeproj')) {
@@ -58017,7 +58016,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
         }
     }
     if (!projectPath) {
-        throw new Error('Invalid project-path! Unable to find .xcodeproj');
+        throw new Error(`Invalid project-path! Unable to find .xcodeproj in ${projectPathInput}\n${files}`);
     }
     core.debug(`Resolved Project path: ${projectPath}`);
     await fs.promises.access(projectPath, fs.constants.R_OK);
@@ -58061,7 +58060,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, destination, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
     await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload() && core.getInput('auto-increment-build-number') === 'true') {
-        projectRef.credential.appleId = await getAppId(projectRef);
+        projectRef.appId = await (0, AppStoreConnectClient_1.GetAppId)(projectRef);
         let bundleVersion = -1;
         try {
             bundleVersion = await (0, AppStoreConnectClient_1.GetLatestBundleVersion)(projectRef);
@@ -58609,42 +58608,6 @@ async function ValidateApp(projectRef) {
         throw new Error(`Failed to validate app: ${JSON.stringify(JSON.parse(output), null, 2)}`);
     }
 }
-async function getAppId(projectRef) {
-    const providersArgs = [
-        'altool',
-        '--list-apps',
-        '--apiKey', projectRef.credential.appStoreConnectKeyId,
-        '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
-        '--output-format', 'json'
-    ];
-    let output = '';
-    if (!core.isDebug()) {
-        core.info(`[command]${xcrun} ${providersArgs.join(' ')}`);
-    }
-    const exitCode = await (0, exec_1.exec)(xcrun, providersArgs, {
-        listeners: {
-            stdout: (data) => {
-                output += data.toString();
-            }
-        },
-        ignoreReturnCode: true,
-        silent: !core.isDebug()
-    });
-    const response = JSON.parse(output);
-    const outputJson = JSON.stringify(response, null, 2);
-    if (exitCode > 0) {
-        (0, utilities_1.log)(outputJson, 'error');
-        throw new Error(`Failed to list providers`);
-    }
-    const app = response.applications.find((app) => app.ExistingBundleIdentifier === projectRef.bundleId);
-    if (!app) {
-        throw new Error(`App not found with bundleId: ${projectRef.bundleId}`);
-    }
-    if (!app.AppleID) {
-        throw new Error(`AppleID not found for app: ${JSON.stringify(app, null, 2)}`);
-    }
-    return app.AppleID;
-}
 async function UploadApp(projectRef) {
     const platforms = {
         'iOS': 'ios',
@@ -58656,7 +58619,7 @@ async function UploadApp(projectRef) {
         'altool',
         '--upload-package', projectRef.executablePath,
         '--type', platforms[projectRef.platform],
-        '--apple-id', projectRef.credential.appleId,
+        '--apple-id', projectRef.appId,
         '--bundle-id', projectRef.bundleId,
         '--bundle-version', projectRef.bundleVersion,
         '--bundle-short-version-string', projectRef.versionString,

@@ -39,7 +39,6 @@ class AppleCredential {
     signingIdentity?: string;
     provisioningProfileUUID?: string;
     bearerToken?: string;
-    appleId?: string;
     ascPublicId?: string;
 }
 

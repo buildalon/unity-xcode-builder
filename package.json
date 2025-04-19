@@ -1,6 +1,6 @@
 {
   "name": "unity-xcode-builder",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A GitHub Action to build, archive, and upload Unity exported xcode projects.",
   "author": "buildalon",
   "license": "MIT",

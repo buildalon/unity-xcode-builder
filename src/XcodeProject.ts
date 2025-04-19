@@ -30,6 +30,7 @@ export class XcodeProject {
     projectPath: string;
     projectName: string;
     bundleId: string;
+    appId: string;
     projectDirectory: string;
     credential: AppleCredential;
     platform: string;
@@ -40,7 +41,6 @@ export class XcodeProject {
     exportOption: string;
     exportOptionsPath: string;
     entitlementsPath: string;
-    appId: string;
     versionString: string;
     bundleVersion: number;
     scheme: string;
