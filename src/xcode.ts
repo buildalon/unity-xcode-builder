@@ -96,7 +96,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     );
     await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload() && core.getInput('auto-increment-build-number') === 'true') {
-        projectRef.credential.appleId = await GetAppId(projectRef);
+        projectRef.appId = await GetAppId(projectRef);
         let bundleVersion = -1;
         try {
             bundleVersion = await GetLatestBundleVersion(projectRef);
@@ -658,7 +658,7 @@ export async function UploadApp(projectRef: XcodeProject) {
         'altool',
         '--upload-package', projectRef.executablePath,
         '--type', platforms[projectRef.platform],
-        '--apple-id', projectRef.credential.appleId,
+        '--apple-id', projectRef.appId,
         '--bundle-id', projectRef.bundleId,
         '--bundle-version', projectRef.bundleVersion,
         '--bundle-short-version-string', projectRef.versionString,

@@ -40,10 +40,10 @@ export class XcodeProject {
     exportOption: string;
     exportOptionsPath: string;
     entitlementsPath: string;
-    appId: string;
     versionString: string;
     bundleVersion: number;
     scheme: string;
+    appId: string | null;
     xcodeVersion: SemVer;
     isAppStoreUpload(): boolean {
         return this.exportOption === 'app-store' || this.exportOption === 'app-store-connect';
