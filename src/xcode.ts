@@ -10,7 +10,8 @@ import semver = require('semver');
 import {
     GetLatestBundleVersion,
     UpdateTestDetails,
-    UnauthorizedError
+    UnauthorizedError,
+    GetAppId
 } from './AppStoreConnectClient';
 import { log } from './utilities';
 import core = require('@actions/core');
@@ -80,7 +81,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'] as number;
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
-    const projectRef = new XcodeProject(
+    let projectRef = new XcodeProject(
         projectPath,
         projectName,
         platform,
@@ -95,7 +96,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     );
     await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload() && core.getInput('auto-increment-build-number') === 'true') {
-        projectRef.credential.appleId = await getAppId(projectRef);
+        projectRef.appId = await GetAppId(projectRef);
         let bundleVersion = -1;
         try {
             bundleVersion = await GetLatestBundleVersion(projectRef);
@@ -644,43 +645,6 @@ export async function ValidateApp(projectRef: XcodeProject) {
     if (exitCode > 0) {
         throw new Error(`Failed to validate app: ${JSON.stringify(JSON.parse(output), null, 2)}`);
     }
-}
-
-async function getAppId(projectRef: XcodeProject): Promise<string> {
-    const providersArgs = [
-        'altool',
-        '--list-apps',
-        '--apiKey', projectRef.credential.appStoreConnectKeyId,
-        '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
-        '--output-format', 'json'
-    ];
-    let output = '';
-    if (!core.isDebug()) {
-        core.info(`[command]${xcrun} ${providersArgs.join(' ')}`);
-    }
-    const exitCode = await exec(xcrun, providersArgs, {
-        listeners: {
-            stdout: (data: Buffer) => {
-                output += data.toString();
-            }
-        },
-        ignoreReturnCode: true,
-        silent: !core.isDebug()
-    });
-    const response = JSON.parse(output);
-    const outputJson = JSON.stringify(response, null, 2);
-    if (exitCode > 0) {
-        log(outputJson, 'error');
-        throw new Error(`Failed to list providers`);
-    }
-    const app = response.applications.find((app: any) => app.ExistingBundleIdentifier === projectRef.bundleId);
-    if (!app) {
-        throw new Error(`App not found with bundleId: ${projectRef.bundleId}`);
-    }
-    if (!app.AppleID) {
-        throw new Error(`AppleID not found for app: ${JSON.stringify(app, null, 2)}`);
-    }
-    return app.AppleID;
 }
 
 export async function UploadApp(projectRef: XcodeProject) {

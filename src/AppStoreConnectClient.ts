@@ -48,8 +48,8 @@ function checkAuthError(error: any) {
     }
 }
 
-export async function GetAppId(project: XcodeProject): Promise<XcodeProject> {
-    if (project.appId) { return project; }
+export async function GetAppId(project: XcodeProject): Promise<string> {
+    if (project.appId) { return project.appId; }
     await getOrCreateClient(project);
     const { data: response, error } = await appStoreConnectClient.api.AppsService.appsGetCollection({
         query: { 'filter[bundleId]': [project.bundleId] }
@@ -65,7 +65,7 @@ export async function GetAppId(project: XcodeProject): Promise<XcodeProject> {
         throw new Error(`No apps found for bundle id ${project.bundleId}`);
     }
     project.appId = response.data[0].id;
-    return project;
+    return project.appId;
 }
 
 export async function GetLatestBundleVersion(project: XcodeProject): Promise<number> {
@@ -97,7 +97,7 @@ function reMapPlatform(project: XcodeProject): ('IOS' | 'MAC_OS' | 'TV_OS' | 'VI
 }
 
 async function getLastPreReleaseVersionAndBuild(project: XcodeProject): Promise<PreReleaseVersionWithBuild> {
-    if (!project.appId) { project = await GetAppId(project); }
+    if (!project.appId) { project.appId = await GetAppId(project); }
     const preReleaseVersionRequest: PreReleaseVersionsGetCollectionData = {
         query: {
             'filter[app]': [project.appId],
