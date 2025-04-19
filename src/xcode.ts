@@ -81,7 +81,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'] as number;
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
-    let projectRef = new XcodeProject(
+    const projectRef = new XcodeProject(
         projectPath,
         projectName,
         platform,
@@ -96,7 +96,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     );
     await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload() && core.getInput('auto-increment-build-number') === 'true') {
-        projectRef.appId = await GetAppId(projectRef);
+        projectRef.credential.appleId = await GetAppId(projectRef);
         let bundleVersion = -1;
         try {
             bundleVersion = await GetLatestBundleVersion(projectRef);
