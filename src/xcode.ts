@@ -41,7 +41,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         }
     }
     if (!projectPath) {
-        throw new Error('Invalid project-path! Unable to find .xcodeproj');
+        throw new Error(`Invalid project-path! Unable to find .xcodeproj in ${projectPathInput}\n${files}`);
     }
     core.debug(`Resolved Project path: ${projectPath}`);
     await fs.promises.access(projectPath, fs.constants.R_OK);
