@@ -58054,6 +58054,17 @@ async function GetProjectDetails(credential, xcodeVersion) {
     }
     const infoPlist = plist.parse(infoPlistContent);
     const cFBundleShortVersionString = infoPlist['CFBundleShortVersionString'];
+    if (cFBundleShortVersionString) {
+        const semverRegex = /^(?<major>\d+)\.(?<minor>\d+)\.(?<revision>\d+)/;
+        const match = cFBundleShortVersionString.match(semverRegex);
+        if (match) {
+            const { major, minor, revision } = match.groups;
+            infoPlist['CFBundleShortVersionString'] = `${major}.${minor}.${revision}`;
+        }
+        else {
+            core.warning(`Invalid CFBundleShortVersionString format: ${cFBundleShortVersionString}`);
+        }
+    }
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'];
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
