@@ -58060,7 +58060,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
         if (match) {
             const { major, minor, revision } = match.groups;
             cFBundleShortVersionString = `${major}.${minor}.${revision}`;
-            infoPlist['CFBundleShortVersionString'] = cFBundleShortVersionString;
+            infoPlist['CFBundleShortVersionString'] = cFBundleShortVersionString.toString();
             try {
                 await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
             }

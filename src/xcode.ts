@@ -80,14 +80,14 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         await infoPlistHandle.close();
     }
     const infoPlist = plist.parse(infoPlistContent) as any;
-    let cFBundleShortVersionString = infoPlist['CFBundleShortVersionString'];
+    let cFBundleShortVersionString: string = infoPlist['CFBundleShortVersionString'];
     if (cFBundleShortVersionString) {
         const semverRegex = /^(?<major>\d+)\.(?<minor>\d+)\.(?<revision>\d+)/;
         const match = cFBundleShortVersionString.match(semverRegex);
         if (match) {
             const { major, minor, revision } = match.groups as { [key: string]: string };
             cFBundleShortVersionString = `${major}.${minor}.${revision}`;
-            infoPlist['CFBundleShortVersionString'] = cFBundleShortVersionString;
+            infoPlist['CFBundleShortVersionString'] = cFBundleShortVersionString.toString();
             try {
                 await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
             } catch (error) {
