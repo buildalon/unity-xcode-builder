@@ -58062,10 +58062,11 @@ async function GetProjectDetails(credential, xcodeVersion) {
             cFBundleShortVersionString = `${major}.${minor}.${revision}`;
             infoPlist['CFBundleShortVersionString'] = cFBundleShortVersionString.toString();
             try {
+                core.info(`Updating Info.plist with CFBundleShortVersionString: ${cFBundleShortVersionString}`);
                 await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
             }
             catch (error) {
-                (0, utilities_1.log)(`Failed to update Info.plist!\n${error}`, 'error');
+                throw new Error(`Failed to update Info.plist!\n${error}`);
             }
         }
         else {
@@ -58090,7 +58091,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
         }
         if (projectRef.bundleVersion <= bundleVersion) {
             projectRef.bundleVersion = bundleVersion + 1;
-            core.debug(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
+            core.info(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
             infoPlist['CFBundleVersion'] = projectRef.bundleVersion.toString();
             try {
                 await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
