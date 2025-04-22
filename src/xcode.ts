@@ -94,7 +94,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
                 log(`Failed to update Info.plist!\n${error}`, 'error');
             }
         } else {
-            core.warning(`Invalid CFBundleShortVersionString format: ${cFBundleShortVersionString}`);
+            throw new Error(`Invalid CFBundleShortVersionString format: ${cFBundleShortVersionString}`);
         }
     }
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);

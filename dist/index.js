@@ -58069,7 +58069,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
             }
         }
         else {
-            core.warning(`Invalid CFBundleShortVersionString format: ${cFBundleShortVersionString}`);
+            throw new Error(`Invalid CFBundleShortVersionString format: ${cFBundleShortVersionString}`);
         }
     }
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
