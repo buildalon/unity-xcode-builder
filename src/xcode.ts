@@ -88,11 +88,15 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             const { major, minor, revision } = match.groups as { [key: string]: string };
             cFBundleShortVersionString = `${major}.${minor}.${revision}`;
             infoPlist['CFBundleShortVersionString'] = cFBundleShortVersionString;
+            try {
+                await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
+            } catch (error) {
+                log(`Failed to update Info.plist!\n${error}`, 'error');
+            }
         } else {
             core.warning(`Invalid CFBundleShortVersionString format: ${cFBundleShortVersionString}`);
         }
     }
-
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'] as number;
     core.info(`CFBundleVersion: ${cFBundleVersion}`);

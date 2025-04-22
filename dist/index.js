@@ -58061,6 +58061,12 @@ async function GetProjectDetails(credential, xcodeVersion) {
             const { major, minor, revision } = match.groups;
             cFBundleShortVersionString = `${major}.${minor}.${revision}`;
             infoPlist['CFBundleShortVersionString'] = cFBundleShortVersionString;
+            try {
+                await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
+            }
+            catch (error) {
+                (0, utilities_1.log)(`Failed to update Info.plist!\n${error}`, 'error');
+            }
         }
         else {
             core.warning(`Invalid CFBundleShortVersionString format: ${cFBundleShortVersionString}`);
