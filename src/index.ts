@@ -85,9 +85,12 @@ const main = async () => {
             if (!xcodeVersionMatch) {
                 throw new Error('Failed to get Xcode version!');
             }
-            xcodeVersionString = xcodeVersionMatch.groups.version;
-            if (!xcodeVersionString) {
+            const selectedXcodeVersionString = xcodeVersionMatch.groups.version;
+            if (!selectedXcodeVersionString) {
                 throw new Error('Failed to parse Xcode version!');
+            }
+            if (xcodeVersionString && xcodeVersionString !== selectedXcodeVersionString) {
+                throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
             }
             let projectRef = await GetProjectDetails(credential, semver.coerce(xcodeVersionString));
             projectRef = await ArchiveXcodeProject(projectRef);

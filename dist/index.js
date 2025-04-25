@@ -58003,6 +58003,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     if (!files || files.length === 0) {
         throw new Error(`No project found at: ${projectPathInput}`);
     }
+    core.debug(`Files found during search: ${files.join(', ')}`);
     const excludedProjects = ['GameAssembly', 'UnityFramework', 'Pods'];
     for (const file of files) {
         if (file.endsWith('.xcodeproj')) {
@@ -58016,7 +58017,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
         }
     }
     if (!projectPath) {
-        throw new Error(`Invalid project-path! Unable to find .xcodeproj in ${projectPathInput}\n${files}`);
+        throw new Error(`Invalid project-path! Unable to find .xcodeproj in ${projectPathInput}. ${files.length} files were found but none matched.\n${files.join(', ')}`);
     }
     core.debug(`Resolved Project path: ${projectPath}`);
     await fs.promises.access(projectPath, fs.constants.R_OK);
@@ -60750,9 +60751,12 @@ const main = async () => {
             if (!xcodeVersionMatch) {
                 throw new Error('Failed to get Xcode version!');
             }
-            xcodeVersionString = xcodeVersionMatch.groups.version;
-            if (!xcodeVersionString) {
+            const selectedXcodeVersionString = xcodeVersionMatch.groups.version;
+            if (!selectedXcodeVersionString) {
                 throw new Error('Failed to parse Xcode version!');
+            }
+            if (xcodeVersionString && xcodeVersionString !== selectedXcodeVersionString) {
+                throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
             }
             let projectRef = await (0, xcode_1.GetProjectDetails)(credential, semver.coerce(xcodeVersionString));
             projectRef = await (0, xcode_1.ArchiveXcodeProject)(projectRef);
