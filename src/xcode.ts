@@ -736,12 +736,13 @@ async function getWhatsNew(): Promise<string> {
             if (branchName.includes(',')) {
                 branchName = branchName.split(',')[1];
             }
-            if (branchName.includes('/')) {
-                branchName = branchName.split('/')[1];
-            }
+        }
+        let pullRequestInfo = '';
+        if (github.context.eventName === 'pull_request') {
+            pullRequestInfo = `\nPR #${github.context.payload.pull_request?.number}`;
         }
         const commitMessage = await execGit(['log', head, '-1', '--format=%B']);
-        whatsNew = `[${commitSha.trim()}]${branchName.trim()}\n${commitMessage.trim()}`;
+        whatsNew = `[${commitSha.trim()}] ${branchName.trim()}\n${commitMessage.trim()}`;
         if (whatsNew.length > 4000) {
             whatsNew = `${whatsNew.substring(0, 3997)}...`;
         }

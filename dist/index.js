@@ -58680,7 +58680,7 @@ async function UploadApp(projectRef) {
     }
 }
 async function getWhatsNew() {
-    var _a;
+    var _a, _b;
     let whatsNew = core.getInput('whats-new');
     if (!whatsNew || whatsNew.length === 0) {
         const head = github.context.eventName === 'pull_request'
@@ -58698,12 +58698,13 @@ async function getWhatsNew() {
             if (branchName.includes(',')) {
                 branchName = branchName.split(',')[1];
             }
-            if (branchName.includes('/')) {
-                branchName = branchName.split('/')[1];
-            }
+        }
+        let pullRequestInfo = '';
+        if (github.context.eventName === 'pull_request') {
+            pullRequestInfo = `\nPR #${(_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number}`;
         }
         const commitMessage = await execGit(['log', head, '-1', '--format=%B']);
-        whatsNew = `[${commitSha.trim()}]${branchName.trim()}\n${commitMessage.trim()}`;
+        whatsNew = `[${commitSha.trim()}] ${branchName.trim()}\n${commitMessage.trim()}`;
         if (whatsNew.length > 4000) {
             whatsNew = `${whatsNew.substring(0, 3997)}...`;
         }
