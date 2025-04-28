@@ -136,14 +136,14 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             } catch (error) {
                 log(`Failed to update Info.plist!\n${error}`, 'error');
             }
-            const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
-            try {
-                core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
-                infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
-            } finally {
-                await plistHandle.close();
-            }
         }
+    }
+    const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
+    try {
+        core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
+        infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
+    } finally {
+        await plistHandle.close();
     }
     core.info(`----- Info.plist content: -----\n${infoPlistContent}\n-----------------------------------`);
     return projectRef;
