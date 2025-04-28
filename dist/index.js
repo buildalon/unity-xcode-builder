@@ -58090,10 +58090,11 @@ async function GetProjectDetails(credential, xcodeVersion) {
                 throw error;
             }
         }
-        if (projectRef.bundleVersion <= bundleVersion) {
-            projectRef.bundleVersion = bundleVersion + 1;
-            core.info(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
-            infoPlist['CFBundleVersion'] = projectRef.bundleVersion.toString();
+        let bundleVersionNumber = parseInt(projectRef.bundleVersion, 10);
+        if (bundleVersionNumber <= bundleVersion) {
+            bundleVersionNumber = bundleVersion + 1;
+            core.info(`Auto Incremented bundle version ==> ${bundleVersionNumber}`);
+            infoPlist['CFBundleVersion'] = bundleVersionNumber.toString();
             try {
                 await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
             }

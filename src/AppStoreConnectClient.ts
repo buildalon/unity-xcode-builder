@@ -240,7 +240,7 @@ async function updateBetaBuildLocalization(betaBuildLocalization: BetaBuildLocal
     return betaBuildLocalization;
 }
 
-async function pollForValidBuild(project: XcodeProject, buildVersion: number, whatsNew: string, maxRetries: number = 60, interval: number = 30): Promise<BetaBuildLocalization> {
+async function pollForValidBuild(project: XcodeProject, buildVersion: string, whatsNew: string, maxRetries: number = 60, interval: number = 30): Promise<BetaBuildLocalization> {
     let retries = 0;
     while (retries < maxRetries) {
         if (core.isDebug()) {
@@ -282,7 +282,7 @@ async function pollForValidBuild(project: XcodeProject, buildVersion: number, wh
     throw new Error('Timed out waiting for valid build!');
 }
 
-export async function UpdateTestDetails(project: XcodeProject, buildVersion: number, whatsNew: string): Promise<void> {
+export async function UpdateTestDetails(project: XcodeProject, buildVersion: string, whatsNew: string): Promise<void> {
     await getOrCreateClient(project);
     await pollForValidBuild(project, buildVersion, whatsNew);
 }

@@ -10,7 +10,7 @@ export class XcodeProject {
         bundleId: string,
         projectDirectory: string,
         versionString: string,
-        bundleVersion: number,
+        bundleVersion: string,
         scheme: string,
         credential: AppleCredential,
         xcodeVersion: SemVer
@@ -42,7 +42,7 @@ export class XcodeProject {
     exportOptionsPath: string;
     entitlementsPath: string;
     versionString: string;
-    bundleVersion: number;
+    bundleVersion: string;
     scheme: string;
     xcodeVersion: SemVer;
     isAppStoreUpload(): boolean {
