@@ -73,7 +73,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         infoPlistPath = `${projectDirectory}/Info.plist`;
     }
     core.info(`Info.plist path: ${infoPlistPath}`);
-    const infoPlistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDWR);
+    const infoPlistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
     let infoPlistContent: string;
     try {
         infoPlistContent = await fs.promises.readFile(infoPlistHandle, 'utf8');
