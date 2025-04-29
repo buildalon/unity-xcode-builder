@@ -241,6 +241,7 @@ async function updateBetaBuildLocalization(betaBuildLocalization: BetaBuildLocal
 }
 
 async function pollForValidBuild(project: XcodeProject, buildVersion: string, whatsNew: string, maxRetries: number = 60, interval: number = 30): Promise<BetaBuildLocalization> {
+    core.info(`Polling build validation...`);
     let retries = 0;
     while (retries < maxRetries) {
         if (core.isDebug()) {

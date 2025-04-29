@@ -140,7 +140,6 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     }
     const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
     try {
-        core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
         infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
     } finally {
         await plistHandle.close();

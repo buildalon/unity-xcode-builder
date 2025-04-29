@@ -57684,6 +57684,7 @@ async function updateBetaBuildLocalization(betaBuildLocalization, whatsNew) {
 }
 async function pollForValidBuild(project, buildVersion, whatsNew, maxRetries = 60, interval = 30) {
     var _a, _b, _c;
+    core.info(`Polling build validation...`);
     let retries = 0;
     while (retries < maxRetries) {
         if (core.isDebug()) {
@@ -58105,7 +58106,6 @@ async function GetProjectDetails(credential, xcodeVersion) {
     }
     const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
     try {
-        core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
         infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
     }
     finally {
