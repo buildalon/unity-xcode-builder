@@ -57680,8 +57680,9 @@ async function updateBetaBuildLocalization(betaBuildLocalization, whatsNew) {
     return betaBuildLocalization;
 }
 async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
-    var _a;
+    var _a, _b;
     core.info(`Polling build validation...`);
+    await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
     while (retries < maxRetries) {
         core.info(`Polling for build... Attempt ${++retries}/${maxRetries}`);
@@ -57697,7 +57698,12 @@ async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
         }
         switch ((_a = build.attributes) === null || _a === void 0 ? void 0 : _a.processingState) {
             case 'VALID':
-                return build;
+                if (((_b = build.attributes) === null || _b === void 0 ? void 0 : _b.version) === project.bundleVersion) {
+                    return build;
+                }
+                else {
+                    core.info(`Build ${build.attributes.version} is valid but not the latest version ${project.bundleVersion}!`);
+                }
             case 'FAILED':
             case 'INVALID':
                 throw new Error(`Build ${build.attributes.version} is ${build.attributes.processingState}!`);

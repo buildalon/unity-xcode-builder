@@ -238,6 +238,7 @@ async function updateBetaBuildLocalization(betaBuildLocalization: BetaBuildLocal
 
 async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60, interval: number = 30): Promise<Build> {
     core.info(`Polling build validation...`);
+    await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
     while (retries < maxRetries) {
         core.info(`Polling for build... Attempt ${++retries}/${maxRetries}`);
@@ -253,7 +254,11 @@ async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60,
         }
         switch (build.attributes?.processingState) {
             case 'VALID':
-                return build;
+                if (build.attributes?.version === project.bundleVersion) {
+                    return build;
+                } else {
+                    core.info(`Build ${build.attributes.version} is valid but not the latest version ${project.bundleVersion}!`);
+                }
             case 'FAILED':
             case 'INVALID':
                 throw new Error(`Build ${build.attributes.version} is ${build.attributes.processingState}!`);
