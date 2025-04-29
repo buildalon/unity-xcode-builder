@@ -57696,9 +57696,11 @@ async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
         if (!build) {
             throw new Error(`Build ${preReleaseVersion.id} not found!`);
         }
-        switch ((_a = build.attributes) === null || _a === void 0 ? void 0 : _a.processingState) {
+        const normalizedBuildVersion = normalizeVersion((_a = build.attributes) === null || _a === void 0 ? void 0 : _a.version);
+        const normalizedProjectVersion = normalizeVersion(project.bundleVersion);
+        switch ((_b = build.attributes) === null || _b === void 0 ? void 0 : _b.processingState) {
             case 'VALID':
-                if (((_b = build.attributes) === null || _b === void 0 ? void 0 : _b.version) === project.bundleVersion) {
+                if (normalizedBuildVersion === normalizedProjectVersion) {
                     core.info(`Build ${build.attributes.version} is valid`);
                     return build;
                 }
@@ -57729,6 +57731,9 @@ async function UpdateTestDetails(project, whatsNew) {
         core.info(`Updating beta build localization...`);
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
+}
+function normalizeVersion(version) {
+    return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
 }
 
 

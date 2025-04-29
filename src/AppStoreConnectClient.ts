@@ -252,9 +252,11 @@ async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60,
         if (!build) {
             throw new Error(`Build ${preReleaseVersion.id} not found!`);
         }
+        const normalizedBuildVersion = normalizeVersion(build.attributes?.version);
+        const normalizedProjectVersion = normalizeVersion(project.bundleVersion);
         switch (build.attributes?.processingState) {
             case 'VALID':
-                if (build.attributes?.version === project.bundleVersion) {
+                if (normalizedBuildVersion === normalizedProjectVersion) {
                     core.info(`Build ${build.attributes.version} is valid`);
                     return build;
                 } else {
@@ -284,4 +286,8 @@ export async function UpdateTestDetails(project: XcodeProject, whatsNew: string)
         core.info(`Updating beta build localization...`);
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
+}
+
+function normalizeVersion(version: string): string {
+    return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
 }
