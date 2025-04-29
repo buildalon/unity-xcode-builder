@@ -57709,7 +57709,8 @@ async function pollForValidBuild(project, buildVersion, maxRetries = 60, interva
                     retries = maxRetries;
                     throw new Error(`Build ${buildVersion} is ${(_d = build.attributes) === null || _d === void 0 ? void 0 : _d.processingState}!`);
                 default:
-                    throw new Error(`Build ${buildVersion} is ${(_e = build.attributes) === null || _e === void 0 ? void 0 : _e.processingState}...`);
+                    (0, utilities_1.log)(`Build ${buildVersion} is ${(_e = build.attributes) === null || _e === void 0 ? void 0 : _e.processingState}...`);
+                    break;
             }
         }
         catch (error) {

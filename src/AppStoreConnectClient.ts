@@ -266,7 +266,8 @@ async function pollForValidBuild(project: XcodeProject, buildVersion: string, ma
                     retries = maxRetries; // Stop polling
                     throw new Error(`Build ${buildVersion} is ${build.attributes?.processingState}!`);
                 default:
-                    throw new Error(`Build ${buildVersion} is ${build.attributes?.processingState}...`);
+                    log(`Build ${buildVersion} is ${build.attributes?.processingState}...`);
+                    break;
             }
         } catch (error) {
             log(error, core.isDebug() ? 'error' : 'info');
