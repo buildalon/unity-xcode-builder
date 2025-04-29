@@ -240,38 +240,44 @@ async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60,
     core.debug(`Polling build validation...`);
     await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
+    let lastMessage = '';
     while (retries < maxRetries) {
-        core.debug(`Polling for build... Attempt ${++retries}/${maxRetries}`);
+        lastMessage = `Polling for build... Attempt ${retries}/${maxRetries}`;
+        core.debug(lastMessage);
         let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
-        if (!preReleaseVersion) {
-            throw new Error(`Failed to get the last pre-release for version ${project.versionString}!`);
-        }
-        if (!build) {
-            build = await getLastPrereleaseBuild(preReleaseVersion);
-        }
-        if (!build) {
-            throw new Error(`Build ${preReleaseVersion.id} not found!`);
-        }
-        const normalizedBuildVersion = normalizeVersion(build.attributes?.version);
-        const normalizedProjectVersion = normalizeVersion(project.bundleVersion);
-        switch (build.attributes?.processingState) {
-            case 'VALID':
-                if (normalizedBuildVersion === normalizedProjectVersion) {
-                    core.debug(`Build ${build.attributes.version} is VALID`);
-                    return build;
-                } else {
-                    core.debug(`Build ${build.attributes.version} is VALID but not the latest version ${project.bundleVersion}!`);
+        if (preReleaseVersion) {
+            if (!build) {
+                build = await getLastPrereleaseBuild(preReleaseVersion);
+            }
+            if (build) {
+                const normalizedBuildVersion = normalizeVersion(build.attributes?.version);
+                const normalizedProjectVersion = normalizeVersion(project.bundleVersion);
+                switch (build.attributes?.processingState) {
+                    case 'VALID':
+                        if (normalizedBuildVersion === normalizedProjectVersion) {
+                            core.debug(`Build ${build.attributes.version} is VALID`);
+                            return build;
+                        } else {
+                            lastMessage = `Build ${build.attributes.version} is VALID but not the latest version ${project.bundleVersion}!`;
+                        }
+                        break;
+                    case 'FAILED':
+                    case 'INVALID':
+                        throw new Error(`Build ${build.attributes.version} === ${build.attributes.processingState}!`);
+                    default:
+                        lastMessage = `Build ${build.attributes.version} is ${build.attributes.processingState}...`;
+                        break;
                 }
-                break;
-            case 'FAILED':
-            case 'INVALID':
-                throw new Error(`Build ${build.attributes.version} is ${build.attributes.processingState}!`);
-            default:
-                core.debug(`Build ${build.attributes.version} is ${build.attributes.processingState}...`);
-                break;
+            } else {
+                lastMessage = `No build found for ${preReleaseVersion.attributes?.version}!`;
+            }
+        } else {
+            lastMessage = `No pre-release version found for ${project.versionString}!`;
         }
+        core.debug(lastMessage);
         await new Promise(resolve => setTimeout(resolve, interval * 1000));
     }
+    core.error(lastMessage);
     throw new Error('Timed out waiting for valid build!');
 }
 
