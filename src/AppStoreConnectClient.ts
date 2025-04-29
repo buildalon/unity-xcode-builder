@@ -258,8 +258,16 @@ async function pollForValidBuild(project: XcodeProject, buildVersion: string, wh
             if (build.attributes?.version !== buildVersion.toString()) {
                 throw new Error(`Build version ${build.attributes?.version} does not match expected version ${buildVersion}`);
             }
-            if (build.attributes?.processingState !== 'VALID') {
-                throw new Error(`Build ${buildVersion} is not valid yet!`);
+            switch (build.attributes?.processingState) {
+                case 'VALID':
+                    core.info(`Build ${buildVersion} is valid!`);
+                    break;
+                case 'FAILED':
+                case 'INVALID':
+                    retries = maxRetries; // Stop polling
+                    throw new Error(`Build ${buildVersion} is ${build.attributes?.processingState}!`);
+                default:
+                    throw new Error(`Build ${buildVersion} is ${build.attributes?.processingState}...`);
             }
             const betaBuildLocalization = await getBetaBuildLocalization(build);
             try {

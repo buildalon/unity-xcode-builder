@@ -57683,7 +57683,7 @@ async function updateBetaBuildLocalization(betaBuildLocalization, whatsNew) {
     return betaBuildLocalization;
 }
 async function pollForValidBuild(project, buildVersion, whatsNew, maxRetries = 60, interval = 30) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     core.info(`Polling build validation...`);
     let retries = 0;
     while (retries < maxRetries) {
@@ -57701,8 +57701,16 @@ async function pollForValidBuild(project, buildVersion, whatsNew, maxRetries = 6
             if (((_a = build.attributes) === null || _a === void 0 ? void 0 : _a.version) !== buildVersion.toString()) {
                 throw new Error(`Build version ${(_b = build.attributes) === null || _b === void 0 ? void 0 : _b.version} does not match expected version ${buildVersion}`);
             }
-            if (((_c = build.attributes) === null || _c === void 0 ? void 0 : _c.processingState) !== 'VALID') {
-                throw new Error(`Build ${buildVersion} is not valid yet!`);
+            switch ((_c = build.attributes) === null || _c === void 0 ? void 0 : _c.processingState) {
+                case 'VALID':
+                    core.info(`Build ${buildVersion} is valid!`);
+                    break;
+                case 'FAILED':
+                case 'INVALID':
+                    retries = maxRetries;
+                    throw new Error(`Build ${buildVersion} is ${(_d = build.attributes) === null || _d === void 0 ? void 0 : _d.processingState}!`);
+                default:
+                    throw new Error(`Build ${buildVersion} is ${(_e = build.attributes) === null || _e === void 0 ? void 0 : _e.processingState}...`);
             }
             const betaBuildLocalization = await getBetaBuildLocalization(build);
             try {
