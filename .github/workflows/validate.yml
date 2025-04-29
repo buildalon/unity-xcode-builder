@@ -42,12 +42,11 @@ jobs:
         # Installs the Unity Editor based on your project version text file
         # sets -> env.UNITY_EDITOR_PATH
         # sets -> env.UNITY_PROJECT_PATH
-      - uses: buildalon/unity-setup@v1
+      - uses: buildalon/unity-setup@development
         with:
           version-file: 'None'
           build-targets: ${{ matrix.build-target }}
           unity-version: ${{ matrix.unity-version }}
-          architecture: 'arm64'
       - name: Find Unity Template Path and Version
         run: |
           $rootPath = $env:UNITY_EDITOR_PATH -replace "Editor.*", ""
