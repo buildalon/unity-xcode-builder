@@ -58080,27 +58080,30 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
     const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, destination, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
     await getExportOptions(projectRef);
-    projectRef.appId = await (0, AppStoreConnectClient_1.GetAppId)(projectRef);
-    if (projectRef.isAppStoreUpload() && core.getInput('auto-increment-build-number') === 'true') {
-        let bundleVersion = -1;
-        try {
-            bundleVersion = await (0, AppStoreConnectClient_1.GetLatestBundleVersion)(projectRef);
-        }
-        catch (error) {
-            if (error instanceof AppStoreConnectClient_1.UnauthorizedError) {
-                throw error;
-            }
-        }
-        let bundleVersionNumber = parseInt(projectRef.bundleVersion, 10);
-        if (bundleVersionNumber <= bundleVersion) {
-            bundleVersionNumber = bundleVersion + 1;
-            core.info(`Auto Incremented bundle version ==> ${bundleVersionNumber}`);
-            infoPlist['CFBundleVersion'] = bundleVersionNumber.toString();
+    if (projectRef.isAppStoreUpload()) {
+        projectRef.appId = await (0, AppStoreConnectClient_1.GetAppId)(projectRef);
+        projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
+        if (projectRef.autoIncrementBuildNumber) {
+            let bundleVersion = -1;
             try {
-                await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
+                bundleVersion = await (0, AppStoreConnectClient_1.GetLatestBundleVersion)(projectRef);
             }
             catch (error) {
-                (0, utilities_1.log)(`Failed to update Info.plist!\n${error}`, 'error');
+                if (error instanceof AppStoreConnectClient_1.UnauthorizedError) {
+                    throw error;
+                }
+            }
+            let bundleVersionNumber = parseInt(projectRef.bundleVersion, 10);
+            if (bundleVersionNumber <= bundleVersion) {
+                bundleVersionNumber = bundleVersion + 1;
+                core.info(`Auto Incremented bundle version ==> ${bundleVersionNumber}`);
+                infoPlist['CFBundleVersion'] = bundleVersionNumber.toString();
+                try {
+                    await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
+                }
+                catch (error) {
+                    (0, utilities_1.log)(`Failed to update Info.plist!\n${error}`, 'error');
+                }
             }
         }
     }
@@ -58443,7 +58446,7 @@ async function getExportOptions(projectRef) {
             signingStyle: projectRef.credential.signingIdentity ? 'manual' : 'automatic',
             teamID: `${projectRef.credential.teamId}`
         };
-        if (method === 'app-store-connect') {
+        if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {
             exportOptions['manageAppVersionAndBuildNumber'] = true;
         }
         projectRef.exportOption = method;

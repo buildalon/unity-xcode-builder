@@ -116,25 +116,28 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         xcodeVersion
     );
     await getExportOptions(projectRef);
-    projectRef.appId = await GetAppId(projectRef);
-    if (projectRef.isAppStoreUpload() && core.getInput('auto-increment-build-number') === 'true') {
-        let bundleVersion = -1;
-        try {
-            bundleVersion = await GetLatestBundleVersion(projectRef);
-        } catch (error) {
-            if (error instanceof UnauthorizedError) {
-                throw error;
-            }
-        }
-        let bundleVersionNumber = parseInt(projectRef.bundleVersion, 10);
-        if (bundleVersionNumber <= bundleVersion) {
-            bundleVersionNumber = bundleVersion + 1;
-            core.info(`Auto Incremented bundle version ==> ${bundleVersionNumber}`);
-            infoPlist['CFBundleVersion'] = bundleVersionNumber.toString();
+    if (projectRef.isAppStoreUpload()) {
+        projectRef.appId = await GetAppId(projectRef);
+        projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
+        if (projectRef.autoIncrementBuildNumber) {
+            let bundleVersion = -1;
             try {
-                await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
+                bundleVersion = await GetLatestBundleVersion(projectRef);
             } catch (error) {
-                log(`Failed to update Info.plist!\n${error}`, 'error');
+                if (error instanceof UnauthorizedError) {
+                    throw error;
+                }
+            }
+            let bundleVersionNumber = parseInt(projectRef.bundleVersion, 10);
+            if (bundleVersionNumber <= bundleVersion) {
+                bundleVersionNumber = bundleVersion + 1;
+                core.info(`Auto Incremented bundle version ==> ${bundleVersionNumber}`);
+                infoPlist['CFBundleVersion'] = bundleVersionNumber.toString();
+                try {
+                    await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
+                } catch (error) {
+                    log(`Failed to update Info.plist!\n${error}`, 'error');
+                }
             }
         }
     }
@@ -483,7 +486,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
             signingStyle: projectRef.credential.signingIdentity ? 'manual' : 'automatic',
             teamID: `${projectRef.credential.teamId}`
         };
-        if (method === 'app-store-connect') {
+        if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {
             exportOptions['manageAppVersionAndBuildNumber'] = true;
         }
         projectRef.exportOption = method;

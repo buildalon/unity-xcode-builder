@@ -45,6 +45,7 @@ export class XcodeProject {
     bundleVersion: string;
     scheme: string;
     xcodeVersion: SemVer;
+    autoIncrementBuildNumber: boolean;
     isAppStoreUpload(): boolean {
         return this.exportOption === 'app-store' || this.exportOption === 'app-store-connect';
     }
