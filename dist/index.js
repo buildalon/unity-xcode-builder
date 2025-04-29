@@ -57699,11 +57699,13 @@ async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
         switch ((_a = build.attributes) === null || _a === void 0 ? void 0 : _a.processingState) {
             case 'VALID':
                 if (((_b = build.attributes) === null || _b === void 0 ? void 0 : _b.version) === project.bundleVersion) {
+                    core.info(`Build ${build.attributes.version} is valid`);
                     return build;
                 }
                 else {
                     core.info(`Build ${build.attributes.version} is valid but not the latest version ${project.bundleVersion}!`);
                 }
+                break;
             case 'FAILED':
             case 'INVALID':
                 throw new Error(`Build ${build.attributes.version} is ${build.attributes.processingState}!`);

@@ -255,10 +255,12 @@ async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60,
         switch (build.attributes?.processingState) {
             case 'VALID':
                 if (build.attributes?.version === project.bundleVersion) {
+                    core.info(`Build ${build.attributes.version} is valid`);
                     return build;
                 } else {
                     core.info(`Build ${build.attributes.version} is valid but not the latest version ${project.bundleVersion}!`);
                 }
+                break;
             case 'FAILED':
             case 'INVALID':
                 throw new Error(`Build ${build.attributes.version} is ${build.attributes.processingState}!`);
