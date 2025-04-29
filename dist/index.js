@@ -57722,9 +57722,11 @@ async function UpdateTestDetails(project, whatsNew) {
     const build = await pollForValidBuild(project);
     const betaBuildLocalization = await getBetaBuildLocalization(build);
     if (!betaBuildLocalization) {
+        core.info(`Creating beta build localization...`);
         await createBetaBuildLocalization(build, whatsNew);
     }
     else {
+        core.info(`Updating beta build localization...`);
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
 }
