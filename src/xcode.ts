@@ -120,25 +120,55 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     if (projectRef.isAppStoreUpload()) {
         projectRef.appId = await GetAppId(projectRef);
         if (projectRef.autoIncrementBuildNumber) {
-            let bundleVersion = -1;
+            let projectBundleVersionPrefix = '';
+            let projectBundleVersionNumber: number;
+            if (!cFBundleVersion || cFBundleVersion.length === 0) {
+                projectBundleVersionNumber = 0;
+            } else if (cFBundleVersion.includes('.')) {
+                const versionParts = cFBundleVersion.split('.');
+                projectBundleVersionNumber = parseInt(versionParts[versionParts.length - 1]);
+                projectBundleVersionPrefix = versionParts.slice(0, -1).join('.') + '.';
+            } else {
+                projectBundleVersionNumber = parseInt(cFBundleVersion);
+            }
+            let lastVersionNumber: number;
+            let versionPrefix = '';
+            let lastBundleVersion: string = null;
             try {
-                bundleVersion = await GetLatestBundleVersion(projectRef);
+                lastBundleVersion = await GetLatestBundleVersion(projectRef);
             } catch (error) {
                 if (error instanceof UnauthorizedError) {
                     throw error;
                 }
             }
-            let bundleVersionNumber = parseInt(projectRef.bundleVersion);
-            if (bundleVersionNumber <= bundleVersion) {
-                bundleVersionNumber = bundleVersion + 1;
-                core.info(`Auto Incremented bundle version ==> ${bundleVersionNumber}`);
-                infoPlist['CFBundleVersion'] = bundleVersionNumber.toString();
-                projectRef.bundleVersion = bundleVersionNumber.toString();
-                try {
-                    await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
-                } catch (error) {
-                    log(`Failed to update Info.plist!\n${error}`, 'error');
+            if (!lastBundleVersion || lastBundleVersion.length === 0) {
+                lastVersionNumber = -1;
+            }
+            else if (lastBundleVersion.includes('.')) {
+                const versionParts = lastBundleVersion.split('.');
+                lastVersionNumber = parseInt(versionParts[versionParts.length - 1]);
+                versionPrefix = versionParts.slice(0, -1).join('.') + '.';
+            } else {
+                lastVersionNumber = parseInt(lastBundleVersion);
+            }
+            if (projectBundleVersionPrefix.length > 0 && projectBundleVersionPrefix !== versionPrefix) {
+                core.debug(`Project version prefix: ${projectBundleVersionPrefix}`);
+                core.debug(`Last bundle version prefix: ${versionPrefix}`);
+                if (lastVersionNumber > projectBundleVersionNumber) {
+                    projectBundleVersionPrefix = versionPrefix;
+                    core.info(`Updated project version prefix to: ${projectBundleVersionPrefix}`);
                 }
+            }
+            if (projectBundleVersionNumber <= lastVersionNumber) {
+                projectBundleVersionNumber = lastVersionNumber + 1;
+                core.info(`Auto Incremented bundle version ==> ${versionPrefix}${projectBundleVersionNumber}`);
+            }
+            infoPlist['CFBundleVersion'] = projectBundleVersionPrefix + projectBundleVersionNumber.toString();
+            projectRef.bundleVersion = projectBundleVersionPrefix + projectBundleVersionNumber.toString();
+            try {
+                await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
+            } catch (error) {
+                log(`Failed to update Info.plist!\n${error}`, 'error');
             }
         }
     }
@@ -742,10 +772,11 @@ async function getWhatsNew(): Promise<string> {
         }
         let pullRequestInfo = '';
         if (github.context.eventName === 'pull_request') {
-            pullRequestInfo = `\nPR #${github.context.payload.pull_request?.number}`;
+            const prTitle = github.context.payload.pull_request?.title;
+            pullRequestInfo = `\nPR #${github.context.payload.pull_request?.number} ${prTitle}`;
         }
         const commitMessage = await execGit(['log', head, '-1', '--format=%B']);
-        whatsNew = `[${commitSha.trim()}] ${branchName.trim()}\n${commitMessage.trim()}`;
+        whatsNew = `[${commitSha.trim()}] ${branchName.trim()}\n${pullRequestInfo}\n${commitMessage.trim()}`;
         if (whatsNew.length > 4000) {
             whatsNew = `${whatsNew.substring(0, 3997)}...`;
         }

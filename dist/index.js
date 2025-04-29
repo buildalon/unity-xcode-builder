@@ -57516,16 +57516,13 @@ async function GetAppId(project) {
     return response.data[0].id;
 }
 async function GetLatestBundleVersion(project) {
+    var _a;
     await getOrCreateClient(project);
     let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
     if (!build) {
         build = await getLastPrereleaseBuild(preReleaseVersion);
     }
-    const buildVersion = build.attributes.version;
-    if (!buildVersion) {
-        throw new Error(`No build version found!\n${JSON.stringify(build, null, 2)}`);
-    }
-    return Number(buildVersion);
+    return (_a = build === null || build === void 0 ? void 0 : build.attributes) === null || _a === void 0 ? void 0 : _a.version;
 }
 function reMapPlatform(project) {
     switch (project.platform) {
@@ -58079,27 +58076,60 @@ async function GetProjectDetails(credential, xcodeVersion) {
     if (projectRef.isAppStoreUpload()) {
         projectRef.appId = await (0, AppStoreConnectClient_1.GetAppId)(projectRef);
         if (projectRef.autoIncrementBuildNumber) {
-            let bundleVersion = -1;
+            let projectBundleVersionPrefix = '';
+            let projectBundleVersionNumber;
+            if (!cFBundleVersion || cFBundleVersion.length === 0) {
+                projectBundleVersionNumber = 0;
+            }
+            else if (cFBundleVersion.includes('.')) {
+                const versionParts = cFBundleVersion.split('.');
+                projectBundleVersionNumber = parseInt(versionParts[versionParts.length - 1]);
+                projectBundleVersionPrefix = versionParts.slice(0, -1).join('.') + '.';
+            }
+            else {
+                projectBundleVersionNumber = parseInt(cFBundleVersion);
+            }
+            let lastVersionNumber;
+            let versionPrefix = '';
+            let lastBundleVersion = null;
             try {
-                bundleVersion = await (0, AppStoreConnectClient_1.GetLatestBundleVersion)(projectRef);
+                lastBundleVersion = await (0, AppStoreConnectClient_1.GetLatestBundleVersion)(projectRef);
             }
             catch (error) {
                 if (error instanceof AppStoreConnectClient_1.UnauthorizedError) {
                     throw error;
                 }
             }
-            let bundleVersionNumber = parseInt(projectRef.bundleVersion);
-            if (bundleVersionNumber <= bundleVersion) {
-                bundleVersionNumber = bundleVersion + 1;
-                core.info(`Auto Incremented bundle version ==> ${bundleVersionNumber}`);
-                infoPlist['CFBundleVersion'] = bundleVersionNumber.toString();
-                projectRef.bundleVersion = bundleVersionNumber.toString();
-                try {
-                    await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
+            if (!lastBundleVersion || lastBundleVersion.length === 0) {
+                lastVersionNumber = -1;
+            }
+            else if (lastBundleVersion.includes('.')) {
+                const versionParts = lastBundleVersion.split('.');
+                lastVersionNumber = parseInt(versionParts[versionParts.length - 1]);
+                versionPrefix = versionParts.slice(0, -1).join('.') + '.';
+            }
+            else {
+                lastVersionNumber = parseInt(lastBundleVersion);
+            }
+            if (projectBundleVersionPrefix.length > 0 && projectBundleVersionPrefix !== versionPrefix) {
+                core.debug(`Project version prefix: ${projectBundleVersionPrefix}`);
+                core.debug(`Last bundle version prefix: ${versionPrefix}`);
+                if (lastVersionNumber > projectBundleVersionNumber) {
+                    projectBundleVersionPrefix = versionPrefix;
+                    core.info(`Updated project version prefix to: ${projectBundleVersionPrefix}`);
                 }
-                catch (error) {
-                    (0, utilities_1.log)(`Failed to update Info.plist!\n${error}`, 'error');
-                }
+            }
+            if (projectBundleVersionNumber <= lastVersionNumber) {
+                projectBundleVersionNumber = lastVersionNumber + 1;
+                core.info(`Auto Incremented bundle version ==> ${versionPrefix}${projectBundleVersionNumber}`);
+            }
+            infoPlist['CFBundleVersion'] = projectBundleVersionPrefix + projectBundleVersionNumber.toString();
+            projectRef.bundleVersion = projectBundleVersionPrefix + projectBundleVersionNumber.toString();
+            try {
+                await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
+            }
+            catch (error) {
+                (0, utilities_1.log)(`Failed to update Info.plist!\n${error}`, 'error');
             }
         }
     }
@@ -58675,11 +58705,11 @@ async function UploadApp(projectRef) {
         await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, projectRef.bundleVersion, whatsNew);
     }
     catch (error) {
-        (0, utilities_1.log)(`Failed to upload test details!\n${JSON.stringify(error)}`, 'error');
+        (0, utilities_1.log)(`Failed to upload test details!\n${error}`, 'error');
     }
 }
 async function getWhatsNew() {
-    var _a, _b;
+    var _a, _b, _c;
     let whatsNew = core.getInput('whats-new');
     if (!whatsNew || whatsNew.length === 0) {
         const head = github.context.eventName === 'pull_request'
@@ -58700,10 +58730,11 @@ async function getWhatsNew() {
         }
         let pullRequestInfo = '';
         if (github.context.eventName === 'pull_request') {
-            pullRequestInfo = `\nPR #${(_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number}`;
+            const prTitle = (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.title;
+            pullRequestInfo = `\nPR #${(_c = github.context.payload.pull_request) === null || _c === void 0 ? void 0 : _c.number} ${prTitle}`;
         }
         const commitMessage = await execGit(['log', head, '-1', '--format=%B']);
-        whatsNew = `[${commitSha.trim()}] ${branchName.trim()}\n${commitMessage.trim()}`;
+        whatsNew = `[${commitSha.trim()}] ${branchName.trim()}\n${pullRequestInfo}\n${commitMessage.trim()}`;
         if (whatsNew.length > 4000) {
             whatsNew = `${whatsNew.substring(0, 3997)}...`;
         }

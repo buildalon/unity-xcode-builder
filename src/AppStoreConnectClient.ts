@@ -66,17 +66,13 @@ export async function GetAppId(project: XcodeProject): Promise<string> {
     return response.data[0].id;
 }
 
-export async function GetLatestBundleVersion(project: XcodeProject): Promise<number> {
+export async function GetLatestBundleVersion(project: XcodeProject): Promise<string | null> {
     await getOrCreateClient(project);
     let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
     if (!build) {
         build = await getLastPrereleaseBuild(preReleaseVersion);
     }
-    const buildVersion = build.attributes.version;
-    if (!buildVersion) {
-        throw new Error(`No build version found!\n${JSON.stringify(build, null, 2)}`);
-    }
-    return Number(buildVersion);
+    return build?.attributes?.version;
 }
 
 function reMapPlatform(project: XcodeProject): ('IOS' | 'MAC_OS' | 'TV_OS' | 'VISION_OS') {
