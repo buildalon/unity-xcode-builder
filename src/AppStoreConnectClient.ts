@@ -240,7 +240,7 @@ async function updateBetaBuildLocalization(betaBuildLocalization: BetaBuildLocal
     return betaBuildLocalization;
 }
 
-async function pollForValidBuild(project: XcodeProject, buildVersion: string, whatsNew: string, maxRetries: number = 60, interval: number = 30): Promise<BetaBuildLocalization> {
+async function pollForValidBuild(project: XcodeProject, buildVersion: string, maxRetries: number = 60, interval: number = 30): Promise<Build> {
     core.info(`Polling build validation...`);
     let retries = 0;
     while (retries < maxRetries) {
@@ -260,8 +260,7 @@ async function pollForValidBuild(project: XcodeProject, buildVersion: string, wh
             }
             switch (build.attributes?.processingState) {
                 case 'VALID':
-                    core.info(`Build ${buildVersion} is valid!`);
-                    break;
+                    return build;
                 case 'FAILED':
                 case 'INVALID':
                     retries = maxRetries; // Stop polling
@@ -269,15 +268,6 @@ async function pollForValidBuild(project: XcodeProject, buildVersion: string, wh
                 default:
                     throw new Error(`Build ${buildVersion} is ${build.attributes?.processingState}...`);
             }
-            const betaBuildLocalization = await getBetaBuildLocalization(build);
-            try {
-                if (!betaBuildLocalization) {
-                    return await createBetaBuildLocalization(build, whatsNew);
-                }
-            } catch (error) {
-                log(error, core.isDebug() ? 'warning' : 'info');
-            }
-            return await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
         } catch (error) {
             log(error, core.isDebug() ? 'error' : 'info');
         }
@@ -293,5 +283,14 @@ async function pollForValidBuild(project: XcodeProject, buildVersion: string, wh
 
 export async function UpdateTestDetails(project: XcodeProject, buildVersion: string, whatsNew: string): Promise<void> {
     await getOrCreateClient(project);
-    await pollForValidBuild(project, buildVersion, whatsNew);
+    const build = await pollForValidBuild(project, buildVersion);
+    const betaBuildLocalization = await getBetaBuildLocalization(build);
+    try {
+        if (!betaBuildLocalization) {
+            await createBetaBuildLocalization(build, whatsNew);
+        }
+    } catch (error) {
+        log(error, core.isDebug() ? 'warning' : 'info');
+    }
+    await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
 }

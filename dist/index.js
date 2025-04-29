@@ -57682,7 +57682,7 @@ async function updateBetaBuildLocalization(betaBuildLocalization, whatsNew) {
     (0, utilities_1.log)(responseJson);
     return betaBuildLocalization;
 }
-async function pollForValidBuild(project, buildVersion, whatsNew, maxRetries = 60, interval = 30) {
+async function pollForValidBuild(project, buildVersion, maxRetries = 60, interval = 30) {
     var _a, _b, _c, _d, _e;
     core.info(`Polling build validation...`);
     let retries = 0;
@@ -57703,8 +57703,7 @@ async function pollForValidBuild(project, buildVersion, whatsNew, maxRetries = 6
             }
             switch ((_c = build.attributes) === null || _c === void 0 ? void 0 : _c.processingState) {
                 case 'VALID':
-                    core.info(`Build ${buildVersion} is valid!`);
-                    break;
+                    return build;
                 case 'FAILED':
                 case 'INVALID':
                     retries = maxRetries;
@@ -57712,16 +57711,6 @@ async function pollForValidBuild(project, buildVersion, whatsNew, maxRetries = 6
                 default:
                     throw new Error(`Build ${buildVersion} is ${(_e = build.attributes) === null || _e === void 0 ? void 0 : _e.processingState}...`);
             }
-            const betaBuildLocalization = await getBetaBuildLocalization(build);
-            try {
-                if (!betaBuildLocalization) {
-                    return await createBetaBuildLocalization(build, whatsNew);
-                }
-            }
-            catch (error) {
-                (0, utilities_1.log)(error, core.isDebug() ? 'warning' : 'info');
-            }
-            return await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
         }
         catch (error) {
             (0, utilities_1.log)(error, core.isDebug() ? 'error' : 'info');
@@ -57737,7 +57726,17 @@ async function pollForValidBuild(project, buildVersion, whatsNew, maxRetries = 6
 }
 async function UpdateTestDetails(project, buildVersion, whatsNew) {
     await getOrCreateClient(project);
-    await pollForValidBuild(project, buildVersion, whatsNew);
+    const build = await pollForValidBuild(project, buildVersion);
+    const betaBuildLocalization = await getBetaBuildLocalization(build);
+    try {
+        if (!betaBuildLocalization) {
+            await createBetaBuildLocalization(build, whatsNew);
+        }
+    }
+    catch (error) {
+        (0, utilities_1.log)(error, core.isDebug() ? 'warning' : 'info');
+    }
+    await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
 }
 
 
