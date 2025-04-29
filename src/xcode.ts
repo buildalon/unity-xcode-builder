@@ -533,7 +533,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
     const exportOptionsHandle = await fs.promises.open(exportOptionsPath, fs.constants.O_RDONLY);
     try {
         const exportOptionContent = await fs.promises.readFile(exportOptionsHandle, 'utf8');
-        core.info(`----- Export options content: -----\n${exportOptionContent}\n-----------------------------------`);
+        core.info(`----- Export options content: -----${exportOptionContent}\n-----------------------------------`);
         const exportOptions = plist.parse(exportOptionContent);
         projectRef.exportOption = exportOptions['method'];
     } finally {
@@ -744,7 +744,7 @@ export async function UploadApp(projectRef: XcodeProject) {
     core.debug(outputJson);
     try {
         const whatsNew = await getWhatsNew();
-        core.info(`Uploading test details...\n${whatsNew}`);
+        core.info(`\n-------------- what's new --------------\n${whatsNew}\n------------------------------------------\n`);
         await UpdateTestDetails(projectRef, whatsNew);
     } catch (error) {
         log(`Failed to upload test details!\n${error}`, 'error');
@@ -789,12 +789,16 @@ async function getWhatsNew(): Promise<string> {
 
 async function execGit(args: string[]): Promise<string> {
     let output = '';
+    if (!core.isDebug()) {
+        core.info(`[command]git ${args.join(' ')}`);
+    }
     const exitCode = await exec('git', args, {
         listeners: {
             stdout: (data: Buffer) => {
                 output += data.toString();
             }
-        }
+        },
+        silent: !core.isDebug()
     });
     if (exitCode > 0) {
         log(output, 'error');

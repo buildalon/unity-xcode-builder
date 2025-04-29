@@ -57681,11 +57681,11 @@ async function updateBetaBuildLocalization(betaBuildLocalization, whatsNew) {
 }
 async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
     var _a, _b;
-    core.info(`Polling build validation...`);
+    core.debug(`Polling build validation...`);
     await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
     while (retries < maxRetries) {
-        core.info(`Polling for build... Attempt ${++retries}/${maxRetries}`);
+        core.debug(`Polling for build... Attempt ${++retries}/${maxRetries}`);
         let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
         if (!preReleaseVersion) {
             throw new Error(`Failed to get the last pre-release for version ${project.versionString}!`);
@@ -57701,18 +57701,18 @@ async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
         switch ((_b = build.attributes) === null || _b === void 0 ? void 0 : _b.processingState) {
             case 'VALID':
                 if (normalizedBuildVersion === normalizedProjectVersion) {
-                    core.info(`Build ${build.attributes.version} is valid`);
+                    core.debug(`Build ${build.attributes.version} is VALID`);
                     return build;
                 }
                 else {
-                    core.info(`Build ${build.attributes.version} is valid but not the latest version ${project.bundleVersion}!`);
+                    core.debug(`Build ${build.attributes.version} is VALID but not the latest version ${project.bundleVersion}!`);
                 }
                 break;
             case 'FAILED':
             case 'INVALID':
                 throw new Error(`Build ${build.attributes.version} is ${build.attributes.processingState}!`);
             default:
-                core.info(`Build ${build.attributes.version} is ${build.attributes.processingState}...`);
+                core.debug(`Build ${build.attributes.version} is ${build.attributes.processingState}...`);
                 break;
         }
         await new Promise(resolve => setTimeout(resolve, interval * 1000));
@@ -57720,6 +57720,7 @@ async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
     throw new Error('Timed out waiting for valid build!');
 }
 async function UpdateTestDetails(project, whatsNew) {
+    core.info(`Updating test details...`);
     await getOrCreateClient(project);
     const build = await pollForValidBuild(project);
     const betaBuildLocalization = await getBetaBuildLocalization(build);
@@ -58501,7 +58502,7 @@ async function getExportOptions(projectRef) {
     const exportOptionsHandle = await fs.promises.open(exportOptionsPath, fs.constants.O_RDONLY);
     try {
         const exportOptionContent = await fs.promises.readFile(exportOptionsHandle, 'utf8');
-        core.info(`----- Export options content: -----\n${exportOptionContent}\n-----------------------------------`);
+        core.info(`----- Export options content: -----${exportOptionContent}\n-----------------------------------`);
         const exportOptions = plist.parse(exportOptionContent);
         projectRef.exportOption = exportOptions['method'];
     }
@@ -58713,7 +58714,7 @@ async function UploadApp(projectRef) {
     core.debug(outputJson);
     try {
         const whatsNew = await getWhatsNew();
-        core.info(`Uploading test details...\n${whatsNew}`);
+        core.info(`\n-------------- what's new --------------\n${whatsNew}\n------------------------------------------\n`);
         await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, whatsNew);
     }
     catch (error) {
@@ -58758,12 +58759,16 @@ async function getWhatsNew() {
 }
 async function execGit(args) {
     let output = '';
+    if (!core.isDebug()) {
+        core.info(`[command]git ${args.join(' ')}`);
+    }
     const exitCode = await (0, exec_1.exec)('git', args, {
         listeners: {
             stdout: (data) => {
                 output += data.toString();
             }
-        }
+        },
+        silent: !core.isDebug()
     });
     if (exitCode > 0) {
         (0, utilities_1.log)(output, 'error');
