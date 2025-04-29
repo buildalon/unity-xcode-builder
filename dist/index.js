@@ -57721,13 +57721,8 @@ async function UpdateTestDetails(project, buildVersion, whatsNew) {
     await getOrCreateClient(project);
     const build = await pollForValidBuild(project, buildVersion);
     const betaBuildLocalization = await getBetaBuildLocalization(build);
-    try {
-        if (!betaBuildLocalization) {
-            await createBetaBuildLocalization(build, whatsNew);
-        }
-    }
-    catch (error) {
-        (0, utilities_1.log)(error, core.isDebug() ? 'warning' : 'info');
+    if (!betaBuildLocalization) {
+        await createBetaBuildLocalization(build, whatsNew);
     }
     await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
 }

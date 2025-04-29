@@ -279,12 +279,8 @@ export async function UpdateTestDetails(project: XcodeProject, buildVersion: str
     await getOrCreateClient(project);
     const build = await pollForValidBuild(project, buildVersion);
     const betaBuildLocalization = await getBetaBuildLocalization(build);
-    try {
-        if (!betaBuildLocalization) {
-            await createBetaBuildLocalization(build, whatsNew);
-        }
-    } catch (error) {
-        log(error, core.isDebug() ? 'warning' : 'info');
+    if (!betaBuildLocalization) {
+        await createBetaBuildLocalization(build, whatsNew);
     }
     await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
 }
