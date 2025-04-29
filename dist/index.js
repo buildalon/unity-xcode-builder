@@ -58726,7 +58726,7 @@ async function getWhatsNew() {
         let pullRequestInfo = '';
         if (github.context.eventName === 'pull_request') {
             const prTitle = (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.title;
-            pullRequestInfo = `\nPR #${(_c = github.context.payload.pull_request) === null || _c === void 0 ? void 0 : _c.number} ${prTitle}`;
+            pullRequestInfo = `PR #${(_c = github.context.payload.pull_request) === null || _c === void 0 ? void 0 : _c.number} ${prTitle}`;
         }
         const commitMessage = await execGit(['log', head, '-1', '--format=%B']);
         whatsNew = `[${commitSha.trim()}] ${branchName.trim()}\n${pullRequestInfo}\n${commitMessage.trim()}`;

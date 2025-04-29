@@ -773,7 +773,7 @@ async function getWhatsNew(): Promise<string> {
         let pullRequestInfo = '';
         if (github.context.eventName === 'pull_request') {
             const prTitle = github.context.payload.pull_request?.title;
-            pullRequestInfo = `\nPR #${github.context.payload.pull_request?.number} ${prTitle}`;
+            pullRequestInfo = `PR #${github.context.payload.pull_request?.number} ${prTitle}`;
         }
         const commitMessage = await execGit(['log', head, '-1', '--format=%B']);
         whatsNew = `[${commitSha.trim()}] ${branchName.trim()}\n${pullRequestInfo}\n${commitMessage.trim()}`;
