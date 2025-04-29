@@ -745,7 +745,7 @@ export async function UploadApp(projectRef: XcodeProject) {
     try {
         const whatsNew = await getWhatsNew();
         core.info(`Uploading test details...\n${whatsNew}`);
-        await UpdateTestDetails(projectRef, projectRef.bundleVersion, whatsNew);
+        await UpdateTestDetails(projectRef, whatsNew);
     } catch (error) {
         log(`Failed to upload test details!\n${error}`, 'error');
     }

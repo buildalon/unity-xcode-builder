@@ -57679,44 +57679,39 @@ async function updateBetaBuildLocalization(betaBuildLocalization, whatsNew) {
     (0, utilities_1.log)(responseJson);
     return betaBuildLocalization;
 }
-async function pollForValidBuild(project, buildVersion, maxRetries = 60, interval = 30) {
-    var _a, _b, _c, _d, _e;
+async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
+    var _a;
     core.info(`Polling build validation...`);
     let retries = 0;
     while (retries < maxRetries) {
-        if (core.isDebug()) {
-            (0, utilities_1.log)(`Polling for build... Attempt ${++retries}/${maxRetries}`);
-        }
+        core.info(`Polling for build... Attempt ${++retries}/${maxRetries}`);
         let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
         if (!preReleaseVersion) {
-            throw new Error(`preReleaseVersion ${buildVersion} not found!`);
+            throw new Error(`Failed to get the last pre-release for version ${project.versionString}!`);
         }
         if (!build) {
             build = await getLastPrereleaseBuild(preReleaseVersion);
         }
         if (!build) {
-            throw new Error(`Build ${buildVersion} not found!`);
+            throw new Error(`Build ${preReleaseVersion.id} not found!`);
         }
-        if (((_a = build.attributes) === null || _a === void 0 ? void 0 : _a.version) !== buildVersion.toString()) {
-            throw new Error(`Build version ${(_b = build.attributes) === null || _b === void 0 ? void 0 : _b.version} does not match expected version ${buildVersion}`);
-        }
-        switch ((_c = build.attributes) === null || _c === void 0 ? void 0 : _c.processingState) {
+        switch ((_a = build.attributes) === null || _a === void 0 ? void 0 : _a.processingState) {
             case 'VALID':
                 return build;
             case 'FAILED':
             case 'INVALID':
-                throw new Error(`Build ${buildVersion} is ${(_d = build.attributes) === null || _d === void 0 ? void 0 : _d.processingState}!`);
+                throw new Error(`Build ${build.attributes.version} is ${build.attributes.processingState}!`);
             default:
-                (0, utilities_1.log)(`Build ${buildVersion} is ${(_e = build.attributes) === null || _e === void 0 ? void 0 : _e.processingState}...`);
+                core.info(`Build ${build.attributes.version} is ${build.attributes.processingState}...`);
                 break;
         }
         await new Promise(resolve => setTimeout(resolve, interval * 1000));
     }
     throw new Error('Timed out waiting for valid build!');
 }
-async function UpdateTestDetails(project, buildVersion, whatsNew) {
+async function UpdateTestDetails(project, whatsNew) {
     await getOrCreateClient(project);
-    const build = await pollForValidBuild(project, buildVersion);
+    const build = await pollForValidBuild(project);
     const betaBuildLocalization = await getBetaBuildLocalization(build);
     if (!betaBuildLocalization) {
         await createBetaBuildLocalization(build, whatsNew);
@@ -58702,7 +58697,7 @@ async function UploadApp(projectRef) {
     try {
         const whatsNew = await getWhatsNew();
         core.info(`Uploading test details...\n${whatsNew}`);
-        await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, projectRef.bundleVersion, whatsNew);
+        await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, whatsNew);
     }
     catch (error) {
         (0, utilities_1.log)(`Failed to upload test details!\n${error}`, 'error');

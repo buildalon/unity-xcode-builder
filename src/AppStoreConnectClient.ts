@@ -236,34 +236,29 @@ async function updateBetaBuildLocalization(betaBuildLocalization: BetaBuildLocal
     return betaBuildLocalization;
 }
 
-async function pollForValidBuild(project: XcodeProject, buildVersion: string, maxRetries: number = 60, interval: number = 30): Promise<Build> {
+async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60, interval: number = 30): Promise<Build> {
     core.info(`Polling build validation...`);
     let retries = 0;
     while (retries < maxRetries) {
-        if (core.isDebug()) {
-            log(`Polling for build... Attempt ${++retries}/${maxRetries}`);
-        }
+        core.info(`Polling for build... Attempt ${++retries}/${maxRetries}`);
         let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
         if (!preReleaseVersion) {
-            throw new Error(`preReleaseVersion ${buildVersion} not found!`);
+            throw new Error(`Failed to get the last pre-release for version ${project.versionString}!`);
         }
         if (!build) {
             build = await getLastPrereleaseBuild(preReleaseVersion);
         }
         if (!build) {
-            throw new Error(`Build ${buildVersion} not found!`);
-        }
-        if (build.attributes?.version !== buildVersion.toString()) {
-            throw new Error(`Build version ${build.attributes?.version} does not match expected version ${buildVersion}`);
+            throw new Error(`Build ${preReleaseVersion.id} not found!`);
         }
         switch (build.attributes?.processingState) {
             case 'VALID':
                 return build;
             case 'FAILED':
             case 'INVALID':
-                throw new Error(`Build ${buildVersion} is ${build.attributes?.processingState}!`);
+                throw new Error(`Build ${build.attributes.version} is ${build.attributes.processingState}!`);
             default:
-                log(`Build ${buildVersion} is ${build.attributes?.processingState}...`);
+                core.info(`Build ${build.attributes.version} is ${build.attributes.processingState}...`);
                 break;
         }
         await new Promise(resolve => setTimeout(resolve, interval * 1000));
@@ -271,9 +266,9 @@ async function pollForValidBuild(project: XcodeProject, buildVersion: string, ma
     throw new Error('Timed out waiting for valid build!');
 }
 
-export async function UpdateTestDetails(project: XcodeProject, buildVersion: string, whatsNew: string): Promise<void> {
+export async function UpdateTestDetails(project: XcodeProject, whatsNew: string): Promise<void> {
     await getOrCreateClient(project);
-    const build = await pollForValidBuild(project, buildVersion);
+    const build = await pollForValidBuild(project);
     const betaBuildLocalization = await getBetaBuildLocalization(build);
     if (!betaBuildLocalization) {
         await createBetaBuildLocalization(build, whatsNew);
