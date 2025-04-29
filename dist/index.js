@@ -57684,10 +57684,8 @@ async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
     core.debug(`Polling build validation...`);
     await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
-    let lastMessage = '';
     while (retries < maxRetries) {
-        lastMessage = `Polling for build... Attempt ${retries}/${maxRetries}`;
-        core.debug(lastMessage);
+        core.info(`Polling for build... Attempt ${retries}/${maxRetries}`);
         let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
         if (preReleaseVersion) {
             if (!build) {
@@ -57699,32 +57697,30 @@ async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
                 switch ((_b = build.attributes) === null || _b === void 0 ? void 0 : _b.processingState) {
                     case 'VALID':
                         if (normalizedBuildVersion === normalizedProjectVersion) {
-                            core.debug(`Build ${build.attributes.version} is VALID`);
+                            core.info(`Build ${build.attributes.version} is VALID`);
                             return build;
                         }
                         else {
-                            lastMessage = `Build ${build.attributes.version} is VALID but not the latest version ${project.bundleVersion}!`;
+                            core.info(`Build ${build.attributes.version} is VALID but not the latest version ${project.bundleVersion}!`);
                         }
                         break;
                     case 'FAILED':
                     case 'INVALID':
                         throw new Error(`Build ${build.attributes.version} === ${build.attributes.processingState}!`);
                     default:
-                        lastMessage = `Build ${build.attributes.version} is ${build.attributes.processingState}...`;
+                        core.info(`Build ${build.attributes.version} is ${build.attributes.processingState}...`);
                         break;
                 }
             }
             else {
-                lastMessage = `No build found for ${(_c = preReleaseVersion.attributes) === null || _c === void 0 ? void 0 : _c.version}!`;
+                core.info(`No build found for ${(_c = preReleaseVersion.attributes) === null || _c === void 0 ? void 0 : _c.version}!`);
             }
         }
         else {
-            lastMessage = `No pre-release version found for ${project.versionString}!`;
+            core.info(`No pre-release version found for ${project.versionString}!`);
         }
-        core.debug(lastMessage);
         await new Promise(resolve => setTimeout(resolve, interval * 1000));
     }
-    core.error(lastMessage);
     throw new Error('Timed out waiting for valid build!');
 }
 async function UpdateTestDetails(project, whatsNew) {

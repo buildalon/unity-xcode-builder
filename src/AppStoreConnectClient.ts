@@ -240,10 +240,8 @@ async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60,
     core.debug(`Polling build validation...`);
     await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
-    let lastMessage = '';
     while (retries < maxRetries) {
-        lastMessage = `Polling for build... Attempt ${retries}/${maxRetries}`;
-        core.debug(lastMessage);
+        core.info(`Polling for build... Attempt ${retries}/${maxRetries}`);
         let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
         if (preReleaseVersion) {
             if (!build) {
@@ -255,29 +253,27 @@ async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60,
                 switch (build.attributes?.processingState) {
                     case 'VALID':
                         if (normalizedBuildVersion === normalizedProjectVersion) {
-                            core.debug(`Build ${build.attributes.version} is VALID`);
+                            core.info(`Build ${build.attributes.version} is VALID`);
                             return build;
                         } else {
-                            lastMessage = `Build ${build.attributes.version} is VALID but not the latest version ${project.bundleVersion}!`;
+                            core.info(`Build ${build.attributes.version} is VALID but not the latest version ${project.bundleVersion}!`);
                         }
                         break;
                     case 'FAILED':
                     case 'INVALID':
                         throw new Error(`Build ${build.attributes.version} === ${build.attributes.processingState}!`);
                     default:
-                        lastMessage = `Build ${build.attributes.version} is ${build.attributes.processingState}...`;
+                        core.info(`Build ${build.attributes.version} is ${build.attributes.processingState}...`);
                         break;
                 }
             } else {
-                lastMessage = `No build found for ${preReleaseVersion.attributes?.version}!`;
+                core.info(`No build found for ${preReleaseVersion.attributes?.version}!`);
             }
         } else {
-            lastMessage = `No pre-release version found for ${project.versionString}!`;
+            core.info(`No pre-release version found for ${project.versionString}!`);
         }
-        core.debug(lastMessage);
         await new Promise(resolve => setTimeout(resolve, interval * 1000));
     }
-    core.error(lastMessage);
     throw new Error('Timed out waiting for valid build!');
 }
 
