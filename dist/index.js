@@ -58079,10 +58079,10 @@ async function GetProjectDetails(credential, xcodeVersion) {
     const cFBundleVersion = infoPlist['CFBundleVersion'];
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
     const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, destination, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
+    projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
     await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload()) {
         projectRef.appId = await (0, AppStoreConnectClient_1.GetAppId)(projectRef);
-        projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
         if (projectRef.autoIncrementBuildNumber) {
             let bundleVersion = -1;
             try {
@@ -58093,7 +58093,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
                     throw error;
                 }
             }
-            let bundleVersionNumber = parseInt(projectRef.bundleVersion, 10);
+            let bundleVersionNumber = parseInt(projectRef.bundleVersion);
             if (bundleVersionNumber <= bundleVersion) {
                 bundleVersionNumber = bundleVersion + 1;
                 core.info(`Auto Incremented bundle version ==> ${bundleVersionNumber}`);

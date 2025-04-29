@@ -115,10 +115,10 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         credential,
         xcodeVersion
     );
+    projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
     await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload()) {
         projectRef.appId = await GetAppId(projectRef);
-        projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
         if (projectRef.autoIncrementBuildNumber) {
             let bundleVersion = -1;
             try {
@@ -128,7 +128,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
                     throw error;
                 }
             }
-            let bundleVersionNumber = parseInt(projectRef.bundleVersion, 10);
+            let bundleVersionNumber = parseInt(projectRef.bundleVersion);
             if (bundleVersionNumber <= bundleVersion) {
                 bundleVersionNumber = bundleVersion + 1;
                 core.info(`Auto Incremented bundle version ==> ${bundleVersionNumber}`);
