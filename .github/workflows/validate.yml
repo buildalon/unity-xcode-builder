@@ -42,7 +42,7 @@ jobs:
         # Installs the Unity Editor based on your project version text file
         # sets -> env.UNITY_EDITOR_PATH
         # sets -> env.UNITY_PROJECT_PATH
-      - uses: buildalon/unity-setup@development
+      - uses: buildalon/unity-setup@v1
         with:
           version-file: 'None'
           build-targets: ${{ matrix.build-target }}
