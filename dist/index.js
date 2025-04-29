@@ -57688,38 +57688,30 @@ async function pollForValidBuild(project, buildVersion, maxRetries = 60, interva
     let retries = 0;
     while (retries < maxRetries) {
         if (core.isDebug()) {
-            core.startGroup(`Polling for build... Attempt ${++retries}/${maxRetries}`);
+            (0, utilities_1.log)(`Polling for build... Attempt ${++retries}/${maxRetries}`);
         }
-        try {
-            let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
-            if (!preReleaseVersion) {
-                throw new Error('No pre-release version found!');
-            }
-            if (!build) {
-                build = await getLastPrereleaseBuild(preReleaseVersion);
-            }
-            if (((_a = build.attributes) === null || _a === void 0 ? void 0 : _a.version) !== buildVersion.toString()) {
-                throw new Error(`Build version ${(_b = build.attributes) === null || _b === void 0 ? void 0 : _b.version} does not match expected version ${buildVersion}`);
-            }
-            switch ((_c = build.attributes) === null || _c === void 0 ? void 0 : _c.processingState) {
-                case 'VALID':
-                    return build;
-                case 'FAILED':
-                case 'INVALID':
-                    retries = maxRetries;
-                    throw new Error(`Build ${buildVersion} is ${(_d = build.attributes) === null || _d === void 0 ? void 0 : _d.processingState}!`);
-                default:
-                    (0, utilities_1.log)(`Build ${buildVersion} is ${(_e = build.attributes) === null || _e === void 0 ? void 0 : _e.processingState}...`);
-                    break;
-            }
+        let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
+        if (!preReleaseVersion) {
+            throw new Error(`preReleaseVersion ${buildVersion} not found!`);
         }
-        catch (error) {
-            (0, utilities_1.log)(error, core.isDebug() ? 'error' : 'info');
+        if (!build) {
+            build = await getLastPrereleaseBuild(preReleaseVersion);
         }
-        finally {
-            if (core.isDebug()) {
-                core.endGroup();
-            }
+        if (!build) {
+            throw new Error(`Build ${buildVersion} not found!`);
+        }
+        if (((_a = build.attributes) === null || _a === void 0 ? void 0 : _a.version) !== buildVersion.toString()) {
+            throw new Error(`Build version ${(_b = build.attributes) === null || _b === void 0 ? void 0 : _b.version} does not match expected version ${buildVersion}`);
+        }
+        switch ((_c = build.attributes) === null || _c === void 0 ? void 0 : _c.processingState) {
+            case 'VALID':
+                return build;
+            case 'FAILED':
+            case 'INVALID':
+                throw new Error(`Build ${buildVersion} is ${(_d = build.attributes) === null || _d === void 0 ? void 0 : _d.processingState}!`);
+            default:
+                (0, utilities_1.log)(`Build ${buildVersion} is ${(_e = build.attributes) === null || _e === void 0 ? void 0 : _e.processingState}...`);
+                break;
         }
         await new Promise(resolve => setTimeout(resolve, interval * 1000));
     }

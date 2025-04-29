@@ -245,37 +245,30 @@ async function pollForValidBuild(project: XcodeProject, buildVersion: string, ma
     let retries = 0;
     while (retries < maxRetries) {
         if (core.isDebug()) {
-            core.startGroup(`Polling for build... Attempt ${++retries}/${maxRetries}`);
+            log(`Polling for build... Attempt ${++retries}/${maxRetries}`);
         }
-        try {
-            let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
-            if (!preReleaseVersion) {
-                throw new Error('No pre-release version found!');
-            }
-            if (!build) {
-                build = await getLastPrereleaseBuild(preReleaseVersion);
-            }
-            if (build.attributes?.version !== buildVersion.toString()) {
-                throw new Error(`Build version ${build.attributes?.version} does not match expected version ${buildVersion}`);
-            }
-            switch (build.attributes?.processingState) {
-                case 'VALID':
-                    return build;
-                case 'FAILED':
-                case 'INVALID':
-                    retries = maxRetries; // Stop polling
-                    throw new Error(`Build ${buildVersion} is ${build.attributes?.processingState}!`);
-                default:
-                    log(`Build ${buildVersion} is ${build.attributes?.processingState}...`);
-                    break;
-            }
-        } catch (error) {
-            log(error, core.isDebug() ? 'error' : 'info');
+        let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
+        if (!preReleaseVersion) {
+            throw new Error(`preReleaseVersion ${buildVersion} not found!`);
         }
-        finally {
-            if (core.isDebug()) {
-                core.endGroup();
-            }
+        if (!build) {
+            build = await getLastPrereleaseBuild(preReleaseVersion);
+        }
+        if (!build) {
+            throw new Error(`Build ${buildVersion} not found!`);
+        }
+        if (build.attributes?.version !== buildVersion.toString()) {
+            throw new Error(`Build version ${build.attributes?.version} does not match expected version ${buildVersion}`);
+        }
+        switch (build.attributes?.processingState) {
+            case 'VALID':
+                return build;
+            case 'FAILED':
+            case 'INVALID':
+                throw new Error(`Build ${buildVersion} is ${build.attributes?.processingState}!`);
+            default:
+                log(`Build ${buildVersion} is ${build.attributes?.processingState}...`);
+                break;
         }
         await new Promise(resolve => setTimeout(resolve, interval * 1000));
     }
