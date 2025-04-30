@@ -757,7 +757,7 @@ async function getWhatsNew(): Promise<string> {
         const head = github.context.eventName === 'pull_request'
             ? github.context.payload.pull_request?.head.sha
             : github.context.sha || 'HEAD';
-        await execGit(['fetch', '--all']);
+        await execGit(['fetch', 'origin', head, '--depth=1']);
         const commitSha = await execGit(['log', head, '-1', '--format=%h']);
         const branchNameDetails = await execGit(['log', head, '-1', '--format=%d']);
         const branchNameMatch = branchNameDetails.match(/\((?<branch>.+)\)/);
