@@ -57,6 +57,7 @@ export async function GetAppId(project: XcodeProject): Promise<string> {
         checkAuthError(error);
         throw new Error(`Error fetching apps: ${JSON.stringify(error)}`);
     }
+    log(`GET /appsGetCollection\n${JSON.stringify(response, null, 2)}`);
     if (!response) {
         throw new Error(`No apps found for bundle id ${project.bundleId}`);
     }
@@ -112,7 +113,7 @@ async function getLastPreReleaseVersionAndBuild(project: XcodeProject): Promise<
             limit: 1,
         }
     };
-    log(`/preReleaseVersions?${JSON.stringify(preReleaseVersionRequest.query)}`);
+    log(`GET /preReleaseVersions?${JSON.stringify(preReleaseVersionRequest.query)}`);
     const { data: preReleaseResponse, error: preReleaseError } = await appStoreConnectClient.api.PreReleaseVersionsService.preReleaseVersionsGetCollection(preReleaseVersionRequest);
     const responseJson = JSON.stringify(preReleaseResponse, null, 2);
     if (preReleaseError) {
@@ -154,7 +155,7 @@ async function getLastPrereleaseBuild(prereleaseVersion: PrereleaseVersion): Pro
             limit: 1
         }
     };
-    log(`/builds?${JSON.stringify(buildsRequest.query)}`);
+    log(`GET /builds?${JSON.stringify(buildsRequest.query)}`);
     const { data: buildsResponse, error: buildsError } = await appStoreConnectClient.api.BuildsService.buildsGetCollection(buildsRequest);
     const responseJson = JSON.stringify(buildsResponse, null, 2);
     if (buildsError) {
@@ -176,7 +177,7 @@ async function getBetaBuildLocalization(build: Build): Promise<BetaBuildLocaliza
             'fields[betaBuildLocalizations]': ['whatsNew']
         }
     };
-    log(`/betaBuildLocalizations?${JSON.stringify(betaBuildLocalizationRequest.query)}`);
+    log(`GET /betaBuildLocalizations?${JSON.stringify(betaBuildLocalizationRequest.query)}`);
     const { data: betaBuildLocalizationResponse, error: betaBuildLocalizationError } = await appStoreConnectClient.api.BetaBuildLocalizationsService.betaBuildLocalizationsGetCollection(betaBuildLocalizationRequest);
     const responseJson = JSON.stringify(betaBuildLocalizationResponse, null, 2);
     if (betaBuildLocalizationError) {
@@ -208,7 +209,7 @@ async function createBetaBuildLocalization(build: Build, whatsNew: string): Prom
             }
         }
     }
-    log(`/betaBuildLocalizations\n${JSON.stringify(betaBuildLocalizationRequest, null, 2)}`);
+    log(`POST /betaBuildLocalizations\n${JSON.stringify(betaBuildLocalizationRequest, null, 2)}`);
     const { data: response, error: responseError } = await appStoreConnectClient.api.BetaBuildLocalizationsService.betaBuildLocalizationsCreateInstance({
         body: betaBuildLocalizationRequest
     });
@@ -231,7 +232,7 @@ async function updateBetaBuildLocalization(betaBuildLocalization: BetaBuildLocal
             }
         }
     };
-    log(`/betaBuildLocalizations/${betaBuildLocalization.id}\n${JSON.stringify(updateBuildLocalization, null, 2)}`);
+    log(`POST /betaBuildLocalizations/${betaBuildLocalization.id}\n${JSON.stringify(updateBuildLocalization, null, 2)}`);
     const { error: updateError } = await appStoreConnectClient.api.BetaBuildLocalizationsService.betaBuildLocalizationsUpdateInstance({
         path: { id: betaBuildLocalization.id },
         body: updateBuildLocalization

@@ -2,7 +2,7 @@
 import core = require('@actions/core');
 
 export function log(message: string, type: 'info' | 'warning' | 'error' = 'info') {
-    if (type == 'info' && !core.isDebug()) { return; }
+    // if (type == 'info' && !core.isDebug()) { return; }
     const lines = message.split('\n');
     const filteredLines = lines.filter((line) => line.trim() !== '');
     const uniqueLines = Array.from(new Set(filteredLines));
