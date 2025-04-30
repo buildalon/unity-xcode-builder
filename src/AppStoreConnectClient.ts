@@ -63,6 +63,15 @@ export async function GetAppId(project: XcodeProject): Promise<string> {
     if (response.data.length === 0) {
         throw new Error(`No apps found for bundle id ${project.bundleId}`);
     }
+    if (response.data.length > 1) {
+        core.warning(`Multiple apps found for bundle id ${project.bundleId}!`);
+        for (const app of response.data) {
+            core.info(`[${app.id}] ${app.attributes?.bundleId}`);
+            if (project.bundleId.length === app.attributes?.bundleId?.length) {
+                return app.id;
+            }
+        }
+    }
     return response.data[0].id;
 }
 
@@ -240,7 +249,7 @@ async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60,
     core.debug(`Polling build validation...`);
     await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
-    while (retries < maxRetries) {
+    while (++retries < maxRetries) {
         core.info(`Polling for build... Attempt ${retries}/${maxRetries}`);
         let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
         if (preReleaseVersion) {

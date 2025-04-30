@@ -57499,6 +57499,7 @@ function checkAuthError(error) {
     }
 }
 async function GetAppId(project) {
+    var _a, _b, _c;
     await getOrCreateClient(project);
     const { data: response, error } = await appStoreConnectClient.api.AppsService.appsGetCollection({
         query: { 'filter[bundleId]': [project.bundleId] }
@@ -57512,6 +57513,15 @@ async function GetAppId(project) {
     }
     if (response.data.length === 0) {
         throw new Error(`No apps found for bundle id ${project.bundleId}`);
+    }
+    if (response.data.length > 1) {
+        core.warning(`Multiple apps found for bundle id ${project.bundleId}!`);
+        for (const app of response.data) {
+            core.info(`[${app.id}] ${(_a = app.attributes) === null || _a === void 0 ? void 0 : _a.bundleId}`);
+            if (project.bundleId.length === ((_c = (_b = app.attributes) === null || _b === void 0 ? void 0 : _b.bundleId) === null || _c === void 0 ? void 0 : _c.length)) {
+                return app.id;
+            }
+        }
     }
     return response.data[0].id;
 }
@@ -57684,7 +57694,7 @@ async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
     core.debug(`Polling build validation...`);
     await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
-    while (retries < maxRetries) {
+    while (++retries < maxRetries) {
         core.info(`Polling for build... Attempt ${retries}/${maxRetries}`);
         let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
         if (preReleaseVersion) {
@@ -58157,7 +58167,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     finally {
         await plistHandle.close();
     }
-    core.info(`----- Info.plist content: -----\n${infoPlistContent}\n-----------------------------------`);
+    core.info(`------- Info.plist content: -------\n${infoPlistContent}\n-----------------------------------`);
     return projectRef;
 }
 async function checkSimulatorsAvailable(platform) {
@@ -58506,7 +58516,7 @@ async function getExportOptions(projectRef) {
     const exportOptionsHandle = await fs.promises.open(exportOptionsPath, fs.constants.O_RDONLY);
     try {
         const exportOptionContent = await fs.promises.readFile(exportOptionsHandle, 'utf8');
-        core.info(`----- Export options content: -----${exportOptionContent}\n-----------------------------------`);
+        core.info(`----- Export options content: -----\n${exportOptionContent}\n-----------------------------------`);
         const exportOptions = plist.parse(exportOptionContent);
         projectRef.exportOption = exportOptions['method'];
     }
@@ -58718,7 +58728,7 @@ async function UploadApp(projectRef) {
     core.debug(outputJson);
     try {
         const whatsNew = await getWhatsNew();
-        core.info(`\n-------------- what's new --------------\n${whatsNew}\n------------------------------------------\n`);
+        core.info(`\n--------------- what's new ---------------\n${whatsNew}\n------------------------------------------\n`);
         await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, whatsNew);
     }
     catch (error) {

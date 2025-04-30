@@ -178,7 +178,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     } finally {
         await plistHandle.close();
     }
-    core.info(`----- Info.plist content: -----\n${infoPlistContent}\n-----------------------------------`);
+    core.info(`------- Info.plist content: -------\n${infoPlistContent}\n-----------------------------------`);
     return projectRef;
 }
 
@@ -533,7 +533,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
     const exportOptionsHandle = await fs.promises.open(exportOptionsPath, fs.constants.O_RDONLY);
     try {
         const exportOptionContent = await fs.promises.readFile(exportOptionsHandle, 'utf8');
-        core.info(`----- Export options content: -----${exportOptionContent}\n-----------------------------------`);
+        core.info(`----- Export options content: -----\n${exportOptionContent}\n-----------------------------------`);
         const exportOptions = plist.parse(exportOptionContent);
         projectRef.exportOption = exportOptions['method'];
     } finally {
@@ -744,7 +744,7 @@ export async function UploadApp(projectRef: XcodeProject) {
     core.debug(outputJson);
     try {
         const whatsNew = await getWhatsNew();
-        core.info(`\n-------------- what's new --------------\n${whatsNew}\n------------------------------------------\n`);
+        core.info(`\n--------------- what's new ---------------\n${whatsNew}\n------------------------------------------\n`);
         await UpdateTestDetails(projectRef, whatsNew);
     } catch (error) {
         log(`Failed to upload test details!\n${error}`, 'error');
