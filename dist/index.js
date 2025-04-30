@@ -57516,9 +57516,9 @@ async function GetAppId(project) {
         throw new Error(`No apps found for bundle id ${project.bundleId}`);
     }
     if (response.data.length > 1) {
-        core.warning(`Multiple apps found for bundle id ${project.bundleId}!`);
+        (0, utilities_1.log)(`Multiple apps found for bundle id ${project.bundleId}!`);
         for (const app of response.data) {
-            core.info(`[${app.id}] ${(_a = app.attributes) === null || _a === void 0 ? void 0 : _a.bundleId}`);
+            (0, utilities_1.log)(`[${app.id}] ${(_a = app.attributes) === null || _a === void 0 ? void 0 : _a.bundleId}`);
             if (project.bundleId.length === ((_c = (_b = app.attributes) === null || _b === void 0 ? void 0 : _b.bundleId) === null || _c === void 0 ? void 0 : _c.length)) {
                 return app.id;
             }
@@ -57682,17 +57682,15 @@ async function updateBetaBuildLocalization(betaBuildLocalization, whatsNew) {
         path: { id: betaBuildLocalization.id },
         body: updateBuildLocalization
     });
-    const responseJson = JSON.stringify(updateBuildLocalization, null, 2);
     if (updateError) {
         checkAuthError(updateError);
         throw new Error(`Error updating beta build localization: ${JSON.stringify(updateError, null, 2)}`);
     }
-    (0, utilities_1.log)(responseJson);
     return betaBuildLocalization;
 }
 async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
     var _a, _b, _c;
-    core.debug(`Polling build validation...`);
+    (0, utilities_1.log)(`Polling build validation...`);
     await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
     while (++retries < maxRetries) {
@@ -57712,7 +57710,7 @@ async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
                             return build;
                         }
                         else {
-                            core.info(`Build ${build.attributes.version} is VALID but not the latest version ${project.bundleVersion}!`);
+                            core.info(`Waiting for ${project.bundleVersion}...`);
                         }
                         break;
                     case 'FAILED':
@@ -57724,11 +57722,11 @@ async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
                 }
             }
             else {
-                core.info(`No build found for ${(_c = preReleaseVersion.attributes) === null || _c === void 0 ? void 0 : _c.version}!`);
+                core.info(`Waiting for build ${(_c = preReleaseVersion.attributes) === null || _c === void 0 ? void 0 : _c.version}...`);
             }
         }
         else {
-            core.info(`No pre-release version found for ${project.versionString}!`);
+            core.info(`Waiting for pre-release build ${project.versionString}...`);
         }
         await new Promise(resolve => setTimeout(resolve, interval * 1000));
     }
@@ -57958,6 +57956,9 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.log = log;
 const core = __nccwpck_require__(2186);
 function log(message, type = 'info') {
+    if (type == 'info' && !core.isDebug()) {
+        return;
+    }
     const lines = message.split('\n');
     const filteredLines = lines.filter((line) => line.trim() !== '');
     const uniqueLines = Array.from(new Set(filteredLines));

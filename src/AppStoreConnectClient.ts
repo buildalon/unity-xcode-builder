@@ -65,9 +65,9 @@ export async function GetAppId(project: XcodeProject): Promise<string> {
         throw new Error(`No apps found for bundle id ${project.bundleId}`);
     }
     if (response.data.length > 1) {
-        core.warning(`Multiple apps found for bundle id ${project.bundleId}!`);
+        log(`Multiple apps found for bundle id ${project.bundleId}!`);
         for (const app of response.data) {
-            core.info(`[${app.id}] ${app.attributes?.bundleId}`);
+            log(`[${app.id}] ${app.attributes?.bundleId}`);
             if (project.bundleId.length === app.attributes?.bundleId?.length) {
                 return app.id;
             }
@@ -237,17 +237,15 @@ async function updateBetaBuildLocalization(betaBuildLocalization: BetaBuildLocal
         path: { id: betaBuildLocalization.id },
         body: updateBuildLocalization
     });
-    const responseJson = JSON.stringify(updateBuildLocalization, null, 2);
     if (updateError) {
         checkAuthError(updateError);
         throw new Error(`Error updating beta build localization: ${JSON.stringify(updateError, null, 2)}`);
     }
-    log(responseJson);
     return betaBuildLocalization;
 }
 
 async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60, interval: number = 30): Promise<Build> {
-    core.debug(`Polling build validation...`);
+    log(`Polling build validation...`);
     await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
     while (++retries < maxRetries) {
@@ -266,7 +264,7 @@ async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60,
                             core.info(`Build ${build.attributes.version} is VALID`);
                             return build;
                         } else {
-                            core.info(`Build ${build.attributes.version} is VALID but not the latest version ${project.bundleVersion}!`);
+                            core.info(`Waiting for ${project.bundleVersion}...`);
                         }
                         break;
                     case 'FAILED':
@@ -277,10 +275,10 @@ async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60,
                         break;
                 }
             } else {
-                core.info(`No build found for ${preReleaseVersion.attributes?.version}!`);
+                core.info(`Waiting for build ${preReleaseVersion.attributes?.version}...`);
             }
         } else {
-            core.info(`No pre-release version found for ${project.versionString}!`);
+            core.info(`Waiting for pre-release build ${project.versionString}...`);
         }
         await new Promise(resolve => setTimeout(resolve, interval * 1000));
     }
