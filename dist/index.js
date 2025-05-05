@@ -58720,7 +58720,7 @@ async function UploadApp(projectRef) {
         ignoreReturnCode: true
     });
     const outputJson = JSON.stringify(JSON.parse(output), null, 2);
-    if (exitCode > 0) {
+    if (exitCode !== 0) {
         (0, utilities_1.log)(outputJson, 'error');
         throw new Error(`Failed to upload app!`);
     }

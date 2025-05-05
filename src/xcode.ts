@@ -737,7 +737,7 @@ export async function UploadApp(projectRef: XcodeProject) {
         ignoreReturnCode: true
     });
     const outputJson = JSON.stringify(JSON.parse(output), null, 2);
-    if (exitCode > 0) {
+    if (exitCode !== 0) {
         log(outputJson, 'error');
         throw new Error(`Failed to upload app!`);
     }
