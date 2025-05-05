@@ -68,7 +68,7 @@ export async function GetAppId(project: XcodeProject): Promise<string> {
         log(`Multiple apps found for bundle id ${project.bundleId}!`);
         for (const app of response.data) {
             log(`[${app.id}] ${app.attributes?.bundleId}`);
-            if (project.bundleId.length === app.attributes?.bundleId?.length) {
+            if (project.bundleId === app.attributes?.bundleId) {
                 return app.id;
             }
         }

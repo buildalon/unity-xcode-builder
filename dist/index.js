@@ -57499,7 +57499,7 @@ function checkAuthError(error) {
     }
 }
 async function GetAppId(project) {
-    var _a, _b, _c;
+    var _a, _b;
     await getOrCreateClient(project);
     const { data: response, error } = await appStoreConnectClient.api.AppsService.appsGetCollection({
         query: { 'filter[bundleId]': [project.bundleId] }
@@ -57519,7 +57519,7 @@ async function GetAppId(project) {
         (0, utilities_1.log)(`Multiple apps found for bundle id ${project.bundleId}!`);
         for (const app of response.data) {
             (0, utilities_1.log)(`[${app.id}] ${(_a = app.attributes) === null || _a === void 0 ? void 0 : _a.bundleId}`);
-            if (project.bundleId.length === ((_c = (_b = app.attributes) === null || _b === void 0 ? void 0 : _b.bundleId) === null || _c === void 0 ? void 0 : _c.length)) {
+            if (project.bundleId === ((_b = app.attributes) === null || _b === void 0 ? void 0 : _b.bundleId)) {
                 return app.id;
             }
         }
