@@ -57499,9 +57499,7 @@ function checkAuthError(error) {
     }
 }
 async function GetAppId(project) {
-    if (project.appId) {
-        return project;
-    }
+    var _a, _b;
     await getOrCreateClient(project);
     const { data: response, error } = await appStoreConnectClient.api.AppsService.appsGetCollection({
         query: { 'filter[bundleId]': [project.bundleId] }
@@ -57510,26 +57508,32 @@ async function GetAppId(project) {
         checkAuthError(error);
         throw new Error(`Error fetching apps: ${JSON.stringify(error)}`);
     }
+    (0, utilities_1.log)(`GET /appsGetCollection\n${JSON.stringify(response, null, 2)}`);
     if (!response) {
         throw new Error(`No apps found for bundle id ${project.bundleId}`);
     }
     if (response.data.length === 0) {
         throw new Error(`No apps found for bundle id ${project.bundleId}`);
     }
-    project.appId = response.data[0].id;
-    return project;
+    if (response.data.length > 1) {
+        (0, utilities_1.log)(`Multiple apps found for bundle id ${project.bundleId}!`);
+        for (const app of response.data) {
+            (0, utilities_1.log)(`[${app.id}] ${(_a = app.attributes) === null || _a === void 0 ? void 0 : _a.bundleId}`);
+            if (project.bundleId === ((_b = app.attributes) === null || _b === void 0 ? void 0 : _b.bundleId)) {
+                return app.id;
+            }
+        }
+    }
+    return response.data[0].id;
 }
 async function GetLatestBundleVersion(project) {
+    var _a;
     await getOrCreateClient(project);
     let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
     if (!build) {
         build = await getLastPrereleaseBuild(preReleaseVersion);
     }
-    const buildVersion = build.attributes.version;
-    if (!buildVersion) {
-        throw new Error(`No build version found!\n${JSON.stringify(build, null, 2)}`);
-    }
-    return Number(buildVersion);
+    return (_a = build === null || build === void 0 ? void 0 : build.attributes) === null || _a === void 0 ? void 0 : _a.version;
 }
 function reMapPlatform(project) {
     switch (project.platform) {
@@ -57548,7 +57552,7 @@ function reMapPlatform(project) {
 async function getLastPreReleaseVersionAndBuild(project) {
     var _a, _b, _c, _d, _e;
     if (!project.appId) {
-        project = await GetAppId(project);
+        project.appId = await GetAppId(project);
     }
     const preReleaseVersionRequest = {
         query: {
@@ -57561,7 +57565,7 @@ async function getLastPreReleaseVersionAndBuild(project) {
             limit: 1,
         }
     };
-    (0, utilities_1.log)(`/preReleaseVersions?${JSON.stringify(preReleaseVersionRequest.query)}`);
+    (0, utilities_1.log)(`GET /preReleaseVersions?${JSON.stringify(preReleaseVersionRequest.query)}`);
     const { data: preReleaseResponse, error: preReleaseError } = await appStoreConnectClient.api.PreReleaseVersionsService.preReleaseVersionsGetCollection(preReleaseVersionRequest);
     const responseJson = JSON.stringify(preReleaseResponse, null, 2);
     if (preReleaseError) {
@@ -57599,7 +57603,7 @@ async function getLastPrereleaseBuild(prereleaseVersion) {
             limit: 1
         }
     };
-    (0, utilities_1.log)(`/builds?${JSON.stringify(buildsRequest.query)}`);
+    (0, utilities_1.log)(`GET /builds?${JSON.stringify(buildsRequest.query)}`);
     const { data: buildsResponse, error: buildsError } = await appStoreConnectClient.api.BuildsService.buildsGetCollection(buildsRequest);
     const responseJson = JSON.stringify(buildsResponse, null, 2);
     if (buildsError) {
@@ -57620,7 +57624,7 @@ async function getBetaBuildLocalization(build) {
             'fields[betaBuildLocalizations]': ['whatsNew']
         }
     };
-    (0, utilities_1.log)(`/betaBuildLocalizations?${JSON.stringify(betaBuildLocalizationRequest.query)}`);
+    (0, utilities_1.log)(`GET /betaBuildLocalizations?${JSON.stringify(betaBuildLocalizationRequest.query)}`);
     const { data: betaBuildLocalizationResponse, error: betaBuildLocalizationError } = await appStoreConnectClient.api.BetaBuildLocalizationsService.betaBuildLocalizationsGetCollection(betaBuildLocalizationRequest);
     const responseJson = JSON.stringify(betaBuildLocalizationResponse, null, 2);
     if (betaBuildLocalizationError) {
@@ -57651,7 +57655,7 @@ async function createBetaBuildLocalization(build, whatsNew) {
             }
         }
     };
-    (0, utilities_1.log)(`/betaBuildLocalizations\n${JSON.stringify(betaBuildLocalizationRequest, null, 2)}`);
+    (0, utilities_1.log)(`POST /betaBuildLocalizations\n${JSON.stringify(betaBuildLocalizationRequest, null, 2)}`);
     const { data: response, error: responseError } = await appStoreConnectClient.api.BetaBuildLocalizationsService.betaBuildLocalizationsCreateInstance({
         body: betaBuildLocalizationRequest
     });
@@ -57673,66 +57677,77 @@ async function updateBetaBuildLocalization(betaBuildLocalization, whatsNew) {
             }
         }
     };
-    (0, utilities_1.log)(`/betaBuildLocalizations/${betaBuildLocalization.id}\n${JSON.stringify(updateBuildLocalization, null, 2)}`);
+    (0, utilities_1.log)(`POST /betaBuildLocalizations/${betaBuildLocalization.id}\n${JSON.stringify(updateBuildLocalization, null, 2)}`);
     const { error: updateError } = await appStoreConnectClient.api.BetaBuildLocalizationsService.betaBuildLocalizationsUpdateInstance({
         path: { id: betaBuildLocalization.id },
         body: updateBuildLocalization
     });
-    const responseJson = JSON.stringify(updateBuildLocalization, null, 2);
     if (updateError) {
         checkAuthError(updateError);
         throw new Error(`Error updating beta build localization: ${JSON.stringify(updateError, null, 2)}`);
     }
-    (0, utilities_1.log)(responseJson);
     return betaBuildLocalization;
 }
-async function pollForValidBuild(project, buildVersion, whatsNew, maxRetries = 60, interval = 30) {
+async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
     var _a, _b, _c;
+    (0, utilities_1.log)(`Polling build validation...`);
+    await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
-    while (retries < maxRetries) {
-        if (core.isDebug()) {
-            core.startGroup(`Polling for build... Attempt ${++retries}/${maxRetries}`);
-        }
-        try {
-            let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
-            if (!preReleaseVersion) {
-                throw new Error('No pre-release version found!');
-            }
+    while (++retries < maxRetries) {
+        core.info(`Polling for build... Attempt ${retries}/${maxRetries}`);
+        let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
+        if (preReleaseVersion) {
             if (!build) {
                 build = await getLastPrereleaseBuild(preReleaseVersion);
             }
-            if (((_a = build.attributes) === null || _a === void 0 ? void 0 : _a.version) !== buildVersion.toString()) {
-                throw new Error(`Build version ${(_b = build.attributes) === null || _b === void 0 ? void 0 : _b.version} does not match expected version ${buildVersion}`);
-            }
-            if (((_c = build.attributes) === null || _c === void 0 ? void 0 : _c.processingState) !== 'VALID') {
-                throw new Error(`Build ${buildVersion} is not valid yet!`);
-            }
-            const betaBuildLocalization = await getBetaBuildLocalization(build);
-            try {
-                if (!betaBuildLocalization) {
-                    return await createBetaBuildLocalization(build, whatsNew);
+            if (build) {
+                const normalizedBuildVersion = normalizeVersion((_a = build.attributes) === null || _a === void 0 ? void 0 : _a.version);
+                const normalizedProjectVersion = normalizeVersion(project.bundleVersion);
+                switch ((_b = build.attributes) === null || _b === void 0 ? void 0 : _b.processingState) {
+                    case 'VALID':
+                        if (normalizedBuildVersion === normalizedProjectVersion) {
+                            core.info(`Build ${build.attributes.version} is VALID`);
+                            return build;
+                        }
+                        else {
+                            core.info(`Waiting for ${project.bundleVersion}...`);
+                        }
+                        break;
+                    case 'FAILED':
+                    case 'INVALID':
+                        throw new Error(`Build ${build.attributes.version} === ${build.attributes.processingState}!`);
+                    default:
+                        core.info(`Build ${build.attributes.version} is ${build.attributes.processingState}...`);
+                        break;
                 }
             }
-            catch (error) {
-                (0, utilities_1.log)(error, core.isDebug() ? 'warning' : 'info');
+            else {
+                core.info(`Waiting for build ${(_c = preReleaseVersion.attributes) === null || _c === void 0 ? void 0 : _c.version}...`);
             }
-            return await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
         }
-        catch (error) {
-            (0, utilities_1.log)(error, core.isDebug() ? 'error' : 'info');
-        }
-        finally {
-            if (core.isDebug()) {
-                core.endGroup();
-            }
+        else {
+            core.info(`Waiting for pre-release build ${project.versionString}...`);
         }
         await new Promise(resolve => setTimeout(resolve, interval * 1000));
     }
     throw new Error('Timed out waiting for valid build!');
 }
-async function UpdateTestDetails(project, buildVersion, whatsNew) {
+async function UpdateTestDetails(project, whatsNew) {
+    core.info(`Updating test details...`);
     await getOrCreateClient(project);
-    await pollForValidBuild(project, buildVersion, whatsNew);
+    const build = await pollForValidBuild(project);
+    const betaBuildLocalization = await getBetaBuildLocalization(build);
+    if (!betaBuildLocalization) {
+        core.info(`Creating beta build localization...`);
+        await createBetaBuildLocalization(build, whatsNew);
+    }
+    else {
+        core.info(`Updating beta build localization...`);
+        await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
+    }
+}
+function normalizeVersion(version) {
+    return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
 }
 
 
@@ -58004,6 +58019,10 @@ async function GetProjectDetails(credential, xcodeVersion) {
     let projectPath = undefined;
     const globber = await glob.create(projectPathInput);
     const files = await globber.glob();
+    if (!files || files.length === 0) {
+        throw new Error(`No project found at: ${projectPathInput}`);
+    }
+    core.debug(`Files found during search: ${files.join(', ')}`);
     const excludedProjects = ['GameAssembly', 'UnityFramework', 'Pods'];
     for (const file of files) {
         if (file.endsWith('.xcodeproj')) {
@@ -58017,7 +58036,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
         }
     }
     if (!projectPath) {
-        throw new Error('Invalid project-path! Unable to find .xcodeproj');
+        throw new Error(`Invalid project-path! Unable to find .xcodeproj in ${projectPathInput}. ${files.length} files were found but none matched.\n${files.join(', ')}`);
     }
     core.debug(`Resolved Project path: ${projectPath}`);
     await fs.promises.access(projectPath, fs.constants.R_OK);
@@ -58045,7 +58064,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
         infoPlistPath = `${projectDirectory}/Info.plist`;
     }
     core.info(`Info.plist path: ${infoPlistPath}`);
-    const infoPlistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDWR);
+    const infoPlistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
     let infoPlistContent;
     try {
         infoPlistContent = await fs.promises.readFile(infoPlistHandle, 'utf8');
@@ -58054,44 +58073,100 @@ async function GetProjectDetails(credential, xcodeVersion) {
         await infoPlistHandle.close();
     }
     const infoPlist = plist.parse(infoPlistContent);
-    const cFBundleShortVersionString = infoPlist['CFBundleShortVersionString'];
+    let cFBundleShortVersionString = infoPlist['CFBundleShortVersionString'];
+    if (cFBundleShortVersionString) {
+        const semverRegex = /^(?<major>\d+)\.(?<minor>\d+)\.(?<revision>\d+)/;
+        const match = cFBundleShortVersionString.match(semverRegex);
+        if (match) {
+            const { major, minor, revision } = match.groups;
+            cFBundleShortVersionString = `${major}.${minor}.${revision}`;
+            infoPlist['CFBundleShortVersionString'] = cFBundleShortVersionString.toString();
+            try {
+                core.info(`Updating Info.plist with CFBundleShortVersionString: ${cFBundleShortVersionString}`);
+                await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
+            }
+            catch (error) {
+                throw new Error(`Failed to update Info.plist!\n${error}`);
+            }
+        }
+        else {
+            throw new Error(`Invalid CFBundleShortVersionString format: ${cFBundleShortVersionString}`);
+        }
+    }
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'];
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
     const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, destination, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
+    projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
     await getExportOptions(projectRef);
-    if (projectRef.isAppStoreUpload() && core.getInput('auto-increment-build-number') === 'true') {
-        projectRef.credential.appleId = await getAppId(projectRef);
-        let bundleVersion = -1;
-        try {
-            bundleVersion = await (0, AppStoreConnectClient_1.GetLatestBundleVersion)(projectRef);
-        }
-        catch (error) {
-            if (error instanceof AppStoreConnectClient_1.UnauthorizedError) {
-                throw error;
+    if (projectRef.isAppStoreUpload()) {
+        projectRef.appId = await (0, AppStoreConnectClient_1.GetAppId)(projectRef);
+        if (projectRef.autoIncrementBuildNumber) {
+            let projectBundleVersionPrefix = '';
+            let projectBundleVersionNumber;
+            if (!cFBundleVersion || cFBundleVersion.length === 0) {
+                projectBundleVersionNumber = 0;
             }
-        }
-        if (projectRef.bundleVersion <= bundleVersion) {
-            projectRef.bundleVersion = bundleVersion + 1;
-            core.debug(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
-            infoPlist['CFBundleVersion'] = projectRef.bundleVersion.toString();
+            else if (cFBundleVersion.includes('.')) {
+                const versionParts = cFBundleVersion.split('.');
+                projectBundleVersionNumber = parseInt(versionParts[versionParts.length - 1]);
+                projectBundleVersionPrefix = versionParts.slice(0, -1).join('.') + '.';
+            }
+            else {
+                projectBundleVersionNumber = parseInt(cFBundleVersion);
+            }
+            let lastVersionNumber;
+            let versionPrefix = '';
+            let lastBundleVersion = null;
+            try {
+                lastBundleVersion = await (0, AppStoreConnectClient_1.GetLatestBundleVersion)(projectRef);
+            }
+            catch (error) {
+                if (error instanceof AppStoreConnectClient_1.UnauthorizedError) {
+                    throw error;
+                }
+            }
+            if (!lastBundleVersion || lastBundleVersion.length === 0) {
+                lastVersionNumber = -1;
+            }
+            else if (lastBundleVersion.includes('.')) {
+                const versionParts = lastBundleVersion.split('.');
+                lastVersionNumber = parseInt(versionParts[versionParts.length - 1]);
+                versionPrefix = versionParts.slice(0, -1).join('.') + '.';
+            }
+            else {
+                lastVersionNumber = parseInt(lastBundleVersion);
+            }
+            if (projectBundleVersionPrefix.length > 0 && projectBundleVersionPrefix !== versionPrefix) {
+                core.debug(`Project version prefix: ${projectBundleVersionPrefix}`);
+                core.debug(`Last bundle version prefix: ${versionPrefix}`);
+                if (lastVersionNumber > projectBundleVersionNumber) {
+                    projectBundleVersionPrefix = versionPrefix;
+                    core.info(`Updated project version prefix to: ${projectBundleVersionPrefix}`);
+                }
+            }
+            if (projectBundleVersionNumber <= lastVersionNumber) {
+                projectBundleVersionNumber = lastVersionNumber + 1;
+                core.info(`Auto Incremented bundle version ==> ${versionPrefix}${projectBundleVersionNumber}`);
+            }
+            infoPlist['CFBundleVersion'] = projectBundleVersionPrefix + projectBundleVersionNumber.toString();
+            projectRef.bundleVersion = projectBundleVersionPrefix + projectBundleVersionNumber.toString();
             try {
                 await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
             }
             catch (error) {
                 (0, utilities_1.log)(`Failed to update Info.plist!\n${error}`, 'error');
             }
-            const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
-            try {
-                core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
-                infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
-            }
-            finally {
-                await plistHandle.close();
-            }
         }
     }
-    core.info(`----- Info.plist content: -----\n${infoPlistContent}\n-----------------------------------`);
+    const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
+    try {
+        infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
+    }
+    finally {
+        await plistHandle.close();
+    }
+    core.info(`------- Info.plist content: -------\n${infoPlistContent}\n-----------------------------------`);
     return projectRef;
 }
 async function checkSimulatorsAvailable(platform) {
@@ -58423,7 +58498,7 @@ async function getExportOptions(projectRef) {
             signingStyle: projectRef.credential.signingIdentity ? 'manual' : 'automatic',
             teamID: `${projectRef.credential.teamId}`
         };
-        if (method === 'app-store-connect') {
+        if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {
             exportOptions['manageAppVersionAndBuildNumber'] = true;
         }
         projectRef.exportOption = method;
@@ -58609,42 +58684,6 @@ async function ValidateApp(projectRef) {
         throw new Error(`Failed to validate app: ${JSON.stringify(JSON.parse(output), null, 2)}`);
     }
 }
-async function getAppId(projectRef) {
-    const providersArgs = [
-        'altool',
-        '--list-apps',
-        '--apiKey', projectRef.credential.appStoreConnectKeyId,
-        '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
-        '--output-format', 'json'
-    ];
-    let output = '';
-    if (!core.isDebug()) {
-        core.info(`[command]${xcrun} ${providersArgs.join(' ')}`);
-    }
-    const exitCode = await (0, exec_1.exec)(xcrun, providersArgs, {
-        listeners: {
-            stdout: (data) => {
-                output += data.toString();
-            }
-        },
-        ignoreReturnCode: true,
-        silent: !core.isDebug()
-    });
-    const response = JSON.parse(output);
-    const outputJson = JSON.stringify(response, null, 2);
-    if (exitCode > 0) {
-        (0, utilities_1.log)(outputJson, 'error');
-        throw new Error(`Failed to list providers`);
-    }
-    const app = response.applications.find((app) => app.ExistingBundleIdentifier === projectRef.bundleId);
-    if (!app) {
-        throw new Error(`App not found with bundleId: ${projectRef.bundleId}`);
-    }
-    if (!app.AppleID) {
-        throw new Error(`AppleID not found for app: ${JSON.stringify(app, null, 2)}`);
-    }
-    return app.AppleID;
-}
 async function UploadApp(projectRef) {
     const platforms = {
         'iOS': 'ios',
@@ -58656,7 +58695,7 @@ async function UploadApp(projectRef) {
         'altool',
         '--upload-package', projectRef.executablePath,
         '--type', platforms[projectRef.platform],
-        '--apple-id', projectRef.credential.appleId,
+        '--apple-id', projectRef.appId,
         '--bundle-id', projectRef.bundleId,
         '--bundle-version', projectRef.bundleVersion,
         '--bundle-short-version-string', projectRef.versionString,
@@ -58688,20 +58727,21 @@ async function UploadApp(projectRef) {
     core.debug(outputJson);
     try {
         const whatsNew = await getWhatsNew();
-        core.info(`Uploading test details...\n${whatsNew}`);
-        await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, projectRef.bundleVersion, whatsNew);
+        core.info(`\n--------------- what's new ---------------\n${whatsNew}\n------------------------------------------\n`);
+        await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, whatsNew);
     }
     catch (error) {
-        (0, utilities_1.log)(`Failed to upload test details!\n${JSON.stringify(error)}`, 'error');
+        (0, utilities_1.log)(`Failed to upload test details!\n${error}`, 'error');
     }
 }
 async function getWhatsNew() {
-    var _a;
+    var _a, _b, _c;
     let whatsNew = core.getInput('whats-new');
     if (!whatsNew || whatsNew.length === 0) {
         const head = github.context.eventName === 'pull_request'
             ? (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.head.sha
             : github.context.sha || 'HEAD';
+        await execGit(['fetch', 'origin', head, '--depth=1']);
         const commitSha = await execGit(['log', head, '-1', '--format=%h']);
         const branchNameDetails = await execGit(['log', head, '-1', '--format=%d']);
         const branchNameMatch = branchNameDetails.match(/\((?<branch>.+)\)/);
@@ -58714,12 +58754,14 @@ async function getWhatsNew() {
             if (branchName.includes(',')) {
                 branchName = branchName.split(',')[1];
             }
-            if (branchName.includes('/')) {
-                branchName = branchName.split('/')[1];
-            }
+        }
+        let pullRequestInfo = '';
+        if (github.context.eventName === 'pull_request') {
+            const prTitle = (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.title;
+            pullRequestInfo = `PR #${(_c = github.context.payload.pull_request) === null || _c === void 0 ? void 0 : _c.number} ${prTitle}`;
         }
         const commitMessage = await execGit(['log', head, '-1', '--format=%B']);
-        whatsNew = `[${commitSha.trim()}]${branchName.trim()}\n${commitMessage.trim()}`;
+        whatsNew = `[${commitSha.trim()}] ${branchName.trim()}\n${pullRequestInfo}\n${commitMessage.trim()}`;
         if (whatsNew.length > 4000) {
             whatsNew = `${whatsNew.substring(0, 3997)}...`;
         }
@@ -58731,12 +58773,16 @@ async function getWhatsNew() {
 }
 async function execGit(args) {
     let output = '';
+    if (!core.isDebug()) {
+        core.info(`[command]git ${args.join(' ')}`);
+    }
     const exitCode = await (0, exec_1.exec)('git', args, {
         listeners: {
             stdout: (data) => {
                 output += data.toString();
             }
-        }
+        },
+        silent: !core.isDebug()
     });
     if (exitCode > 0) {
         (0, utilities_1.log)(output, 'error');
@@ -60704,14 +60750,57 @@ const main = async () => {
             let xcodeVersionString = core.getInput('xcode-version');
             if (xcodeVersionString) {
                 core.info(`Setting xcode version to ${xcodeVersionString}`);
-                if (core.isDebug()) {
-                    await exec.exec('xcodes', ['list']);
+                let xcodeVersionOutput = '';
+                const installedExitCode = await exec.exec('xcodes', ['installed'], {
+                    listeners: {
+                        stdout: (data) => {
+                            xcodeVersionOutput += data.toString();
+                        }
+                    }
+                });
+                if (installedExitCode !== 0) {
+                    throw new Error('Failed to get installed Xcode versions!');
                 }
-                if (xcodeVersionString.includes('latest')) {
-                    await exec.exec('xcodes', ['install', '--latest', '--select']);
+                const installedXcodeVersions = xcodeVersionOutput.split('\n').map(line => {
+                    const match = line.match(/(\d+\.\d+(\s\w+)?)/);
+                    return match ? match[1] : null;
+                }).filter(Boolean);
+                core.debug(`Installed Xcode versions:\n  ${installedXcodeVersions.join('\n')}`);
+                if (installedXcodeVersions.length === 0 ||
+                    !xcodeVersionString.includes('latest')) {
+                    if (installedXcodeVersions.length === 0 ||
+                        !installedXcodeVersions.includes(xcodeVersionString)) {
+                        const xcodesUsername = process.env.XCODES_USERNAME;
+                        const xcodesPassword = process.env.XCODES_PASSWORD;
+                        if (!xcodesUsername || !xcodesPassword) {
+                            throw new Error(`Xcode version ${xcodeVersionString} is not installed! Please set XCODES_USERNAME and XCODES_PASSWORD to download it.`);
+                        }
+                        core.info(`Downloading missing Xcode version ${xcodeVersionString}...`);
+                        const installExitCode = await exec.exec('xcodes', ['install', xcodeVersionString, '--select'], {
+                            env: {
+                                XCODES_USERNAME: xcodesUsername,
+                                XCODES_PASSWORD: xcodesPassword
+                            }
+                        });
+                        if (installExitCode !== 0) {
+                            throw new Error(`Failed to install Xcode version ${xcodeVersionString}!`);
+                        }
+                    }
+                    else {
+                        core.info(`Selecting installed Xcode version ${xcodeVersionString}...`);
+                        const selectExitCode = await exec.exec('xcodes', ['select', xcodeVersionString]);
+                        if (selectExitCode !== 0) {
+                            throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
+                        }
+                    }
                 }
                 else {
-                    await exec.exec('xcodes', ['install', xcodeVersionString, '--select']);
+                    core.info(`Selecting latest installed Xcode version ${xcodeVersionString}...`);
+                    xcodeVersionString = installedXcodeVersions[installedXcodeVersions.length - 1];
+                    const selectExitCode = await exec.exec('xcodes', ['select', xcodeVersionString]);
+                    if (selectExitCode !== 0) {
+                        throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
+                    }
                 }
             }
             let xcodeVersionOutput = '';
@@ -60726,9 +60815,12 @@ const main = async () => {
             if (!xcodeVersionMatch) {
                 throw new Error('Failed to get Xcode version!');
             }
-            xcodeVersionString = xcodeVersionMatch.groups.version;
-            if (!xcodeVersionString) {
+            const selectedXcodeVersionString = xcodeVersionMatch.groups.version;
+            if (!selectedXcodeVersionString) {
                 throw new Error('Failed to parse Xcode version!');
+            }
+            if (xcodeVersionString !== selectedXcodeVersionString) {
+                throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
             }
             let projectRef = await (0, xcode_1.GetProjectDetails)(credential, semver.coerce(xcodeVersionString));
             projectRef = await (0, xcode_1.ArchiveXcodeProject)(projectRef);

@@ -10,7 +10,8 @@ import semver = require('semver');
 import {
     GetLatestBundleVersion,
     UpdateTestDetails,
-    UnauthorizedError
+    UnauthorizedError,
+    GetAppId
 } from './AppStoreConnectClient';
 import { log } from './utilities';
 import core = require('@actions/core');
@@ -27,6 +28,10 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     let projectPath = undefined;
     const globber = await glob.create(projectPathInput);
     const files = await globber.glob();
+    if (!files || files.length === 0) {
+        throw new Error(`No project found at: ${projectPathInput}`);
+    }
+    core.debug(`Files found during search: ${files.join(', ')}`);
     const excludedProjects = ['GameAssembly', 'UnityFramework', 'Pods'];
     for (const file of files) {
         if (file.endsWith('.xcodeproj')) {
@@ -40,7 +45,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         }
     }
     if (!projectPath) {
-        throw new Error('Invalid project-path! Unable to find .xcodeproj');
+        throw new Error(`Invalid project-path! Unable to find .xcodeproj in ${projectPathInput}. ${files.length} files were found but none matched.\n${files.join(', ')}`);
     }
     core.debug(`Resolved Project path: ${projectPath}`);
     await fs.promises.access(projectPath, fs.constants.R_OK);
@@ -68,7 +73,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         infoPlistPath = `${projectDirectory}/Info.plist`;
     }
     core.info(`Info.plist path: ${infoPlistPath}`);
-    const infoPlistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDWR);
+    const infoPlistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
     let infoPlistContent: string;
     try {
         infoPlistContent = await fs.promises.readFile(infoPlistHandle, 'utf8');
@@ -76,9 +81,26 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         await infoPlistHandle.close();
     }
     const infoPlist = plist.parse(infoPlistContent) as any;
-    const cFBundleShortVersionString = infoPlist['CFBundleShortVersionString'];
+    let cFBundleShortVersionString: string = infoPlist['CFBundleShortVersionString'];
+    if (cFBundleShortVersionString) {
+        const semverRegex = /^(?<major>\d+)\.(?<minor>\d+)\.(?<revision>\d+)/;
+        const match = cFBundleShortVersionString.match(semverRegex);
+        if (match) {
+            const { major, minor, revision } = match.groups as { [key: string]: string };
+            cFBundleShortVersionString = `${major}.${minor}.${revision}`;
+            infoPlist['CFBundleShortVersionString'] = cFBundleShortVersionString.toString();
+            try {
+                core.info(`Updating Info.plist with CFBundleShortVersionString: ${cFBundleShortVersionString}`);
+                await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
+            } catch (error) {
+                throw new Error(`Failed to update Info.plist!\n${error}`);
+            }
+        } else {
+            throw new Error(`Invalid CFBundleShortVersionString format: ${cFBundleShortVersionString}`);
+        }
+    }
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
-    const cFBundleVersion = infoPlist['CFBundleVersion'] as number;
+    const cFBundleVersion = infoPlist['CFBundleVersion'] as string;
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
     const projectRef = new XcodeProject(
         projectPath,
@@ -93,36 +115,70 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         credential,
         xcodeVersion
     );
+    projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
     await getExportOptions(projectRef);
-    if (projectRef.isAppStoreUpload() && core.getInput('auto-increment-build-number') === 'true') {
-        projectRef.credential.appleId = await getAppId(projectRef);
-        let bundleVersion = -1;
-        try {
-            bundleVersion = await GetLatestBundleVersion(projectRef);
-        } catch (error) {
-            if (error instanceof UnauthorizedError) {
-                throw error;
+    if (projectRef.isAppStoreUpload()) {
+        projectRef.appId = await GetAppId(projectRef);
+        if (projectRef.autoIncrementBuildNumber) {
+            let projectBundleVersionPrefix = '';
+            let projectBundleVersionNumber: number;
+            if (!cFBundleVersion || cFBundleVersion.length === 0) {
+                projectBundleVersionNumber = 0;
+            } else if (cFBundleVersion.includes('.')) {
+                const versionParts = cFBundleVersion.split('.');
+                projectBundleVersionNumber = parseInt(versionParts[versionParts.length - 1]);
+                projectBundleVersionPrefix = versionParts.slice(0, -1).join('.') + '.';
+            } else {
+                projectBundleVersionNumber = parseInt(cFBundleVersion);
             }
-        }
-        if (projectRef.bundleVersion <= bundleVersion) {
-            projectRef.bundleVersion = bundleVersion + 1;
-            core.debug(`Auto Incremented bundle version ==> ${projectRef.bundleVersion}`);
-            infoPlist['CFBundleVersion'] = projectRef.bundleVersion.toString();
+            let lastVersionNumber: number;
+            let versionPrefix = '';
+            let lastBundleVersion: string = null;
+            try {
+                lastBundleVersion = await GetLatestBundleVersion(projectRef);
+            } catch (error) {
+                if (error instanceof UnauthorizedError) {
+                    throw error;
+                }
+            }
+            if (!lastBundleVersion || lastBundleVersion.length === 0) {
+                lastVersionNumber = -1;
+            }
+            else if (lastBundleVersion.includes('.')) {
+                const versionParts = lastBundleVersion.split('.');
+                lastVersionNumber = parseInt(versionParts[versionParts.length - 1]);
+                versionPrefix = versionParts.slice(0, -1).join('.') + '.';
+            } else {
+                lastVersionNumber = parseInt(lastBundleVersion);
+            }
+            if (projectBundleVersionPrefix.length > 0 && projectBundleVersionPrefix !== versionPrefix) {
+                core.debug(`Project version prefix: ${projectBundleVersionPrefix}`);
+                core.debug(`Last bundle version prefix: ${versionPrefix}`);
+                if (lastVersionNumber > projectBundleVersionNumber) {
+                    projectBundleVersionPrefix = versionPrefix;
+                    core.info(`Updated project version prefix to: ${projectBundleVersionPrefix}`);
+                }
+            }
+            if (projectBundleVersionNumber <= lastVersionNumber) {
+                projectBundleVersionNumber = lastVersionNumber + 1;
+                core.info(`Auto Incremented bundle version ==> ${versionPrefix}${projectBundleVersionNumber}`);
+            }
+            infoPlist['CFBundleVersion'] = projectBundleVersionPrefix + projectBundleVersionNumber.toString();
+            projectRef.bundleVersion = projectBundleVersionPrefix + projectBundleVersionNumber.toString();
             try {
                 await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
             } catch (error) {
                 log(`Failed to update Info.plist!\n${error}`, 'error');
             }
-            const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
-            try {
-                core.info(`Updated Info.plist with CFBundleVersion: ${projectRef.bundleVersion}`);
-                infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
-            } finally {
-                await plistHandle.close();
-            }
         }
     }
-    core.info(`----- Info.plist content: -----\n${infoPlistContent}\n-----------------------------------`);
+    const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
+    try {
+        infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
+    } finally {
+        await plistHandle.close();
+    }
+    core.info(`------- Info.plist content: -------\n${infoPlistContent}\n-----------------------------------`);
     return projectRef;
 }
 
@@ -461,7 +517,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
             signingStyle: projectRef.credential.signingIdentity ? 'manual' : 'automatic',
             teamID: `${projectRef.credential.teamId}`
         };
-        if (method === 'app-store-connect') {
+        if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {
             exportOptions['manageAppVersionAndBuildNumber'] = true;
         }
         projectRef.exportOption = method;
@@ -646,43 +702,6 @@ export async function ValidateApp(projectRef: XcodeProject) {
     }
 }
 
-async function getAppId(projectRef: XcodeProject): Promise<string> {
-    const providersArgs = [
-        'altool',
-        '--list-apps',
-        '--apiKey', projectRef.credential.appStoreConnectKeyId,
-        '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
-        '--output-format', 'json'
-    ];
-    let output = '';
-    if (!core.isDebug()) {
-        core.info(`[command]${xcrun} ${providersArgs.join(' ')}`);
-    }
-    const exitCode = await exec(xcrun, providersArgs, {
-        listeners: {
-            stdout: (data: Buffer) => {
-                output += data.toString();
-            }
-        },
-        ignoreReturnCode: true,
-        silent: !core.isDebug()
-    });
-    const response = JSON.parse(output);
-    const outputJson = JSON.stringify(response, null, 2);
-    if (exitCode > 0) {
-        log(outputJson, 'error');
-        throw new Error(`Failed to list providers`);
-    }
-    const app = response.applications.find((app: any) => app.ExistingBundleIdentifier === projectRef.bundleId);
-    if (!app) {
-        throw new Error(`App not found with bundleId: ${projectRef.bundleId}`);
-    }
-    if (!app.AppleID) {
-        throw new Error(`AppleID not found for app: ${JSON.stringify(app, null, 2)}`);
-    }
-    return app.AppleID;
-}
-
 export async function UploadApp(projectRef: XcodeProject) {
     const platforms = {
         'iOS': 'ios',
@@ -694,7 +713,7 @@ export async function UploadApp(projectRef: XcodeProject) {
         'altool',
         '--upload-package', projectRef.executablePath,
         '--type', platforms[projectRef.platform],
-        '--apple-id', projectRef.credential.appleId,
+        '--apple-id', projectRef.appId,
         '--bundle-id', projectRef.bundleId,
         '--bundle-version', projectRef.bundleVersion,
         '--bundle-short-version-string', projectRef.versionString,
@@ -725,10 +744,10 @@ export async function UploadApp(projectRef: XcodeProject) {
     core.debug(outputJson);
     try {
         const whatsNew = await getWhatsNew();
-        core.info(`Uploading test details...\n${whatsNew}`);
-        await UpdateTestDetails(projectRef, projectRef.bundleVersion, whatsNew);
+        core.info(`\n--------------- what's new ---------------\n${whatsNew}\n------------------------------------------\n`);
+        await UpdateTestDetails(projectRef, whatsNew);
     } catch (error) {
-        log(`Failed to upload test details!\n${JSON.stringify(error)}`, 'error');
+        log(`Failed to upload test details!\n${error}`, 'error');
     }
 }
 
@@ -738,6 +757,7 @@ async function getWhatsNew(): Promise<string> {
         const head = github.context.eventName === 'pull_request'
             ? github.context.payload.pull_request?.head.sha
             : github.context.sha || 'HEAD';
+        await execGit(['fetch', 'origin', head, '--depth=1']);
         const commitSha = await execGit(['log', head, '-1', '--format=%h']);
         const branchNameDetails = await execGit(['log', head, '-1', '--format=%d']);
         const branchNameMatch = branchNameDetails.match(/\((?<branch>.+)\)/);
@@ -750,12 +770,14 @@ async function getWhatsNew(): Promise<string> {
             if (branchName.includes(',')) {
                 branchName = branchName.split(',')[1];
             }
-            if (branchName.includes('/')) {
-                branchName = branchName.split('/')[1];
-            }
+        }
+        let pullRequestInfo = '';
+        if (github.context.eventName === 'pull_request') {
+            const prTitle = github.context.payload.pull_request?.title;
+            pullRequestInfo = `PR #${github.context.payload.pull_request?.number} ${prTitle}`;
         }
         const commitMessage = await execGit(['log', head, '-1', '--format=%B']);
-        whatsNew = `[${commitSha.trim()}]${branchName.trim()}\n${commitMessage.trim()}`;
+        whatsNew = `[${commitSha.trim()}] ${branchName.trim()}\n${pullRequestInfo}\n${commitMessage.trim()}`;
         if (whatsNew.length > 4000) {
             whatsNew = `${whatsNew.substring(0, 3997)}...`;
         }
@@ -768,12 +790,16 @@ async function getWhatsNew(): Promise<string> {
 
 async function execGit(args: string[]): Promise<string> {
     let output = '';
+    if (!core.isDebug()) {
+        core.info(`[command]git ${args.join(' ')}`);
+    }
     const exitCode = await exec('git', args, {
         listeners: {
             stdout: (data: Buffer) => {
                 output += data.toString();
             }
-        }
+        },
+        silent: !core.isDebug()
     });
     if (exitCode > 0) {
         log(output, 'error');

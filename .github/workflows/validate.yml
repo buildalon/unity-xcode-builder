@@ -47,7 +47,6 @@ jobs:
           version-file: 'None'
           build-targets: ${{ matrix.build-target }}
           unity-version: ${{ matrix.unity-version }}
-          architecture: 'arm64'
       - name: Find Unity Template Path and Version
         run: |
           $rootPath = $env:UNITY_EDITOR_PATH -replace "Editor.*", ""
