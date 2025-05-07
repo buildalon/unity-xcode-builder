@@ -246,9 +246,9 @@ async function updateBetaBuildLocalization(betaBuildLocalization: BetaBuildLocal
 
 async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60, interval: number = 30): Promise<Build> {
     log(`Polling build validation...`);
-    await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
     while (++retries < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, interval * 1000));
         core.info(`Polling for build... Attempt ${retries}/${maxRetries}`);
         let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
         if (preReleaseVersion) {
@@ -280,7 +280,6 @@ async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60,
         } else {
             core.info(`Waiting for pre-release build ${project.versionString}...`);
         }
-        await new Promise(resolve => setTimeout(resolve, interval * 1000));
     }
     throw new Error('Timed out waiting for valid build!');
 }

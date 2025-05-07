@@ -422,19 +422,25 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
     if (projectRef.platform === 'macOS') {
         if (!projectRef.isAppStoreUpload()) {
             const notarizeInput = core.getInput('notarize') || 'true'
+            projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
             const notarize = notarizeInput === 'true';
             core.debug(`Notarize? ${notarize}`);
             if (notarize) {
-                projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
-            } else {
-                projectRef.executablePath = await getFileAtGlobPath(`${projectRef.exportPath}/**/*.app`);
+                await signMacOSAppBundle(projectRef);
+                if (projectRef.exportOption !== 'steam') {
+                    projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
+                } else {
+                    const zipPath = path.join(projectRef.exportPath, projectRef.executablePath.replace('.app', '.zip'));
+                    await exec('ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', projectRef.executablePath, zipPath]);
+                    await notarizeArchive(projectRef, zipPath, projectRef.executablePath);
+                }
             }
         }
         else {
-            projectRef.executablePath = await getFileAtGlobPath(`${projectRef.exportPath}/**/*.pkg`);
+            projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.pkg`);
         }
     } else {
-        projectRef.executablePath = await getFileAtGlobPath(`${projectRef.exportPath}/**/*.ipa`);
+        projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.ipa`);
     }
     try {
         await fs.promises.access(projectRef.executablePath, fs.constants.R_OK);
@@ -446,7 +452,7 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
     return projectRef;
 }
 
-async function getFileAtGlobPath(globPattern: string): Promise<string> {
+async function getFirstPathWithGlob(globPattern: string): Promise<string> {
     const globber = await glob.create(globPattern);
     const files = await globber.glob();
     if (files.length === 0) {
@@ -455,24 +461,132 @@ async function getFileAtGlobPath(globPattern: string): Promise<string> {
     return files[0];
 }
 
+async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
+    const appPath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
+    await fs.promises.access(appPath, fs.constants.R_OK);
+    const stat = await fs.promises.stat(appPath);
+    if (!stat.isDirectory()) {
+        throw new Error(`Not a valid app bundle: ${appPath}`);
+    }
+    // sign the app bundle using ./sign-app-bundle.sh
+    const signAppBundlePath = path.join(__dirname, 'sign-app-bundle.sh');
+    core.info(`Signing app bundle: ${appPath}`);
+    let codesignOutput = '';
+    const codesignExitCode = await exec(signAppBundlePath, [appPath, projectRef.entitlementsPath], {
+        listeners: {
+            stdout: (data: Buffer) => {
+                codesignOutput += data.toString();
+            }
+        },
+        // silent: !core.isDebug(),
+        ignoreReturnCode: true
+    });
+    if (codesignExitCode !== 0) {
+        log(codesignOutput, 'error');
+        throw new Error(`Failed to code sign the app!`);
+    }
+    core.info(codesignOutput);
+}
+
 async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string> {
     core.info('Creating macOS installer pkg...');
     let output = '';
     const pkgPath = `${projectRef.exportPath}/${projectRef.projectName}.pkg`;
-    const appPath = await getFileAtGlobPath(`${projectRef.exportPath}/**/*.app`);
-    await exec('productbuild', ['--component', appPath, '/Applications', pkgPath], {
+    const appPath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
+    const productBuildExitCode = await exec('xcrun', ['productbuild', '--component', appPath, '/Applications', pkgPath], {
         listeners: {
             stdout: (data: Buffer) => {
                 output += data.toString();
             }
-        }
+        },
+        ignoreReturnCode: true
     });
+    if (productBuildExitCode !== 0) {
+        log(output, 'error');
+        throw new Error(`Failed to create the pkg!`);
+    }
     try {
         await fs.promises.access(pkgPath, fs.constants.R_OK);
     } catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
+    // sign the .pkg using ./sign-app-pkg.sh
+    const signPkgPath = path.join(__dirname, 'sign-app-pkg.sh');
+    core.info(`Signing pkg: ${pkgPath}`);
+    let codesignOutput = '';
+    const codesignExitCode = await exec(signPkgPath, [pkgPath], {
+        listeners: {
+            stdout: (data: Buffer) => {
+                codesignOutput += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
+    if (codesignExitCode !== 0) {
+        log(codesignOutput, 'error');
+        throw new Error(`Failed to code sign the pkg!`);
+    }
     return pkgPath;
+}
+
+async function notarizeArchive(projectRef: XcodeProject, archivePath: string, staplePath: string): Promise<void> {
+    const notarizeArgs = [
+        'notarytool',
+        'submit',
+        '--key', projectRef.credential.appStoreConnectKeyPath,
+        '--key-id', projectRef.credential.appStoreConnectKeyId,
+        '--issuer', projectRef.credential.appStoreConnectIssuerId,
+        '--team-id', projectRef.credential.teamId,
+        '--wait',
+        '--no-progress',
+        '--output-format', 'json',
+    ];
+    if (core.isDebug()) {
+        notarizeArgs.push('--verbose');
+    }
+    let notarizeOutput = '';
+    const notarizeExitCode = await exec(xcrun, [...notarizeArgs, archivePath], {
+        // silent: !core.isDebug(),
+        listeners: {
+            stdout: (data: Buffer) => {
+                notarizeOutput += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
+    if (notarizeExitCode !== 0) {
+        log(notarizeOutput, 'error');
+        throw new Error(`Failed to notarize the app!`);
+    }
+    core.debug(notarizeOutput);
+    // example json output:
+    // {"message":"Processing complete","id":"e0595a17-0db3-42a5-afa9-da2891716ba8","status":"Accepted"}
+    const notaryResult = JSON.parse(notarizeOutput);
+    if (notaryResult.status !== 'Accepted') {
+        throw new Error(`Notarization failed! Status: ${notaryResult.status} | ${notaryResult.message}`);
+    }
+    const stapleArgs = [
+        'stapler',
+        'staple',
+        staplePath,
+    ];
+    if (core.isDebug()) {
+        stapleArgs.push('--verbose');
+    }
+    let stapleOutput = '';
+    const stapleExitCode = await exec(xcrun, stapleArgs, {
+        listeners: {
+            stdout: (data: Buffer) => {
+                stapleOutput += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
+    if (stapleExitCode !== 0) {
+        log(stapleOutput, 'error');
+        throw new Error(`Failed to staple the notarization ticket!`);
+    }
+    core.info(stapleOutput);
 }
 
 async function getExportOptions(projectRef: XcodeProject): Promise<void> {

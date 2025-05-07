@@ -19,6 +19,7 @@ jobs:
     env:
       VERSION: ''
       TEMPLATE_PATH: ''
+      EXPORT_OPTION: ''
       UNITY_PROJECT_PATH: ''
     runs-on: ${{ matrix.os }}
     strategy:
@@ -69,6 +70,15 @@ jobs:
               exit 1
             }
           echo "VERSION=$version" >> $env:GITHUB_ENV
+
+          # if the unity-version is 6000.x then set export option to app-store-connect otherwise set it to development
+          if ('${{ matrix.unity-version }}' -eq '6000.x') {
+            echo "EXPORT_OPTION=app-store-connect" >> $env:GITHUB_ENV
+          } elseif ('${{ matrix.unity-version }}' -eq '2022.3.x') {
+            echo "EXPORT_OPTION=development" >> $env:GITHUB_ENV
+          } else {
+            echo "EXPORT_OPTION=steam" >> $env:GITHUB_ENV
+          }
         shell: pwsh
       - uses: buildalon/activate-unity-license@v1
         with:
@@ -103,8 +113,8 @@ jobs:
           app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           team-id: ${{ secrets.APPLE_TEAM_ID }}
-          export-option: app-store
-          upload: ${{ matrix.unity-version == '6000.x' }}
+          export-option: ${{ env.EXPORT_OPTION }}
+          notarize: ${{ matrix.unity-version != '6000.x' }}
       - name: print outputs
         if: always()
         run: |
