@@ -301,3 +301,8 @@ export async function UpdateTestDetails(project: XcodeProject, whatsNew: string)
 function normalizeVersion(version: string): string {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
 }
+
+// https://developer.apple.com/documentation/appstoreconnectapi/list_and_download_certificates
+async function downloadCertificate(project: XcodeProject): Promise<void> {
+    // downloads the certificate from App Store Connect into the temp runner directory and adds it to the keychain created in AppleCredential.ts
+}

@@ -57748,6 +57748,8 @@ async function UpdateTestDetails(project, whatsNew) {
 function normalizeVersion(version) {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
 }
+async function downloadCertificate(project) {
+}
 
 
 /***/ }),
