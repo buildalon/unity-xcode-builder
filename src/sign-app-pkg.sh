@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script is meant to sign macOS .pkg files.
+# This script is meant to sign macOS .pkg files with optional signing identity.
 # Usage: ./sign-app-pkg.sh <path_to_pkg> "<signing_identity>"
 # Example: ./sign-app-pkg.sh /path/to/MyApp.pkg "Developer ID Installer: Your Name (Team ID)"
 
@@ -10,6 +10,7 @@ if [ -z "$SIGNING_IDENTITY" ]; then
     # find the Developer ID Installer signing identity
     SIGNING_IDENTITY=$(security find-identity -v | grep "Developer ID Installer" | awk -F'"' '{print $2}' | head -n 1)
 fi
+
 if [ -z "$SIGNING_IDENTITY" ]; then
     echo "No 'Developer ID Installer' signing identity found!"
     exit 1
