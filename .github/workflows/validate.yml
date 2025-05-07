@@ -77,7 +77,11 @@ jobs:
           } elseif ('${{ matrix.unity-version }}' -eq '2022.3.x') {
             echo "EXPORT_OPTION=development" >> $env:GITHUB_ENV
           } else {
-            echo "EXPORT_OPTION=steam" >> $env:GITHUB_ENV
+            if ('${{ matrix.build-target }}' -eq 'iOS') {
+              echo "EXPORT_OPTION=development" >> $env:GITHUB_ENV
+            } else {
+              echo "EXPORT_OPTION=steam" >> $env:GITHUB_ENV
+            }
           }
         shell: pwsh
       - uses: buildalon/activate-unity-license@v1
