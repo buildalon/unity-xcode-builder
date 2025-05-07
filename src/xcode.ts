@@ -608,7 +608,12 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
                     break;
             }
         } else {
-            method = exportOption;
+            // revert back to development just in case user passes in steam for non-macos platforms
+            if (exportOption === 'steam') {
+                method = 'development';
+            } else {
+                method = exportOption;
+            }
         }
         // As of Xcode 15.4, the old export methods 'app-store', 'ad-hoc', and 'development' are now deprecated.
         // The new equivalents are 'app-store-connect', 'release-testing', and 'debugging'.

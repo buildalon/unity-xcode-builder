@@ -58584,7 +58584,12 @@ async function getExportOptions(projectRef) {
             }
         }
         else {
-            method = exportOption;
+            if (exportOption === 'steam') {
+                method = 'development';
+            }
+            else {
+                method = exportOption;
+            }
         }
         const xcodeMinVersion = semver.coerce('15.4');
         if (semver.gte(projectRef.xcodeVersion, xcodeMinVersion)) {
