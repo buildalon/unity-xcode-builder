@@ -58452,7 +58452,7 @@ async function signMacOSAppBundle(projectRef) {
     const signAppBundlePath = __nccwpck_require__.ab + "sign-app-bundle.sh";
     core.info(`Signing app bundle: ${appPath}`);
     let codesignOutput = '';
-    const codesignExitCode = await (0, exec_1.exec)(__nccwpck_require__.ab + "sign-app-bundle.sh", [appPath, projectRef.entitlementsPath], {
+    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath], {
         listeners: {
             stdout: (data) => {
                 codesignOutput += data.toString();
@@ -58492,7 +58492,7 @@ async function createMacOSInstallerPkg(projectRef) {
     const signPkgPath = __nccwpck_require__.ab + "sign-app-pkg.sh";
     core.info(`Signing pkg: ${pkgPath}`);
     let codesignOutput = '';
-    const codesignExitCode = await (0, exec_1.exec)(__nccwpck_require__.ab + "sign-app-pkg.sh", [pkgPath], {
+    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-pkg.sh", pkgPath], {
         listeners: {
             stdout: (data) => {
                 codesignOutput += data.toString();
