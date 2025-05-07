@@ -74,8 +74,6 @@ jobs:
           # if the unity-version is 6000.x then set export option to app-store-connect otherwise set it to development
           if ('${{ matrix.unity-version }}' -eq '6000.x') {
             echo "EXPORT_OPTION=app-store-connect" >> $env:GITHUB_ENV
-          } elseif ('${{ matrix.unity-version }}' -eq '2022.3.x') {
-            echo "EXPORT_OPTION=development" >> $env:GITHUB_ENV
           } else {
             if ('${{ matrix.build-target }}' -eq 'iOS') {
               echo "EXPORT_OPTION=development" >> $env:GITHUB_ENV
