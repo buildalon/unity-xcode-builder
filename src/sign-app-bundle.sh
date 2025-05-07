@@ -3,6 +3,8 @@
 # Usage: ./signing.sh <path_to_app_bundle> <path_to_entitlements_path> "<signing_identity>"
 # Example: ./signing.sh /path/to/MyApp.app /path/to/entitlements.plist "Developer ID Application: Your Name (Team ID)"
 
+set -xe
+
 APP_BUNDLE_PATH="$1"
 ENTITLEMENTS_PATH="$2"
 SIGNING_IDENTITY="$3"
@@ -12,7 +14,6 @@ xattr -cr "$APP_BUNDLE_PATH"
 
 # verify the app bundle
 if codesign --verify --verbose=2 "$APP_BUNDLE_PATH"; then
-    echo "App bundle is already signed. No need to sign again."
     exit 0
 fi
 

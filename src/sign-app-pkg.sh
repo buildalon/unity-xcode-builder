@@ -3,6 +3,8 @@
 # Usage: ./sign-app-pkg.sh <path_to_pkg> "<signing_identity>"
 # Example: ./sign-app-pkg.sh /path/to/MyApp.pkg "Developer ID Installer: Your Name (Team ID)"
 
+set -xe
+
 PKG_PATH="$1"
 SIGNING_IDENTITY="$2"
 
