@@ -58344,27 +58344,22 @@ async function ArchiveXcodeProject(projectRef) {
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
     ];
-    if (projectRef.isSteamBuild) {
-        archiveArgs.push(`CODE_SIGN_IDENTITY=-`, `EXPANDED_CODE_SIGN_IDENTITY=-`, `CODE_SIGNING_REQUIRED=NO`, `CODE_SIGNING_ALLOWED=NO`);
+    const { teamId, signingIdentity, provisioningProfileUUID, keychainPath } = projectRef.credential;
+    if (teamId) {
+        archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
+    }
+    if (signingIdentity) {
+        archiveArgs.push(`CODE_SIGN_IDENTITY=${signingIdentity}`, `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
     }
     else {
-        const { teamId, signingIdentity, provisioningProfileUUID, keychainPath } = projectRef.credential;
-        if (teamId) {
-            archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
-        }
-        if (signingIdentity) {
-            archiveArgs.push(`CODE_SIGN_IDENTITY=${signingIdentity}`, `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
-        }
-        else {
-            archiveArgs.push(`CODE_SIGN_IDENTITY=-`, `EXPANDED_CODE_SIGN_IDENTITY=-`);
-        }
-        archiveArgs.push(`CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`);
-        if (provisioningProfileUUID) {
-            archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
-        }
-        else {
-            archiveArgs.push(`AD_HOC_CODE_SIGNING_ALLOWED=YES`, `-allowProvisioningUpdates`);
-        }
+        archiveArgs.push(`CODE_SIGN_IDENTITY=-`, `EXPANDED_CODE_SIGN_IDENTITY=-`);
+    }
+    archiveArgs.push(`CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`);
+    if (provisioningProfileUUID) {
+        archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
+    }
+    else {
+        archiveArgs.push(`AD_HOC_CODE_SIGNING_ALLOWED=YES`, `-allowProvisioningUpdates`);
     }
     if (projectRef.entitlementsPath) {
         core.debug(`Entitlements path: ${projectRef.entitlementsPath}`);
@@ -58415,9 +58410,6 @@ async function ExportXcodeArchive(projectRef) {
     ];
     if (!projectRef.isSteamBuild) {
         exportArgs.push(`-allowProvisioningUpdates`);
-    }
-    else {
-        exportArgs.push(`CODE_SIGN_IDENTITY=-`, `EXPANDED_CODE_SIGN_IDENTITY=-`, `CODE_SIGNING_REQUIRED=NO`, `CODE_SIGNING_ALLOWED=NO`);
     }
     if (!core.isDebug()) {
         exportArgs.push('-quiet');
@@ -58638,7 +58630,7 @@ async function getExportOptions(projectRef) {
         }
         const exportOptions = {
             method: method,
-            signingStyle: projectRef.isSteamBuild || projectRef.credential.signingIdentity ? 'manual' : 'automatic',
+            signingStyle: projectRef.credential.signingIdentity ? 'manual' : 'automatic',
             teamID: `${projectRef.credential.teamId}`
         };
         if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {
