@@ -58329,13 +58329,13 @@ async function ArchiveXcodeProject(projectRef) {
     if (teamId) {
         archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
     }
-    if (signingIdentity) {
-        archiveArgs.push(`CODE_SIGN_IDENTITY=${signingIdentity}`, `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
-    }
-    else {
-        archiveArgs.push(`CODE_SIGN_IDENTITY=-`);
-    }
     if (!projectRef.isSteamBuild) {
+        if (signingIdentity) {
+            archiveArgs.push(`CODE_SIGN_IDENTITY=${signingIdentity}`, `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
+        }
+        else {
+            archiveArgs.push(`CODE_SIGN_IDENTITY=-`);
+        }
         archiveArgs.push(`CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`);
         if (provisioningProfileUUID) {
             archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
