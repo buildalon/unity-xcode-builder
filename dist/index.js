@@ -58644,7 +58644,6 @@ async function getNotarizationLog(projectRef, id) {
     if (logExitCode !== 0) {
         throw new Error(`Failed to get notarization log!`);
     }
-    core.info(output);
 }
 async function getExportOptions(projectRef) {
     const exportOptionPlistInput = core.getInput('export-option-plist');

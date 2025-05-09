@@ -635,7 +635,6 @@ async function getNotarizationLog(projectRef: XcodeProject, id: string) {
     if (logExitCode !== 0) {
         throw new Error(`Failed to get notarization log!`);
     }
-    core.info(output);
 }
 
 async function getExportOptions(projectRef: XcodeProject): Promise<void> {
