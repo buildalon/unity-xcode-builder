@@ -12,6 +12,8 @@ import {
     PrereleaseVersion,
     PreReleaseVersionsGetCollectionData,
     BetaBuildLocalizationCreateRequest,
+    CertificatesGetCollectionData,
+    Certificate,
 } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
 import { log } from './utilities';
 import core = require('@actions/core');
@@ -156,12 +158,12 @@ async function getLastPrereleaseBuild(prereleaseVersion: PrereleaseVersion): Pro
         }
     };
     log(`GET /builds?${JSON.stringify(buildsRequest.query)}`);
-    const { data: buildsResponse, error: buildsError } = await appStoreConnectClient.api.BuildsService.buildsGetCollection(buildsRequest);
-    const responseJson = JSON.stringify(buildsResponse, null, 2);
-    if (buildsError) {
-        checkAuthError(buildsError);
-        throw new Error(`Error fetching builds: ${JSON.stringify(buildsError, null, 2)}`);
+    const { data: buildsResponse, error: responseError } = await appStoreConnectClient.api.BuildsService.buildsGetCollection(buildsRequest);
+    if (responseError) {
+        checkAuthError(responseError);
+        throw new Error(`Error fetching builds: ${JSON.stringify(responseError, null, 2)}`);
     }
+    const responseJson = JSON.stringify(buildsResponse, null, 2);
     if (!buildsResponse || !buildsResponse.data || buildsResponse.data.length === 0) {
         throw new Error(`No builds found! ${responseJson}`);
     }
@@ -302,7 +304,29 @@ function normalizeVersion(version: string): string {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
 }
 
-// https://developer.apple.com/documentation/appstoreconnectapi/list_and_download_certificates
-async function downloadCertificate(project: XcodeProject): Promise<void> {
-    // downloads the certificate from App Store Connect into the temp runner directory and adds it to the keychain created in AppleCredential.ts
+/*
+* List all the certificates for the given certificate type.
+* @param project The Xcode project.
+* @param certificateType The type of certificate to list.
+* https://developer.apple.com/documentation/appstoreconnectapi/list_and_download_certificates
+*/
+export async function ListCertificates(project: XcodeProject, certificateType: Array<('APPLE_PAY' | 'APPLE_PAY_MERCHANT_IDENTITY' | 'APPLE_PAY_PSP_IDENTITY' | 'APPLE_PAY_RSA' | 'DEVELOPER_ID_KEXT' | 'DEVELOPER_ID_KEXT_G2' | 'DEVELOPER_ID_APPLICATION' | 'DEVELOPER_ID_APPLICATION_G2' | 'DEVELOPMENT' | 'DISTRIBUTION' | 'IDENTITY_ACCESS' | 'IOS_DEVELOPMENT' | 'IOS_DISTRIBUTION' | 'MAC_APP_DISTRIBUTION' | 'MAC_INSTALLER_DISTRIBUTION' | 'MAC_APP_DEVELOPMENT' | 'PASS_TYPE_ID' | 'PASS_TYPE_ID_WITH_NFC')>): Promise<Certificate[]> {
+    await getOrCreateClient(project);
+    const certificateQuery: CertificatesGetCollectionData = {
+        query: {
+            "filter[certificateType]": certificateType,
+        }
+    };
+    log(`GET /certificates?${JSON.stringify(certificateQuery.query)}`);
+    const { data: response, error: responseError } = await appStoreConnectClient.api.CertificatesService.certificatesGetCollection(certificateQuery);
+    if (responseError) {
+        checkAuthError(responseError);
+        throw new Error(`Error fetching certificates: ${JSON.stringify(responseError, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data || response.data.length === 0) {
+        throw new Error(`No certificates found! ${responseJson}`);
+    }
+    log(responseJson);
+    return response.data;
 }

@@ -7,7 +7,7 @@ const security = '/usr/bin/security';
 const temp = process.env['RUNNER_TEMP'] || '.';
 const appStoreConnectKeyDir = `${process.env.HOME}/.appstoreconnect/private_keys`;
 
-class AppleCredential {
+export class AppleCredential {
     constructor(
         name: string,
         keychainPath: string,
@@ -43,7 +43,7 @@ class AppleCredential {
 }
 
 // https://docs.github.com/en/actions/use-cases-and-examples/deploying/installing-an-apple-certificate-on-macos-runners-for-xcode-development#add-a-step-to-your-workflow
-async function ImportCredentials(): Promise<AppleCredential> {
+export async function ImportCredentials(): Promise<AppleCredential> {
     try {
         core.startGroup('Importing credentials...');
         const tempCredential = uuid.v4();
@@ -154,7 +154,7 @@ async function ImportCredentials(): Promise<AppleCredential> {
     }
 }
 
-async function RemoveCredentials(): Promise<void> {
+export async function RemoveCredentials(): Promise<void> {
     const provisioningProfilePath = core.getState('provisioningProfilePath');
     if (provisioningProfilePath) {
         core.info('Removing provisioning profile...');
@@ -179,10 +179,4 @@ async function RemoveCredentials(): Promise<void> {
     } catch (error) {
         core.error(`Failed to remove app store connect key!\n${error.stack}`);
     }
-}
-
-export {
-    ImportCredentials,
-    RemoveCredentials,
-    AppleCredential
 }

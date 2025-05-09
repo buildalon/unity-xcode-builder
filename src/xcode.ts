@@ -356,7 +356,10 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
                 `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
             );
         } else {
-            archiveArgs.push(`CODE_SIGN_IDENTITY=-`);
+            archiveArgs.push(
+                `CODE_SIGN_IDENTITY=-`,
+                `EXPANDED_CODE_SIGN_IDENTITY=-`
+            );
         }
         archiveArgs.push(
             `CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`
@@ -652,7 +655,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
         }
         const exportOptions = {
             method: method,
-            signingStyle: projectRef.credential.signingIdentity ? 'manual' : 'automatic',
+            signingStyle: projectRef.isSteamBuild || projectRef.credential.signingIdentity ? 'manual' : 'automatic',
             teamID: `${projectRef.credential.teamId}`
         };
         if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {

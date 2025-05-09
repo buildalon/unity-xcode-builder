@@ -57464,6 +57464,7 @@ exports.UnauthorizedError = void 0;
 exports.GetAppId = GetAppId;
 exports.GetLatestBundleVersion = GetLatestBundleVersion;
 exports.UpdateTestDetails = UpdateTestDetails;
+exports.ListCertificates = ListCertificates;
 const app_store_connect_api_1 = __nccwpck_require__(9073);
 const utilities_1 = __nccwpck_require__(5739);
 const core = __nccwpck_require__(2186);
@@ -57604,12 +57605,12 @@ async function getLastPrereleaseBuild(prereleaseVersion) {
         }
     };
     (0, utilities_1.log)(`GET /builds?${JSON.stringify(buildsRequest.query)}`);
-    const { data: buildsResponse, error: buildsError } = await appStoreConnectClient.api.BuildsService.buildsGetCollection(buildsRequest);
-    const responseJson = JSON.stringify(buildsResponse, null, 2);
-    if (buildsError) {
-        checkAuthError(buildsError);
-        throw new Error(`Error fetching builds: ${JSON.stringify(buildsError, null, 2)}`);
+    const { data: buildsResponse, error: responseError } = await appStoreConnectClient.api.BuildsService.buildsGetCollection(buildsRequest);
+    if (responseError) {
+        checkAuthError(responseError);
+        throw new Error(`Error fetching builds: ${JSON.stringify(responseError, null, 2)}`);
     }
+    const responseJson = JSON.stringify(buildsResponse, null, 2);
     if (!buildsResponse || !buildsResponse.data || buildsResponse.data.length === 0) {
         throw new Error(`No builds found! ${responseJson}`);
     }
@@ -57748,7 +57749,25 @@ async function UpdateTestDetails(project, whatsNew) {
 function normalizeVersion(version) {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
 }
-async function downloadCertificate(project) {
+async function ListCertificates(project, certificateType) {
+    await getOrCreateClient(project);
+    const certificateQuery = {
+        query: {
+            "filter[certificateType]": certificateType,
+        }
+    };
+    (0, utilities_1.log)(`GET /certificates?${JSON.stringify(certificateQuery.query)}`);
+    const { data: response, error: responseError } = await appStoreConnectClient.api.CertificatesService.certificatesGetCollection(certificateQuery);
+    if (responseError) {
+        checkAuthError(responseError);
+        throw new Error(`Error fetching certificates: ${JSON.stringify(responseError, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data || response.data.length === 0) {
+        throw new Error(`No certificates found! ${responseJson}`);
+    }
+    (0, utilities_1.log)(responseJson);
+    return response.data;
 }
 
 
@@ -58337,7 +58356,7 @@ async function ArchiveXcodeProject(projectRef) {
             archiveArgs.push(`CODE_SIGN_IDENTITY=${signingIdentity}`, `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
         }
         else {
-            archiveArgs.push(`CODE_SIGN_IDENTITY=-`);
+            archiveArgs.push(`CODE_SIGN_IDENTITY=-`, `EXPANDED_CODE_SIGN_IDENTITY=-`);
         }
         archiveArgs.push(`CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`);
         if (provisioningProfileUUID) {
@@ -58619,7 +58638,7 @@ async function getExportOptions(projectRef) {
         }
         const exportOptions = {
             method: method,
-            signingStyle: projectRef.credential.signingIdentity ? 'manual' : 'automatic',
+            signingStyle: projectRef.isSteamBuild || projectRef.credential.signingIdentity ? 'manual' : 'automatic',
             teamID: `${projectRef.credential.teamId}`
         };
         if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {
