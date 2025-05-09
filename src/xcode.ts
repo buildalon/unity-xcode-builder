@@ -603,7 +603,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
         if (projectRef.platform === 'macOS') {
             switch (exportOption) {
                 case 'steam':
-                    method = 'developer-id';
+                    method = 'mac-application';
                     projectRef.isSteamBuild = true;
                     break;
                 case 'ad-hoc':

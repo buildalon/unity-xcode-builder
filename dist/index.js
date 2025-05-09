@@ -58595,7 +58595,7 @@ async function getExportOptions(projectRef) {
         if (projectRef.platform === 'macOS') {
             switch (exportOption) {
                 case 'steam':
-                    method = 'developer-id';
+                    method = 'mac-application';
                     projectRef.isSteamBuild = true;
                     break;
                 case 'ad-hoc':
