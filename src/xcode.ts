@@ -583,7 +583,8 @@ async function notarizeArchive(projectRef: XcodeProject, archivePath: string, st
     // {"message":"Processing complete","id":"e0595a17-0db3-42a5-afa9-da2891716ba8","status":"Accepted"}
     const notaryResult = JSON.parse(notarizeOutput);
     if (notaryResult.status !== 'Accepted') {
-        throw new Error(`Notarization failed! Status: ${notaryResult.status} | ${notaryResult.message}`);
+        const notaryLogs = await getNotarizationLog(projectRef, notaryResult.id);
+        throw new Error(`Notarization failed! Status: ${notaryResult.status}\n${notaryLogs}`);
     }
     const stapleArgs = [
         'stapler',
@@ -607,6 +608,34 @@ async function notarizeArchive(projectRef: XcodeProject, archivePath: string, st
         throw new Error(`Failed to staple the notarization ticket!`);
     }
     core.info(stapleOutput);
+}
+
+async function getNotarizationLog(projectRef: XcodeProject, id: string) {
+    let output = '';
+    const notaryLogArgs = [
+        'notarytool',
+        'log',
+        id,
+        '--key', projectRef.credential.appStoreConnectKeyPath,
+        '--key-id', projectRef.credential.appStoreConnectKeyId,
+        '--issuer', projectRef.credential.appStoreConnectIssuerId,
+        '--team-id', projectRef.credential.teamId,
+    ];
+    if (core.isDebug()) {
+        notaryLogArgs.push('--verbose');
+    }
+    const logExitCode = await exec(xcrun, notaryLogArgs, {
+        listeners: {
+            stdout: (data: Buffer) => {
+                output += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
+    if (logExitCode !== 0) {
+        throw new Error(`Failed to get notarization log!`);
+    }
+    core.info(output);
 }
 
 async function getExportOptions(projectRef: XcodeProject): Promise<void> {

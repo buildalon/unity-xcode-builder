@@ -58593,7 +58593,8 @@ async function notarizeArchive(projectRef, archivePath, staplePath) {
     core.debug(notarizeOutput);
     const notaryResult = JSON.parse(notarizeOutput);
     if (notaryResult.status !== 'Accepted') {
-        throw new Error(`Notarization failed! Status: ${notaryResult.status} | ${notaryResult.message}`);
+        const notaryLogs = await getNotarizationLog(projectRef, notaryResult.id);
+        throw new Error(`Notarization failed! Status: ${notaryResult.status}\n${notaryLogs}`);
     }
     const stapleArgs = [
         'stapler',
@@ -58617,6 +58618,33 @@ async function notarizeArchive(projectRef, archivePath, staplePath) {
         throw new Error(`Failed to staple the notarization ticket!`);
     }
     core.info(stapleOutput);
+}
+async function getNotarizationLog(projectRef, id) {
+    let output = '';
+    const notaryLogArgs = [
+        'notarytool',
+        'log',
+        id,
+        '--key', projectRef.credential.appStoreConnectKeyPath,
+        '--key-id', projectRef.credential.appStoreConnectKeyId,
+        '--issuer', projectRef.credential.appStoreConnectIssuerId,
+        '--team-id', projectRef.credential.teamId,
+    ];
+    if (core.isDebug()) {
+        notaryLogArgs.push('--verbose');
+    }
+    const logExitCode = await (0, exec_1.exec)(xcrun, notaryLogArgs, {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
+    if (logExitCode !== 0) {
+        throw new Error(`Failed to get notarization log!`);
+    }
+    core.info(output);
 }
 async function getExportOptions(projectRef) {
     const exportOptionPlistInput = core.getInput('export-option-plist');
