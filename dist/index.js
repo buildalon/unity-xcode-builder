@@ -58397,6 +58397,9 @@ async function ExportXcodeArchive(projectRef) {
     if (!projectRef.isSteamBuild) {
         exportArgs.push(`-allowProvisioningUpdates`);
     }
+    else {
+        exportArgs.push(`CODE_SIGN_IDENTITY=-`, `CODE_SIGNING_REQUIRED=NO`, `CODE_SIGNING_ALLOWED=NO`);
+    }
     if (!core.isDebug()) {
         exportArgs.push('-quiet');
     }

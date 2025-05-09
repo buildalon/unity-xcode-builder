@@ -327,7 +327,6 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     } else {
         projectRef.entitlementsPath = entitlementsPath;
     }
-    // TODO if steam build, we need to get the correct signing identity
     const archiveArgs = [
         'archive',
         '-project', projectPath,
@@ -419,6 +418,12 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
     ];
     if (!projectRef.isSteamBuild) {
         exportArgs.push(`-allowProvisioningUpdates`);
+    } else {
+        exportArgs.push(
+            `CODE_SIGN_IDENTITY=-`,
+            `CODE_SIGNING_REQUIRED=NO`,
+            `CODE_SIGNING_ALLOWED=NO`
+        );
     }
     if (!core.isDebug()) {
         exportArgs.push('-quiet');
