@@ -58050,6 +58050,7 @@ const semver = __nccwpck_require__(1383);
 const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const utilities_1 = __nccwpck_require__(5739);
 const core = __nccwpck_require__(2186);
+const AppleCredential_1 = __nccwpck_require__(4199);
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
@@ -58542,9 +58543,7 @@ async function createMacOSInstallerPkg(projectRef) {
     }
     const developerIdInstallerCert = await (0, AppStoreConnectClient_1.GetCertificate)(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
     core.info(`Found Developer ID Installer certificate: [${developerIdInstallerCert.id}] ${developerIdInstallerCert.attributes.name}`);
-    const certPath = path.join(process.env.RUNNER_TEMP, 'developer_id_installer.cer');
-    await fs.promises.writeFile(certPath, developerIdInstallerCert.attributes.certificateContent);
-    core.info(`Saved Developer ID Installer certificate to: ${certPath}`);
+    await (0, AppleCredential_1.ImportCertificate)(developerIdInstallerCert);
     const signPkgPath = __nccwpck_require__.ab + "sign-app-pkg.sh";
     core.info(`Signing pkg: ${pkgPath}`);
     let codesignOutput = '';

@@ -12,12 +12,6 @@ SIGNING_IDENTITY="$3"
 # remove any metadata from the app bundle
 xattr -cr "$APP_BUNDLE_PATH"
 
-# verify the app bundle
-if codesign --verify --verbose=2 "$APP_BUNDLE_PATH"; then
-    echo "App bundle is already signed and verified. skipping..."
-    exit 0
-fi
-
 if [ -z "$SIGNING_IDENTITY" ]; then
     # get the signing identity that matches Developer ID Application
     SIGNING_IDENTITY=$(security find-identity -p codesigning -v | grep "Developer ID Application" | awk -F'"' '{print $2}' | head -n 1)
@@ -38,6 +32,6 @@ find "$APP_BUNDLE_PATH" -name "*.dylib" -exec codesign --force --verify --verbos
 codesign --deep --force --verify --verbose --timestamp --options runtime --entitlements "$ENTITLEMENTS_PATH" --sign "$SIGNING_IDENTITY" "$APP_BUNDLE_PATH"
 
 # verify the app bundle
-if ! codesign --verify --verbose=2 "$APP_BUNDLE_PATH"; then
+if ! codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE_PATH"; then
     exit 1
 fi

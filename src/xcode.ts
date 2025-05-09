@@ -16,7 +16,7 @@ import {
 } from './AppStoreConnectClient';
 import { log } from './utilities';
 import core = require('@actions/core');
-import { AppleCredential } from './AppleCredential';
+import { AppleCredential, ImportCertificate } from './AppleCredential';
 import { SemVer } from 'semver';
 
 const xcodebuild = '/usr/bin/xcodebuild';
@@ -526,10 +526,7 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
     // TODO get Developer ID Installer signing certificate from app store connect API
     const developerIdInstallerCert = await GetCertificate(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
     core.info(`Found Developer ID Installer certificate: [${developerIdInstallerCert.id}] ${developerIdInstallerCert.attributes.name}`);
-    // save certificate contents to runner.temp directory
-    const certPath = path.join(process.env.RUNNER_TEMP, 'developer_id_installer.cer');
-    await fs.promises.writeFile(certPath, developerIdInstallerCert.attributes.certificateContent);
-    core.info(`Saved Developer ID Installer certificate to: ${certPath}`);
+    await ImportCertificate(developerIdInstallerCert);
     // sign the .pkg using ./sign-app-pkg.sh
     const signPkgPath = path.join(__dirname, 'sign-app-pkg.sh');
     core.info(`Signing pkg: ${pkgPath}`);
