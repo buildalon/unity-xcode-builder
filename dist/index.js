@@ -58334,12 +58334,14 @@ async function ArchiveXcodeProject(projectRef) {
     else {
         archiveArgs.push(`CODE_SIGN_IDENTITY=-`);
     }
-    archiveArgs.push(`CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`);
-    if (provisioningProfileUUID) {
-        archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
-    }
-    else {
-        archiveArgs.push(`AD_HOC_CODE_SIGNING_ALLOWED=YES`, `-allowProvisioningUpdates`);
+    if (projectRef.exportOption !== 'steam') {
+        archiveArgs.push(`CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`);
+        if (provisioningProfileUUID) {
+            archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
+        }
+        else {
+            archiveArgs.push(`AD_HOC_CODE_SIGNING_ALLOWED=YES`, `-allowProvisioningUpdates`);
+        }
     }
     if (projectRef.entitlementsPath) {
         core.debug(`Entitlements path: ${projectRef.entitlementsPath}`);
@@ -58384,11 +58386,13 @@ async function ExportXcodeArchive(projectRef) {
         '-archivePath', archivePath,
         '-exportPath', projectRef.exportPath,
         '-exportOptionsPlist', exportOptionsPath,
-        '-allowProvisioningUpdates',
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
     ];
+    if (projectRef.exportOption !== 'steam') {
+        exportArgs.push(`-allowProvisioningUpdates`);
+    }
     if (!core.isDebug()) {
         exportArgs.push('-quiet');
     }

@@ -350,16 +350,18 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     } else {
         archiveArgs.push(`CODE_SIGN_IDENTITY=-`);
     }
-    archiveArgs.push(
-        `CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`
-    );
-    if (provisioningProfileUUID) {
-        archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
-    } else {
+    if (projectRef.exportOption !== 'steam') {
         archiveArgs.push(
-            `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
-            `-allowProvisioningUpdates`
+            `CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`
         );
+        if (provisioningProfileUUID) {
+            archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
+        } else {
+            archiveArgs.push(
+                `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
+                `-allowProvisioningUpdates`
+            );
+        }
     }
     if (projectRef.entitlementsPath) {
         core.debug(`Entitlements path: ${projectRef.entitlementsPath}`);
@@ -404,11 +406,13 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         '-archivePath', archivePath,
         '-exportPath', projectRef.exportPath,
         '-exportOptionsPlist', exportOptionsPath,
-        '-allowProvisioningUpdates',
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
     ];
+    if (projectRef.exportOption !== 'steam') {
+        exportArgs.push(`-allowProvisioningUpdates`);
+    }
     if (!core.isDebug()) {
         exportArgs.push('-quiet');
     } else {
@@ -673,7 +677,6 @@ async function getDefaultEntitlementsMacOS(projectRef: XcodeProject): Promise<vo
     }
     const exportOption = projectRef.exportOption;
     let defaultEntitlements = undefined;
-    // https://yemi.me/2020/02/17/en/submit-unity-macos-build-to-steam-appstore/#CodeSigning
     switch (exportOption) {
         case 'app-store':
         case 'app-store-connect':
