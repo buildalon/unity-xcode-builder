@@ -57938,6 +57938,7 @@ class XcodeProject {
         this.scheme = scheme;
         this.credential = credential;
         this.xcodeVersion = xcodeVersion;
+        this.isSteamBuild = false;
     }
     isAppStoreUpload() {
         return this.exportOption === 'app-store' || this.exportOption === 'app-store-connect';
@@ -58334,7 +58335,7 @@ async function ArchiveXcodeProject(projectRef) {
     else {
         archiveArgs.push(`CODE_SIGN_IDENTITY=-`);
     }
-    if (projectRef.exportOption !== 'steam') {
+    if (!projectRef.isSteamBuild) {
         archiveArgs.push(`CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`);
         if (provisioningProfileUUID) {
             archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
@@ -58390,7 +58391,7 @@ async function ExportXcodeArchive(projectRef) {
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
     ];
-    if (projectRef.exportOption !== 'steam') {
+    if (!projectRef.isSteamBuild) {
         exportArgs.push(`-allowProvisioningUpdates`);
     }
     if (!core.isDebug()) {
@@ -58413,7 +58414,7 @@ async function ExportXcodeArchive(projectRef) {
             core.debug(`Notarize? ${notarize}`);
             if (notarize) {
                 await signMacOSAppBundle(projectRef);
-                if (projectRef.exportOption !== 'steam') {
+                if (!projectRef.isSteamBuild) {
                     projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
                 }
                 else {
@@ -58578,6 +58579,7 @@ async function getExportOptions(projectRef) {
             switch (exportOption) {
                 case 'steam':
                     method = 'developer-id';
+                    projectRef.isSteamBuild = true;
                     break;
                 case 'ad-hoc':
                     method = 'development';
