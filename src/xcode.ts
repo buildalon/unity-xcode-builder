@@ -327,6 +327,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     } else {
         projectRef.entitlementsPath = entitlementsPath;
     }
+    // TODO if steam build, we need to get the correct signing identity
     const archiveArgs = [
         'archive',
         '-project', projectPath,
@@ -342,26 +343,24 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     if (teamId) {
         archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
     }
-    if (!projectRef.isSteamBuild) {
-        if (signingIdentity) {
-            archiveArgs.push(
-                `CODE_SIGN_IDENTITY=${signingIdentity}`,
-                `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
-            );
-        } else {
-            archiveArgs.push(`CODE_SIGN_IDENTITY=-`);
-        }
+    if (signingIdentity) {
         archiveArgs.push(
-            `CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`
+            `CODE_SIGN_IDENTITY=${signingIdentity}`,
+            `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
         );
-        if (provisioningProfileUUID) {
-            archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
-        } else {
-            archiveArgs.push(
-                `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
-                `-allowProvisioningUpdates`
-            );
-        }
+    } else {
+        archiveArgs.push(`CODE_SIGN_IDENTITY=-`);
+    }
+    archiveArgs.push(
+        `CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`
+    );
+    if (provisioningProfileUUID) {
+        archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
+    } else {
+        archiveArgs.push(
+            `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
+            `-allowProvisioningUpdates`
+        );
     }
     if (projectRef.entitlementsPath) {
         core.debug(`Entitlements path: ${projectRef.entitlementsPath}`);
@@ -405,14 +404,12 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         '-exportArchive',
         '-archivePath', archivePath,
         '-exportPath', projectRef.exportPath,
+        `-allowProvisioningUpdates`,
         '-exportOptionsPlist', exportOptionsPath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
     ];
-    if (!projectRef.isSteamBuild) {
-        exportArgs.push(`-allowProvisioningUpdates`);
-    }
     if (!core.isDebug()) {
         exportArgs.push('-quiet');
     } else {
