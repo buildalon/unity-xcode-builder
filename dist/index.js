@@ -58326,7 +58326,7 @@ async function ArchiveXcodeProject(projectRef) {
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
     ];
     if (projectRef.isSteamBuild) {
-        archiveArgs.push(`CODE_SIGN_IDENTITY=-`, `CODE_SIGNING_REQUIRED=NO`, `CODE_SIGNING_ALLOWED=NO`);
+        archiveArgs.push(`CODE_SIGN_IDENTITY=-`, `EXPANDED_CODE_SIGN_IDENTITY=-`, `CODE_SIGNING_REQUIRED=NO`, `CODE_SIGNING_ALLOWED=NO`);
     }
     else {
         const { teamId, signingIdentity, provisioningProfileUUID, keychainPath } = projectRef.credential;
@@ -58398,7 +58398,7 @@ async function ExportXcodeArchive(projectRef) {
         exportArgs.push(`-allowProvisioningUpdates`);
     }
     else {
-        exportArgs.push(`CODE_SIGN_IDENTITY=-`, `CODE_SIGNING_REQUIRED=NO`, `CODE_SIGNING_ALLOWED=NO`);
+        exportArgs.push(`CODE_SIGN_IDENTITY=-`, `EXPANDED_CODE_SIGN_IDENTITY=-`, `CODE_SIGNING_REQUIRED=NO`, `CODE_SIGNING_ALLOWED=NO`);
     }
     if (!core.isDebug()) {
         exportArgs.push('-quiet');

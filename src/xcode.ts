@@ -341,6 +341,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     if (projectRef.isSteamBuild) {
         archiveArgs.push(
             `CODE_SIGN_IDENTITY=-`,
+            `EXPANDED_CODE_SIGN_IDENTITY=-`,
             `CODE_SIGNING_REQUIRED=NO`,
             `CODE_SIGNING_ALLOWED=NO`
         );
@@ -421,6 +422,7 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
     } else {
         exportArgs.push(
             `CODE_SIGN_IDENTITY=-`,
+            `EXPANDED_CODE_SIGN_IDENTITY=-`,
             `CODE_SIGNING_REQUIRED=NO`,
             `CODE_SIGNING_ALLOWED=NO`
         );
