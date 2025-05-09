@@ -339,28 +339,36 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
     ];
-    const { teamId, signingIdentity, provisioningProfileUUID, keychainPath } = projectRef.credential;
-    if (teamId) {
-        archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
-    }
-    if (signingIdentity) {
+    if (projectRef.isSteamBuild) {
         archiveArgs.push(
-            `CODE_SIGN_IDENTITY=${signingIdentity}`,
-            `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
+            `CODE_SIGN_IDENTITY=-`,
+            `CODE_SIGNING_REQUIRED=NO`,
+            `CODE_SIGNING_ALLOWED=NO`
         );
     } else {
-        archiveArgs.push(`CODE_SIGN_IDENTITY=-`);
-    }
-    archiveArgs.push(
-        `CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`
-    );
-    if (provisioningProfileUUID) {
-        archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
-    } else {
+        const { teamId, signingIdentity, provisioningProfileUUID, keychainPath } = projectRef.credential;
+        if (teamId) {
+            archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
+        }
+        if (signingIdentity) {
+            archiveArgs.push(
+                `CODE_SIGN_IDENTITY=${signingIdentity}`,
+                `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
+            );
+        } else {
+            archiveArgs.push(`CODE_SIGN_IDENTITY=-`);
+        }
         archiveArgs.push(
-            `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
-            `-allowProvisioningUpdates`
+            `CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`
         );
+        if (provisioningProfileUUID) {
+            archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
+        } else {
+            archiveArgs.push(
+                `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
+                `-allowProvisioningUpdates`
+            );
+        }
     }
     if (projectRef.entitlementsPath) {
         core.debug(`Entitlements path: ${projectRef.entitlementsPath}`);
@@ -404,12 +412,14 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         '-exportArchive',
         '-archivePath', archivePath,
         '-exportPath', projectRef.exportPath,
-        `-allowProvisioningUpdates`,
         '-exportOptionsPlist', exportOptionsPath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
     ];
+    if (!projectRef.isSteamBuild) {
+        exportArgs.push(`-allowProvisioningUpdates`);
+    }
     if (!core.isDebug()) {
         exportArgs.push('-quiet');
     } else {
