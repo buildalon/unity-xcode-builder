@@ -11,7 +11,8 @@ import {
     GetLatestBundleVersion,
     UpdateTestDetails,
     UnauthorizedError,
-    GetAppId
+    GetAppId,
+    GetCertificate
 } from './AppStoreConnectClient';
 import { log } from './utilities';
 import core = require('@actions/core');
@@ -428,16 +429,17 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         if (!projectRef.isAppStoreUpload()) {
             const notarizeInput = core.getInput('notarize') || 'true'
             projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
-            const notarize = notarizeInput === 'true';
-            core.debug(`Notarize? ${notarize}`);
-            if (notarize) {
+            if (notarizeInput === 'true') {
                 await signMacOSAppBundle(projectRef);
                 if (!projectRef.isSteamBuild) {
                     projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
                 } else {
-                    const zipPath = path.join(projectRef.exportPath, projectRef.executablePath.replace('.app', '.zip'));
-                    await exec('ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', projectRef.executablePath, zipPath]);
-                    await notarizeArchive(projectRef, zipPath, projectRef.executablePath);
+                    const isNotarized = await isAppBundleNotarized(projectRef.executablePath);
+                    if (!isNotarized) {
+                        const zipPath = path.join(projectRef.exportPath, projectRef.executablePath.replace('.app', '.zip'));
+                        await exec('ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', projectRef.executablePath, zipPath]);
+                        await notarizeArchive(projectRef, zipPath, projectRef.executablePath);
+                    }
                 }
             }
         }
@@ -457,6 +459,17 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
     return projectRef;
 }
 
+export async function isAppBundleNotarized(appPath: string): Promise<boolean> {
+    let output = '';
+    const exitCode = await exec('stapler', ['validate', appPath], {
+        listeners: {
+            stdout: (data: Buffer) => { output += data.toString(); }
+        },
+        ignoreReturnCode: true
+    });
+    return exitCode === 0 && output.includes('The validate action worked!');
+}
+
 async function getFirstPathWithGlob(globPattern: string): Promise<string> {
     const globber = await glob.create(globPattern);
     const files = await globber.glob();
@@ -473,9 +486,7 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
-    // sign the app bundle using ./sign-app-bundle.sh
     const signAppBundlePath = path.join(__dirname, 'sign-app-bundle.sh');
-    core.info(`Signing app bundle: ${appPath}`);
     let codesignOutput = '';
     const codesignExitCode = await exec('sh', [signAppBundlePath, appPath, projectRef.entitlementsPath], {
         listeners: {
@@ -483,14 +494,11 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
                 codesignOutput += data.toString();
             }
         },
-        // silent: !core.isDebug(),
         ignoreReturnCode: true
     });
     if (codesignExitCode !== 0) {
-        log(codesignOutput, 'error');
         throw new Error(`Failed to code sign the app!`);
     }
-    core.info(codesignOutput);
 }
 
 async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string> {
@@ -515,6 +523,13 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
     } catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
+    // TODO get Developer ID Installer signing certificate from app store connect API
+    const developerIdInstallerCert = await GetCertificate(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
+    core.info(`Found Developer ID Installer certificate: [${developerIdInstallerCert.id}] ${developerIdInstallerCert.attributes.name}`);
+    // save certificate contents to runner.temp directory
+    const certPath = path.join(process.env.RUNNER_TEMP, 'developer_id_installer.cer');
+    await fs.promises.writeFile(certPath, developerIdInstallerCert.attributes.certificateContent);
+    core.info(`Saved Developer ID Installer certificate to: ${certPath}`);
     // sign the .pkg using ./sign-app-pkg.sh
     const signPkgPath = path.join(__dirname, 'sign-app-pkg.sh');
     core.info(`Signing pkg: ${pkgPath}`);

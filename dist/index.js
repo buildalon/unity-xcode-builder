@@ -57464,7 +57464,7 @@ exports.UnauthorizedError = void 0;
 exports.GetAppId = GetAppId;
 exports.GetLatestBundleVersion = GetLatestBundleVersion;
 exports.UpdateTestDetails = UpdateTestDetails;
-exports.ListCertificates = ListCertificates;
+exports.GetCertificate = GetCertificate;
 const app_store_connect_api_1 = __nccwpck_require__(9073);
 const utilities_1 = __nccwpck_require__(5739);
 const core = __nccwpck_require__(2186);
@@ -57749,13 +57749,14 @@ async function UpdateTestDetails(project, whatsNew) {
 function normalizeVersion(version) {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
 }
-async function ListCertificates(project, certificateType) {
+async function GetCertificate(project, certificateType = null) {
     await getOrCreateClient(project);
-    const certificateQuery = {
-        query: {
-            "filter[certificateType]": certificateType,
-        }
-    };
+    const certificateQuery = {};
+    if (certificateType) {
+        certificateQuery.query = {
+            'filter[certificateType]': [certificateType],
+        };
+    }
     (0, utilities_1.log)(`GET /certificates?${JSON.stringify(certificateQuery.query)}`);
     const { data: response, error: responseError } = await appStoreConnectClient.api.CertificatesService.certificatesGetCollection(certificateQuery);
     if (responseError) {
@@ -57764,10 +57765,17 @@ async function ListCertificates(project, certificateType) {
     }
     const responseJson = JSON.stringify(response, null, 2);
     if (!response || !response.data || response.data.length === 0) {
-        throw new Error(`No certificates found! ${responseJson}`);
+        return null;
     }
     (0, utilities_1.log)(responseJson);
-    return response.data;
+    const validCerts = response.data.filter(certificate => {
+        if (!certificate.attributes) {
+            return false;
+        }
+        const isExpired = new Date(certificate.attributes.expirationDate) < new Date();
+        return certificate.attributes.activated && !isExpired;
+    });
+    return validCerts.length === 0 ? null : validCerts[0];
 }
 
 
@@ -57782,6 +57790,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AppleCredential = void 0;
 exports.ImportCredentials = ImportCredentials;
 exports.RemoveCredentials = RemoveCredentials;
+exports.ImportCertificate = ImportCertificate;
 const core = __nccwpck_require__(2186);
 const exec = __nccwpck_require__(1514);
 const uuid = __nccwpck_require__(5840);
@@ -57933,6 +57942,15 @@ async function RemoveCredentials() {
         core.error(`Failed to remove app store connect key!\n${error.stack}`);
     }
 }
+async function ImportCertificate(certificate) {
+    const tempCredential = core.getState('tempCredential');
+    if (!tempCredential) {
+        throw new Error('Missing tempCredential state');
+    }
+    const keychainPath = `${temp}/${tempCredential}.keychain-db`;
+    const certificatePath = `${temp}/${certificate.attributes.name}.cer`;
+    core.info('Importing certificate...');
+}
 
 
 /***/ }),
@@ -58017,6 +58035,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetProjectDetails = GetProjectDetails;
 exports.ArchiveXcodeProject = ArchiveXcodeProject;
 exports.ExportXcodeArchive = ExportXcodeArchive;
+exports.isAppBundleNotarized = isAppBundleNotarized;
 exports.ValidateApp = ValidateApp;
 exports.UploadApp = UploadApp;
 const XcodeProject_1 = __nccwpck_require__(1981);
@@ -58427,17 +58446,18 @@ async function ExportXcodeArchive(projectRef) {
         if (!projectRef.isAppStoreUpload()) {
             const notarizeInput = core.getInput('notarize') || 'true';
             projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
-            const notarize = notarizeInput === 'true';
-            core.debug(`Notarize? ${notarize}`);
-            if (notarize) {
+            if (notarizeInput === 'true') {
                 await signMacOSAppBundle(projectRef);
                 if (!projectRef.isSteamBuild) {
                     projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
                 }
                 else {
-                    const zipPath = path.join(projectRef.exportPath, projectRef.executablePath.replace('.app', '.zip'));
-                    await (0, exec_1.exec)('ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', projectRef.executablePath, zipPath]);
-                    await notarizeArchive(projectRef, zipPath, projectRef.executablePath);
+                    const isNotarized = await isAppBundleNotarized(projectRef.executablePath);
+                    if (!isNotarized) {
+                        const zipPath = path.join(projectRef.exportPath, projectRef.executablePath.replace('.app', '.zip'));
+                        await (0, exec_1.exec)('ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', projectRef.executablePath, zipPath]);
+                        await notarizeArchive(projectRef, zipPath, projectRef.executablePath);
+                    }
                 }
             }
         }
@@ -58458,6 +58478,16 @@ async function ExportXcodeArchive(projectRef) {
     core.setOutput('executable', projectRef.executablePath);
     return projectRef;
 }
+async function isAppBundleNotarized(appPath) {
+    let output = '';
+    const exitCode = await (0, exec_1.exec)('stapler', ['validate', appPath], {
+        listeners: {
+            stdout: (data) => { output += data.toString(); }
+        },
+        ignoreReturnCode: true
+    });
+    return exitCode === 0 && output.includes('The validate action worked!');
+}
 async function getFirstPathWithGlob(globPattern) {
     const globber = await glob.create(globPattern);
     const files = await globber.glob();
@@ -58474,7 +58504,6 @@ async function signMacOSAppBundle(projectRef) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
     const signAppBundlePath = __nccwpck_require__.ab + "sign-app-bundle.sh";
-    core.info(`Signing app bundle: ${appPath}`);
     let codesignOutput = '';
     const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath], {
         listeners: {
@@ -58485,10 +58514,8 @@ async function signMacOSAppBundle(projectRef) {
         ignoreReturnCode: true
     });
     if (codesignExitCode !== 0) {
-        (0, utilities_1.log)(codesignOutput, 'error');
         throw new Error(`Failed to code sign the app!`);
     }
-    core.info(codesignOutput);
 }
 async function createMacOSInstallerPkg(projectRef) {
     core.info('Creating macOS installer pkg...');
@@ -58513,6 +58540,11 @@ async function createMacOSInstallerPkg(projectRef) {
     catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
+    const developerIdInstallerCert = await (0, AppStoreConnectClient_1.GetCertificate)(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
+    core.info(`Found Developer ID Installer certificate: [${developerIdInstallerCert.id}] ${developerIdInstallerCert.attributes.name}`);
+    const certPath = path.join(process.env.RUNNER_TEMP, 'developer_id_installer.cer');
+    await fs.promises.writeFile(certPath, developerIdInstallerCert.attributes.certificateContent);
+    core.info(`Saved Developer ID Installer certificate to: ${certPath}`);
     const signPkgPath = __nccwpck_require__.ab + "sign-app-pkg.sh";
     core.info(`Signing pkg: ${pkgPath}`);
     let codesignOutput = '';

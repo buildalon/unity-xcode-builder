@@ -304,19 +304,17 @@ function normalizeVersion(version: string): string {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
 }
 
-/*
-* List all the certificates for the given certificate type.
-* @param project The Xcode project.
-* @param certificateType The type of certificate to list.
+/**
 * https://developer.apple.com/documentation/appstoreconnectapi/list_and_download_certificates
 */
-export async function ListCertificates(project: XcodeProject, certificateType: Array<('APPLE_PAY' | 'APPLE_PAY_MERCHANT_IDENTITY' | 'APPLE_PAY_PSP_IDENTITY' | 'APPLE_PAY_RSA' | 'DEVELOPER_ID_KEXT' | 'DEVELOPER_ID_KEXT_G2' | 'DEVELOPER_ID_APPLICATION' | 'DEVELOPER_ID_APPLICATION_G2' | 'DEVELOPMENT' | 'DISTRIBUTION' | 'IDENTITY_ACCESS' | 'IOS_DEVELOPMENT' | 'IOS_DISTRIBUTION' | 'MAC_APP_DISTRIBUTION' | 'MAC_INSTALLER_DISTRIBUTION' | 'MAC_APP_DEVELOPMENT' | 'PASS_TYPE_ID' | 'PASS_TYPE_ID_WITH_NFC')>): Promise<Certificate[]> {
+export async function GetCertificate(project: XcodeProject, certificateType: 'APPLE_PAY' | 'APPLE_PAY_MERCHANT_IDENTITY' | 'APPLE_PAY_PSP_IDENTITY' | 'APPLE_PAY_RSA' | 'DEVELOPER_ID_KEXT' | 'DEVELOPER_ID_KEXT_G2' | 'DEVELOPER_ID_APPLICATION' | 'DEVELOPER_ID_APPLICATION_G2' | 'DEVELOPMENT' | 'DISTRIBUTION' | 'IDENTITY_ACCESS' | 'IOS_DEVELOPMENT' | 'IOS_DISTRIBUTION' | 'MAC_APP_DISTRIBUTION' | 'MAC_INSTALLER_DISTRIBUTION' | 'MAC_APP_DEVELOPMENT' | 'PASS_TYPE_ID' | 'PASS_TYPE_ID_WITH_NFC' = null): Promise<Certificate> {
     await getOrCreateClient(project);
-    const certificateQuery: CertificatesGetCollectionData = {
-        query: {
-            "filter[certificateType]": certificateType,
+    const certificateQuery: CertificatesGetCollectionData = {};
+    if (certificateType) {
+        certificateQuery.query = {
+            'filter[certificateType]': [certificateType],
         }
-    };
+    }
     log(`GET /certificates?${JSON.stringify(certificateQuery.query)}`);
     const { data: response, error: responseError } = await appStoreConnectClient.api.CertificatesService.certificatesGetCollection(certificateQuery);
     if (responseError) {
@@ -325,8 +323,13 @@ export async function ListCertificates(project: XcodeProject, certificateType: A
     }
     const responseJson = JSON.stringify(response, null, 2);
     if (!response || !response.data || response.data.length === 0) {
-        throw new Error(`No certificates found! ${responseJson}`);
+        return null;
     }
     log(responseJson);
-    return response.data;
+    const validCerts = response.data.filter(certificate => {
+        if (!certificate.attributes) { return false; }
+        const isExpired = new Date(certificate.attributes.expirationDate) < new Date();
+        return certificate.attributes.activated && !isExpired;
+    });
+    return validCerts.length === 0 ? null : validCerts[0];
 }

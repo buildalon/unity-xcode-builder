@@ -2,6 +2,7 @@ import core = require('@actions/core');
 import exec = require('@actions/exec');
 import uuid = require('uuid');
 import fs = require('fs');
+import { Certificate } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
 
 const security = '/usr/bin/security';
 const temp = process.env['RUNNER_TEMP'] || '.';
@@ -179,4 +180,19 @@ export async function RemoveCredentials(): Promise<void> {
     } catch (error) {
         core.error(`Failed to remove app store connect key!\n${error.stack}`);
     }
+}
+
+/**
+ * Imports the specified certificate from app store connect into the keychain created by the action in ImportCredentials.
+ * @param certificate
+ * @returns void
+ */
+export async function ImportCertificate(certificate: Certificate): Promise<void> {
+    const tempCredential = core.getState('tempCredential');
+    if (!tempCredential) {
+        throw new Error('Missing tempCredential state');
+    }
+    const keychainPath = `${temp}/${tempCredential}.keychain-db`;
+    const certificatePath = `${temp}/${certificate.attributes.name}.cer`;
+    core.info('Importing certificate...');
 }
