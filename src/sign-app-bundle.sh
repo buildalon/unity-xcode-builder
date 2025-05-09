@@ -14,6 +14,7 @@ xattr -cr "$APP_BUNDLE_PATH"
 
 # verify the app bundle
 if codesign --verify --verbose=2 "$APP_BUNDLE_PATH"; then
+    echo "App bundle is already signed and verified. skipping..."
     exit 0
 fi
 
