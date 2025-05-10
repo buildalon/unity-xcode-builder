@@ -12,6 +12,10 @@ SIGNING_IDENTITY="$3"
 # remove any metadata from the app bundle
 xattr -cr "$APP_BUNDLE_PATH"
 
+# remove any existing code signature
+find "$APP_BUNDLE_PATH" -name "_CodeSignature" -type d -exec rm -rf {} +
+find "$APP_BUNDLE_PATH" -name ".DS_Store" -delete
+
 if [ -z "$SIGNING_IDENTITY" ]; then
     # get the signing identity that matches Developer ID Application
     SIGNING_IDENTITY=$(security find-identity -p codesigning -v | grep "Developer ID Application" | awk -F'"' '{print $2}' | head -n 1)
