@@ -16,7 +16,6 @@ import {
     BuildsBetaGroupsCreateToManyRelationshipData,
     BetaGroup,
     Certificate,
-    CertificateCreateRequest,
     CertificateType,
     CertificatesCreateInstanceData,
 } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
@@ -316,7 +315,10 @@ function normalizeVersion(version: string): string {
 
 export async function AddBuildToTestGroups(project: XcodeProject, build: Build, testGroups: string[]): Promise<void> {
     await getOrCreateClient(project);
-    const betaGroups = await getBetaGroupsByName(project, testGroups);
+    const betaGroups = (await getBetaGroupsByName(project, testGroups)).map(group => ({
+        type: group.type,
+        id: group.id
+    }));
     // POST https://api.appstoreconnect.apple.com/v1/builds/{id}/relationships/betaGroups
     const payload: BuildsBetaGroupsCreateToManyRelationshipData = {
         path: { id: build.id },

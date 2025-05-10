@@ -57759,7 +57759,10 @@ function normalizeVersion(version) {
 }
 async function AddBuildToTestGroups(project, build, testGroups) {
     await getOrCreateClient(project);
-    const betaGroups = await getBetaGroupsByName(project, testGroups);
+    const betaGroups = (await getBetaGroupsByName(project, testGroups)).map(group => ({
+        type: group.type,
+        id: group.id
+    }));
     const payload = {
         path: { id: build.id },
         body: { data: betaGroups }
