@@ -113,13 +113,18 @@ jobs:
           # find the Info.plist file in the build directory
           # MacOSStandalone Info.plist path: /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/StandaloneOSX/com.test.buildalon.xcode/UnityProject/UnityProject/Info.plist
           # all others: /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/iOS/com.test.buildalon.xcode/Info.plist
+          EXPORT_OPTION=${{ env.EXPORT_OPTION }}
+          if [ "$EXPORT_OPTION" != "app-store-connect" ]; then
+            exit 0
+          fi
           TARGET_PLATFORM=${{ matrix.build-target }}
           if [ "$TARGET_PLATFORM" == "StandaloneOSX" ]; then
             INFO_PLIST_PATH="${{ env.UNITY_PROJECT_PATH }}/Builds/StandaloneOSX/com.test.buildalon.xcode/UnityProject/UnityProject/Info.plist"
           else
             INFO_PLIST_PATH="${{ env.UNITY_PROJECT_PATH }}/Builds/iOS/com.test.buildalon.xcode/Info.plist"
           fi
-          /usr/libexec/PlistBuddy -c "Add :ATSSettings:ATSStatus string NSAppTransportSecurity" "${INFO_PLIST_PATH}"
+          # ITSAppUsesNonExemptEncryption === false
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$INFO_PLIST_PATH"
       - uses: ./ # buildalon/unity-xcode-builder
         id: xcode-build
         with:
