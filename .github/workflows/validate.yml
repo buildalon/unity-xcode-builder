@@ -111,7 +111,15 @@ jobs:
         shell: bash
         run: |
           # find the Info.plist file in the build directory
-          /usr/libexec/PlistBuddy -c "Add :ATSSettings:ATSStatus string NSAppTransportSecurity" "${{ env.UNITY_PROJECT_PATH }}/Builds/iOS/com.test.buildalon.xcode/Info.plist"
+          # MacOSStandalone Info.plist path: /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/StandaloneOSX/com.test.buildalon.xcode/UnityProject/UnityProject/Info.plist
+          # all others: /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/iOS/com.test.buildalon.xcode/Info.plist
+          TARGET_PLATFORM=${{ matrix.build-target }}
+          if [ "$TARGET_PLATFORM" == "StandaloneOSX" ]; then
+            INFO_PLIST_PATH="${{ env.UNITY_PROJECT_PATH }}/Builds/StandaloneOSX/com.test.buildalon.xcode/UnityProject/UnityProject/Info.plist"
+          else
+            INFO_PLIST_PATH="${{ env.UNITY_PROJECT_PATH }}/Builds/iOS/com.test.buildalon.xcode/Info.plist"
+          fi
+          /usr/libexec/PlistBuddy -c "Add :ATSSettings:ATSStatus string NSAppTransportSecurity" "${INFO_PLIST_PATH}"
       - uses: ./ # buildalon/unity-xcode-builder
         id: xcode-build
         with:
