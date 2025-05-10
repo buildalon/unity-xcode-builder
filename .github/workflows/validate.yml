@@ -124,6 +124,12 @@ jobs:
           else
             INFO_PLIST_PATH="${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}/com.test.buildalon.xcode/Info.plist"
           fi
+          # make sure plist buddy is installed
+          if ! command -v /usr/libexec/PlistBuddy &> /dev/null
+          then
+              echo "PlistBuddy could not be found"
+              exit 1
+          fi
           # set ITSAppUsesNonExemptEncryption to false in Info.plist using PlistBuddy
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$INFO_PLIST_PATH"
       - uses: ./ # buildalon/unity-xcode-builder
