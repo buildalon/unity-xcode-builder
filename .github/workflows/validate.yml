@@ -119,9 +119,9 @@ jobs:
           fi
           TARGET_PLATFORM=${{ matrix.build-target }}
           if [ "$TARGET_PLATFORM" == "StandaloneOSX" ]; then
-            INFO_PLIST_PATH="${{ env.UNITY_PROJECT_PATH }}/Builds/StandaloneOSX/com.test.buildalon.xcode/UnityProject/UnityProject/Info.plist"
+            INFO_PLIST_PATH="${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}/com.test.buildalon.xcode/UnityProject/UnityProject/Info.plist"
           else
-            INFO_PLIST_PATH="${{ env.UNITY_PROJECT_PATH }}/Builds/iOS/com.test.buildalon.xcode/Info.plist"
+            INFO_PLIST_PATH="${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}/com.test.buildalon.xcode/Info.plist"
           fi
           # ITSAppUsesNonExemptEncryption === false
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$INFO_PLIST_PATH"

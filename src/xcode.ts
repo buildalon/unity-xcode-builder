@@ -523,7 +523,8 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
     } catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
-    // TODO get Developer ID Installer signing certificate from app store connect API
+    // /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/VisionOS/com.test.buildalon.xcode/Info.plist
+    // /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/iOS/com.test.buildalon.xcode/Info.plist
     const developerIdInstallerCert = await GetCertificate(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
     core.info(`Found Developer ID Installer certificate: [${developerIdInstallerCert.id}] ${developerIdInstallerCert.attributes.name}`);
     await ImportCertificate(developerIdInstallerCert);
