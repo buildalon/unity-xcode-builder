@@ -107,6 +107,12 @@ jobs:
           build-target: ${{ matrix.build-target }}
           log-name: '${{ matrix.build-target }}-Build'
           args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild -sceneList Assets/Scenes/SampleScene.unity -export -enableAppleAutomaticSigning -bundleIdentifier com.test.buildalon.xcode -versionName ${{ env.VERSION }}'
+      - name: Update Info.Plist with encription compliance
+        shell: bash
+        run: |
+          # find the Info.plist file in the build directory
+          INFO_PLIST_PATH=$(find "${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}" -name Info.plist)
+          /usr/libexec/PlistBuddy -c "Add :ATSSettings:ATSStatus string NSAppTransportSecurity" "${INFO_PLIST_PATH}"
       - uses: ./ # buildalon/unity-xcode-builder
         id: xcode-build
         with:
@@ -117,6 +123,8 @@ jobs:
           team-id: ${{ secrets.APPLE_TEAM_ID }}
           export-option: ${{ env.EXPORT_OPTION }}
           notarize: ${{ matrix.unity-version != '6000.x' }}
+          archive-type: pkg
+          test-groups: Beta
       - name: print outputs
         if: always()
         run: |

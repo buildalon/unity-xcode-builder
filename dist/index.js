@@ -57465,6 +57465,7 @@ exports.GetAppId = GetAppId;
 exports.GetLatestBundleVersion = GetLatestBundleVersion;
 exports.UpdateTestDetails = UpdateTestDetails;
 exports.GetCertificate = GetCertificate;
+exports.AddBuildToTestGroups = AddBuildToTestGroups;
 const app_store_connect_api_1 = __nccwpck_require__(9073);
 const utilities_1 = __nccwpck_require__(5739);
 const core = __nccwpck_require__(2186);
@@ -57745,6 +57746,12 @@ async function UpdateTestDetails(project, whatsNew) {
         core.info(`Updating beta build localization...`);
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
+    const betaGroups = core.getInput('beta-groups');
+    if (!betaGroups) {
+        return;
+    }
+    const betaGroupNames = betaGroups.split(',').map(group => group.trim());
+    await AddBuildToTestGroups(project, build, betaGroupNames);
 }
 function normalizeVersion(version) {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
@@ -57776,6 +57783,42 @@ async function GetCertificate(project, certificateType = null) {
         return certificate.attributes.activated && !isExpired;
     });
     return validCerts.length === 0 ? null : validCerts[0];
+}
+async function AddBuildToTestGroups(project, build, testGroups) {
+    await getOrCreateClient(project);
+    const betaGroups = await getBetaGroupsByName(project, testGroups);
+    const payload = {
+        path: { id: build.id },
+        body: { data: betaGroups }
+    };
+    (0, utilities_1.log)(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
+    const { data: response, error } = await appStoreConnectClient.api.BuildsService.buildsBetaGroupsCreateToManyRelationship(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error adding build to test group: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    (0, utilities_1.log)(responseJson);
+}
+async function getBetaGroupsByName(project, groupNames) {
+    await getOrCreateClient(project);
+    const request = {
+        query: {
+            "filter[name]": groupNames,
+        }
+    };
+    (0, utilities_1.log)(`GET /betaGroups?${JSON.stringify(request.query)}`);
+    const { data: response, error } = await appStoreConnectClient.api.BetaGroupsService.betaGroupsGetCollection(request);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error fetching test groups: ${JSON.stringify(error)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data || response.data.length === 0) {
+        throw new Error(`No test groups found!`);
+    }
+    (0, utilities_1.log)(responseJson);
+    return response.data;
 }
 
 
@@ -58924,7 +58967,7 @@ async function UploadApp(projectRef) {
         await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, whatsNew);
     }
     catch (error) {
-        (0, utilities_1.log)(`Failed to upload test details!\n${error}`, 'error');
+        (0, utilities_1.log)(`Failed to update test details!\n${error}`, 'error');
     }
 }
 async function getWhatsNew() {

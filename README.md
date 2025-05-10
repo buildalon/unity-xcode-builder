@@ -71,6 +71,7 @@ This action requires several secrets that need to be setup in the repository or 
 | `upload` | Whether to upload the exported Xcode project to App Store Connect. | Defaults to `true` if `export-option === app-store-connect`. |
 | `whats-new` | When `uploading === true`, Let your testers know what you would like them to test in this build. This information will be available to testers in all groups who have access to this build. | Defaults to the last git commit sha, current branch name, and commit message. |
 | `auto-increment-build-number` | Whether to automatically increment the CFBundleVersion in the Xcode project. | Defaults to `true` if `export-option === app-store-connect`. |
+| `test-groups` | One or more test groups to automatically add to the build when uploading to TestFlight. When using multiple groups, separate them with commas. | None by default. |
 
 ### outputs
 

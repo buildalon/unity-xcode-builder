@@ -84,6 +84,9 @@ inputs:
     description: Whether to automatically increment the CFBundleVersion in the Xcode project. Defaults to `true` if `export-option === app-store-connect`.
     required: false
     default: 'true'
+  test-groups:
+    description: One or more test groups to automatically add to the build when uploading to TestFlight. When using multiple groups, separate them with commas.
+    required: false
 outputs:
   executable:
     description: The path to the generated archive executable.

@@ -13,6 +13,9 @@ import {
     PreReleaseVersionsGetCollectionData,
     BetaBuildLocalizationCreateRequest,
     CertificatesGetCollectionData,
+    BetaGroupsGetCollectionData,
+    BuildsBetaGroupsCreateToManyRelationshipData,
+    BetaGroup,
     Certificate,
 } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
 import { log } from './utilities';
@@ -298,6 +301,10 @@ export async function UpdateTestDetails(project: XcodeProject, whatsNew: string)
         core.info(`Updating beta build localization...`);
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
+    const betaGroups = core.getInput('beta-groups');
+    if (!betaGroups) { return; }
+    const betaGroupNames = betaGroups.split(',').map(group => group.trim());
+    await AddBuildToTestGroups(project, build, betaGroupNames);
 }
 
 function normalizeVersion(version: string): string {
@@ -332,4 +339,43 @@ export async function GetCertificate(project: XcodeProject, certificateType: 'AP
         return certificate.attributes.activated && !isExpired;
     });
     return validCerts.length === 0 ? null : validCerts[0];
+}
+
+export async function AddBuildToTestGroups(project: XcodeProject, build: Build, testGroups: string[]): Promise<void> {
+    await getOrCreateClient(project);
+    const betaGroups = await getBetaGroupsByName(project, testGroups);
+    // POST https://api.appstoreconnect.apple.com/v1/builds/{id}/relationships/betaGroups
+    const payload: BuildsBetaGroupsCreateToManyRelationshipData = {
+        path: { id: build.id },
+        body: { data: betaGroups }
+    };
+    log(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
+    const { data: response, error } = await appStoreConnectClient.api.BuildsService.buildsBetaGroupsCreateToManyRelationship(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error adding build to test group: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    log(responseJson);
+}
+
+async function getBetaGroupsByName(project: XcodeProject, groupNames: string[]): Promise<BetaGroup[]> {
+    await getOrCreateClient(project);
+    const request: BetaGroupsGetCollectionData = {
+        query: {
+            "filter[name]": groupNames,
+        }
+    }
+    log(`GET /betaGroups?${JSON.stringify(request.query)}`);
+    const { data: response, error } = await appStoreConnectClient.api.BetaGroupsService.betaGroupsGetCollection(request);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error fetching test groups: ${JSON.stringify(error)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data || response.data.length === 0) {
+        throw new Error(`No test groups found!`);
+    }
+    log(responseJson);
+    return response.data;
 }
