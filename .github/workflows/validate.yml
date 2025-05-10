@@ -111,8 +111,7 @@ jobs:
         shell: bash
         run: |
           # find the Info.plist file in the build directory
-          INFO_PLIST_PATH=$(find "${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}" -name Info.plist)
-          /usr/libexec/PlistBuddy -c "Add :ATSSettings:ATSStatus string NSAppTransportSecurity" "${INFO_PLIST_PATH}"
+          /usr/libexec/PlistBuddy -c "Add :ATSSettings:ATSStatus string NSAppTransportSecurity" "${{ env.UNITY_PROJECT_PATH }}/Builds/iOS/com.test.buildalon.xcode/Info.plist"
       - uses: ./ # buildalon/unity-xcode-builder
         id: xcode-build
         with:

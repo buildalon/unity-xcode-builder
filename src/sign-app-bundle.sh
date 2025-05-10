@@ -23,7 +23,7 @@ if [ -z "$SIGNING_IDENTITY" ]; then
 fi
 
 # sign *.bundles and delete any existing *.meta files from them
-find "$APP_BUNDLE_PATH" -name "*.bundle" -exec find {} -name '*.meta' -delete \; -exec codesign --deep --force --verify --verbose --timestamp --options runtime --sign "$SIGNING_IDENTITY" {} \;
+find "$APP_BUNDLE_PATH" -name "*.bundle" -exec find {} -name '*.meta' -delete \; -exec codesign --force --verify --verbose --timestamp --options runtime --sign "$SIGNING_IDENTITY" {} \;
 
 # sign any *.dylibs
 find "$APP_BUNDLE_PATH" -name "*.dylib" -exec codesign --force --verify --verbose --timestamp --options runtime --sign "$SIGNING_IDENTITY" {} \;
