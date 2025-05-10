@@ -110,6 +110,7 @@ jobs:
       - name: Update Info.Plist with encription compliance
         shell: bash
         run: |
+          set -xe
           # find the Info.plist file in the build directory
           # MacOSStandalone Info.plist path: /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/StandaloneOSX/com.test.buildalon.xcode/UnityProject/UnityProject/Info.plist
           # all others: /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/iOS/com.test.buildalon.xcode/Info.plist
@@ -123,7 +124,7 @@ jobs:
           else
             INFO_PLIST_PATH="${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}/com.test.buildalon.xcode/Info.plist"
           fi
-          # ITSAppUsesNonExemptEncryption === false
+          # set ITSAppUsesNonExemptEncryption to false in Info.plist using PlistBuddy
           /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$INFO_PLIST_PATH"
       - uses: ./ # buildalon/unity-xcode-builder
         id: xcode-build
