@@ -303,7 +303,7 @@ export async function UpdateTestDetails(project: XcodeProject, whatsNew: string)
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
     const testGroups = core.getInput('test-groups');
-    core.info(`Beta groups: ${testGroups}`);
+    core.info(`Adding Beta groups: ${testGroups}`);
     if (!testGroups) { return; }
     const testGroupNames = testGroups.split(',').map(group => group.trim());
     await AddBuildToTestGroups(project, build, testGroupNames);
@@ -324,14 +324,12 @@ export async function AddBuildToTestGroups(project: XcodeProject, build: Build, 
         path: { id: build.id },
         body: { data: betaGroups }
     };
-    core.info(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
-    const { data: response, error } = await appStoreConnectClient.api.BuildsService.buildsBetaGroupsCreateToManyRelationship(payload);
+    log(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
+    const { error } = await appStoreConnectClient.api.BuildsService.buildsBetaGroupsCreateToManyRelationship(payload);
     if (error) {
         checkAuthError(error);
         throw new Error(`Error adding build to test group: ${JSON.stringify(error, null, 2)}`);
     }
-    const responseJson = JSON.stringify(response, null, 2);
-    core.info(responseJson);
 }
 
 async function getBetaGroupsByName(project: XcodeProject, groupNames: string[]): Promise<BetaGroup[]> {
@@ -343,7 +341,7 @@ async function getBetaGroupsByName(project: XcodeProject, groupNames: string[]):
             'filter[app]': [appId],
         }
     }
-    core.info(`GET /betaGroups?${JSON.stringify(request.query)}`);
+    log(`GET /betaGroups?${JSON.stringify(request.query)}`);
     const { data: response, error } = await appStoreConnectClient.api.BetaGroupsService.betaGroupsGetCollection(request);
     if (error) {
         checkAuthError(error);
@@ -353,7 +351,7 @@ async function getBetaGroupsByName(project: XcodeProject, groupNames: string[]):
     if (!response || !response.data || response.data.length === 0) {
         throw new Error(`No test groups found!`);
     }
-    core.info(responseJson);
+    log(responseJson);
     return response.data;
 }
 

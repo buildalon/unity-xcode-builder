@@ -57747,7 +57747,7 @@ async function UpdateTestDetails(project, whatsNew) {
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
     const testGroups = core.getInput('test-groups');
-    core.info(`Beta groups: ${testGroups}`);
+    core.info(`Adding Beta groups: ${testGroups}`);
     if (!testGroups) {
         return;
     }
@@ -57767,14 +57767,12 @@ async function AddBuildToTestGroups(project, build, testGroups) {
         path: { id: build.id },
         body: { data: betaGroups }
     };
-    core.info(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
-    const { data: response, error } = await appStoreConnectClient.api.BuildsService.buildsBetaGroupsCreateToManyRelationship(payload);
+    (0, utilities_1.log)(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
+    const { error } = await appStoreConnectClient.api.BuildsService.buildsBetaGroupsCreateToManyRelationship(payload);
     if (error) {
         checkAuthError(error);
         throw new Error(`Error adding build to test group: ${JSON.stringify(error, null, 2)}`);
     }
-    const responseJson = JSON.stringify(response, null, 2);
-    core.info(responseJson);
 }
 async function getBetaGroupsByName(project, groupNames) {
     await getOrCreateClient(project);
@@ -57785,7 +57783,7 @@ async function getBetaGroupsByName(project, groupNames) {
             'filter[app]': [appId],
         }
     };
-    core.info(`GET /betaGroups?${JSON.stringify(request.query)}`);
+    (0, utilities_1.log)(`GET /betaGroups?${JSON.stringify(request.query)}`);
     const { data: response, error } = await appStoreConnectClient.api.BetaGroupsService.betaGroupsGetCollection(request);
     if (error) {
         checkAuthError(error);
@@ -57795,7 +57793,7 @@ async function getBetaGroupsByName(project, groupNames) {
     if (!response || !response.data || response.data.length === 0) {
         throw new Error(`No test groups found!`);
     }
-    core.info(responseJson);
+    (0, utilities_1.log)(responseJson);
     return response.data;
 }
 async function CreateNewCertificate(project, certificateType, csrContent) {
