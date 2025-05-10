@@ -57622,7 +57622,7 @@ async function getBetaBuildLocalization(build) {
     const betaBuildLocalizationRequest = {
         query: {
             'filter[build]': [build.id],
-            "filter[locale]": ["en-US"],
+            'filter[locale]': ['en-US'],
             'fields[betaBuildLocalizations]': ['whatsNew']
         }
     };
@@ -57778,9 +57778,11 @@ async function AddBuildToTestGroups(project, build, testGroups) {
 }
 async function getBetaGroupsByName(project, groupNames) {
     await getOrCreateClient(project);
+    const appId = project.appId || await GetAppId(project);
     const request = {
         query: {
-            "filter[name]": groupNames,
+            'filter[name]': groupNames,
+            'filter[app]': [appId],
         }
     };
     core.info(`GET /betaGroups?${JSON.stringify(request.query)}`);

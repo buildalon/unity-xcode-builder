@@ -179,7 +179,7 @@ async function getBetaBuildLocalization(build: Build): Promise<BetaBuildLocaliza
     const betaBuildLocalizationRequest: BetaBuildLocalizationsGetCollectionData = {
         query: {
             'filter[build]': [build.id],
-            "filter[locale]": ["en-US"],
+            'filter[locale]': ['en-US'],
             'fields[betaBuildLocalizations]': ['whatsNew']
         }
     };
@@ -336,9 +336,11 @@ export async function AddBuildToTestGroups(project: XcodeProject, build: Build, 
 
 async function getBetaGroupsByName(project: XcodeProject, groupNames: string[]): Promise<BetaGroup[]> {
     await getOrCreateClient(project);
+    const appId = project.appId || await GetAppId(project);
     const request: BetaGroupsGetCollectionData = {
         query: {
-            "filter[name]": groupNames,
+            'filter[name]': groupNames,
+            'filter[app]': [appId],
         }
     }
     core.info(`GET /betaGroups?${JSON.stringify(request.query)}`);
