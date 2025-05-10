@@ -26,6 +26,7 @@ export class XcodeProject {
         this.scheme = scheme;
         this.credential = credential
         this.xcodeVersion = xcodeVersion;
+        this.isSteamBuild = false;
     }
     projectPath: string;
     projectName: string;
@@ -46,6 +47,7 @@ export class XcodeProject {
     scheme: string;
     xcodeVersion: SemVer;
     autoIncrementBuildNumber: boolean;
+    isSteamBuild: boolean;
     isAppStoreUpload(): boolean {
         return this.exportOption === 'app-store' || this.exportOption === 'app-store-connect';
     }

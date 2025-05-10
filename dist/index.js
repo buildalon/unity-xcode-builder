@@ -57464,6 +57464,8 @@ exports.UnauthorizedError = void 0;
 exports.GetAppId = GetAppId;
 exports.GetLatestBundleVersion = GetLatestBundleVersion;
 exports.UpdateTestDetails = UpdateTestDetails;
+exports.AddBuildToTestGroups = AddBuildToTestGroups;
+exports.CreateNewCertificate = CreateNewCertificate;
 const app_store_connect_api_1 = __nccwpck_require__(9073);
 const utilities_1 = __nccwpck_require__(5739);
 const core = __nccwpck_require__(2186);
@@ -57604,12 +57606,12 @@ async function getLastPrereleaseBuild(prereleaseVersion) {
         }
     };
     (0, utilities_1.log)(`GET /builds?${JSON.stringify(buildsRequest.query)}`);
-    const { data: buildsResponse, error: buildsError } = await appStoreConnectClient.api.BuildsService.buildsGetCollection(buildsRequest);
-    const responseJson = JSON.stringify(buildsResponse, null, 2);
-    if (buildsError) {
-        checkAuthError(buildsError);
-        throw new Error(`Error fetching builds: ${JSON.stringify(buildsError, null, 2)}`);
+    const { data: buildsResponse, error: responseError } = await appStoreConnectClient.api.BuildsService.buildsGetCollection(buildsRequest);
+    if (responseError) {
+        checkAuthError(responseError);
+        throw new Error(`Error fetching builds: ${JSON.stringify(responseError, null, 2)}`);
     }
+    const responseJson = JSON.stringify(buildsResponse, null, 2);
     if (!buildsResponse || !buildsResponse.data || buildsResponse.data.length === 0) {
         throw new Error(`No builds found! ${responseJson}`);
     }
@@ -57691,9 +57693,9 @@ async function updateBetaBuildLocalization(betaBuildLocalization, whatsNew) {
 async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
     var _a, _b, _c;
     (0, utilities_1.log)(`Polling build validation...`);
-    await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
     while (++retries < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, interval * 1000));
         core.info(`Polling for build... Attempt ${retries}/${maxRetries}`);
         let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
         if (preReleaseVersion) {
@@ -57728,7 +57730,6 @@ async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
         else {
             core.info(`Waiting for pre-release build ${project.versionString}...`);
         }
-        await new Promise(resolve => setTimeout(resolve, interval * 1000));
     }
     throw new Error('Timed out waiting for valid build!');
 }
@@ -57745,9 +57746,81 @@ async function UpdateTestDetails(project, whatsNew) {
         core.info(`Updating beta build localization...`);
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
+    const testGroups = core.getInput('test-groups');
+    core.info(`Beta groups: ${testGroups}`);
+    if (!testGroups) {
+        return;
+    }
+    const testGroupNames = testGroups.split(',').map(group => group.trim());
+    await AddBuildToTestGroups(project, build, testGroupNames);
 }
 function normalizeVersion(version) {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
+}
+async function AddBuildToTestGroups(project, build, testGroups) {
+    await getOrCreateClient(project);
+    const betaGroups = (await getBetaGroupsByName(project, testGroups)).map(group => ({
+        type: group.type,
+        id: group.id
+    }));
+    const payload = {
+        path: { id: build.id },
+        body: { data: betaGroups }
+    };
+    core.info(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
+    const { data: response, error } = await appStoreConnectClient.api.BuildsService.buildsBetaGroupsCreateToManyRelationship(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error adding build to test group: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    core.info(responseJson);
+}
+async function getBetaGroupsByName(project, groupNames) {
+    await getOrCreateClient(project);
+    const request = {
+        query: {
+            "filter[name]": groupNames,
+        }
+    };
+    core.info(`GET /betaGroups?${JSON.stringify(request.query)}`);
+    const { data: response, error } = await appStoreConnectClient.api.BetaGroupsService.betaGroupsGetCollection(request);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error fetching test groups: ${JSON.stringify(error)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data || response.data.length === 0) {
+        throw new Error(`No test groups found!`);
+    }
+    core.info(responseJson);
+    return response.data;
+}
+async function CreateNewCertificate(project, certificateType, csrContent) {
+    await getOrCreateClient(project);
+    const request = {
+        body: {
+            data: {
+                type: 'certificates',
+                attributes: {
+                    certificateType: certificateType,
+                    csrContent: csrContent
+                }
+            }
+        }
+    };
+    core.info(`POST /certificates\n${JSON.stringify(request, null, 2)}`);
+    const { data: response, error } = await appStoreConnectClient.api.CertificatesService.certificatesCreateInstance(request);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error creating certificate: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data) {
+        throw new Error(`No certificate found!`);
+    }
+    core.info(responseJson);
+    return response.data;
 }
 
 
@@ -57762,10 +57835,13 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AppleCredential = void 0;
 exports.ImportCredentials = ImportCredentials;
 exports.RemoveCredentials = RemoveCredentials;
+exports.CreateSigningCertificate = CreateSigningCertificate;
 const core = __nccwpck_require__(2186);
 const exec = __nccwpck_require__(1514);
 const uuid = __nccwpck_require__(5840);
+const path = __nccwpck_require__(1017);
 const fs = __nccwpck_require__(7147);
+const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const security = '/usr/bin/security';
 const temp = process.env['RUNNER_TEMP'] || '.';
 const appStoreConnectKeyDir = `${process.env.HOME}/.appstoreconnect/private_keys`;
@@ -57810,7 +57886,8 @@ async function ImportCredentials() {
         if (certificateBase64) {
             const certificatePassword = core.getInput('certificate-password', { required: true });
             core.info('Importing certificate...');
-            const certificatePath = `${temp}/${tempCredential}.p12`;
+            const certificateDirectory = await getCertificateDirectory();
+            const certificatePath = `${certificateDirectory}/${tempCredential}.p12`;
             const certificate = Buffer.from(certificateBase64, 'base64').toString('binary');
             await fs.promises.writeFile(certificatePath, certificate, 'binary');
             await exec.exec(security, ['import', certificatePath, '-P', certificatePassword, '-A', '-t', 'cert', '-f', 'pkcs12', '-k', keychainPath]);
@@ -57821,7 +57898,6 @@ async function ImportCredentials() {
                 silent: !core.isDebug()
             });
             await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
-            await fs.promises.unlink(certificatePath);
             if (!signingIdentity) {
                 let output = '';
                 core.info(`[command]${security} find-identity -v -p codesigning ${keychainPath}`);
@@ -57912,6 +57988,56 @@ async function RemoveCredentials() {
     catch (error) {
         core.error(`Failed to remove app store connect key!\n${error.stack}`);
     }
+    core.info('Removing certificate directory...');
+    const certificateDirectory = await getCertificateDirectory();
+    try {
+        await fs.promises.rmdir(certificateDirectory, { recursive: true });
+    }
+    catch (error) {
+        core.error(`Failed to remove certificate directory!\n${error.stack}`);
+    }
+}
+async function CreateSigningCertificate(project, certificateType) {
+    const certId = `${uuid.v4()}`;
+    const csrContent = await createCSR(certId, certificateType);
+    const certificate = await (0, AppStoreConnectClient_1.CreateNewCertificate)(project, certificateType, csrContent);
+    const certificateDirectory = await getCertificateDirectory();
+    const certificateName = `${certificateType}-${certId}.cer`;
+    const certificatePath = `${certificateDirectory}/${certificateName}`;
+    core.debug(`Certificate path: ${certificatePath}`);
+}
+async function createCSR(certId, certificateType) {
+    const tempCredential = core.getState('tempCredential');
+    const certificateDirectory = await getCertificateDirectory();
+    const privateKeyPath = path.join(certificateDirectory, `signing-${certId}.key`);
+    const csrPath = path.join(certificateDirectory, `signing-${certId}.csr`);
+    await exec.exec('openssl', [
+        'genpkey',
+        '-algorithm', 'RSA',
+        '-aes256',
+        '-pass', `pass:${tempCredential}`,
+        '-out', privateKeyPath,
+        '-pkeyopt', 'rsa_keygen_bits:2048'
+    ]);
+    await exec.exec('openssl', [
+        'req', '-new',
+        '-key', privateKeyPath,
+        '-out', csrPath,
+        '-subj', `/CN=${certificateType}/O=App Store Connect API`,
+        '-passin', `pass:${tempCredential}`
+    ]);
+    return await fs.promises.readFile(csrPath, 'utf8');
+}
+async function getCertificateDirectory() {
+    const certificateDirectory = `${temp}/certificates`;
+    try {
+        await fs.promises.access(certificateDirectory, fs.constants.R_OK);
+    }
+    catch (error) {
+        core.info(`Creating directory ${certificateDirectory}`);
+        await fs.promises.mkdir(certificateDirectory, { recursive: true });
+    }
+    return certificateDirectory;
 }
 
 
@@ -57937,6 +58063,7 @@ class XcodeProject {
         this.scheme = scheme;
         this.credential = credential;
         this.xcodeVersion = xcodeVersion;
+        this.isSteamBuild = false;
     }
     isAppStoreUpload() {
         return this.exportOption === 'app-store' || this.exportOption === 'app-store-connect';
@@ -57996,6 +58123,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetProjectDetails = GetProjectDetails;
 exports.ArchiveXcodeProject = ArchiveXcodeProject;
 exports.ExportXcodeArchive = ExportXcodeArchive;
+exports.isAppBundleNotarized = isAppBundleNotarized;
 exports.ValidateApp = ValidateApp;
 exports.UploadApp = UploadApp;
 const XcodeProject_1 = __nccwpck_require__(1981);
@@ -58331,7 +58459,7 @@ async function ArchiveXcodeProject(projectRef) {
         archiveArgs.push(`CODE_SIGN_IDENTITY=${signingIdentity}`, `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
     }
     else {
-        archiveArgs.push(`CODE_SIGN_IDENTITY=-`);
+        archiveArgs.push(`CODE_SIGN_IDENTITY=-`, `EXPANDED_CODE_SIGN_IDENTITY=-`);
     }
     archiveArgs.push(`CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`);
     if (provisioningProfileUUID) {
@@ -58383,11 +58511,13 @@ async function ExportXcodeArchive(projectRef) {
         '-archivePath', archivePath,
         '-exportPath', projectRef.exportPath,
         '-exportOptionsPlist', exportOptionsPath,
-        '-allowProvisioningUpdates',
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
     ];
+    if (!projectRef.isSteamBuild) {
+        exportArgs.push(`-allowProvisioningUpdates`);
+    }
     if (!core.isDebug()) {
         exportArgs.push('-quiet');
     }
@@ -58403,21 +58533,35 @@ async function ExportXcodeArchive(projectRef) {
     if (projectRef.platform === 'macOS') {
         if (!projectRef.isAppStoreUpload()) {
             const notarizeInput = core.getInput('notarize') || 'true';
-            const notarize = notarizeInput === 'true';
-            core.debug(`Notarize? ${notarize}`);
-            if (notarize) {
-                projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
-            }
-            else {
-                projectRef.executablePath = await getFileAtGlobPath(`${projectRef.exportPath}/**/*.app`);
+            projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
+            if (notarizeInput === 'true') {
+                await signMacOSAppBundle(projectRef);
+                const archiveType = core.getInput('archive-type') || 'app';
+                if (projectRef.isSteamBuild || archiveType === 'app') {
+                    const isNotarized = await isAppBundleNotarized(projectRef.executablePath);
+                    if (!isNotarized) {
+                        const zipPath = path.join(projectRef.exportPath, projectRef.executablePath.replace('.app', '.zip'));
+                        await (0, exec_1.exec)('ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', projectRef.executablePath, zipPath]);
+                        await notarizeArchive(projectRef, zipPath, projectRef.executablePath);
+                    }
+                }
+                else if (archiveType === 'pkg') {
+                    projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
+                }
+                else if (archiveType === 'dmg') {
+                    throw new Error('DMG export is not supported yet!');
+                }
+                else {
+                    throw new Error(`Invalid archive type: ${archiveType}`);
+                }
             }
         }
         else {
-            projectRef.executablePath = await getFileAtGlobPath(`${projectRef.exportPath}/**/*.pkg`);
+            projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.pkg`);
         }
     }
     else {
-        projectRef.executablePath = await getFileAtGlobPath(`${projectRef.exportPath}/**/*.ipa`);
+        projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.ipa`);
     }
     try {
         await fs.promises.access(projectRef.executablePath, fs.constants.R_OK);
@@ -58429,7 +58573,17 @@ async function ExportXcodeArchive(projectRef) {
     core.setOutput('executable', projectRef.executablePath);
     return projectRef;
 }
-async function getFileAtGlobPath(globPattern) {
+async function isAppBundleNotarized(appPath) {
+    let output = '';
+    const exitCode = await (0, exec_1.exec)('stapler', ['validate', appPath], {
+        listeners: {
+            stdout: (data) => { output += data.toString(); }
+        },
+        ignoreReturnCode: true
+    });
+    return exitCode === 0 && output.includes('The validate action worked!');
+}
+async function getFirstPathWithGlob(globPattern) {
     const globber = await glob.create(globPattern);
     const files = await globber.glob();
     if (files.length === 0) {
@@ -58437,25 +58591,149 @@ async function getFileAtGlobPath(globPattern) {
     }
     return files[0];
 }
+async function signMacOSAppBundle(projectRef) {
+    const appPath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
+    await fs.promises.access(appPath, fs.constants.R_OK);
+    const stat = await fs.promises.stat(appPath);
+    if (!stat.isDirectory()) {
+        throw new Error(`Not a valid app bundle: ${appPath}`);
+    }
+    const signAppBundlePath = __nccwpck_require__.ab + "sign-app-bundle.sh";
+    let codesignOutput = '';
+    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath], {
+        listeners: {
+            stdout: (data) => {
+                codesignOutput += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
+    if (codesignExitCode !== 0) {
+        throw new Error(`Failed to code sign the app!`);
+    }
+}
 async function createMacOSInstallerPkg(projectRef) {
     core.info('Creating macOS installer pkg...');
     let output = '';
     const pkgPath = `${projectRef.exportPath}/${projectRef.projectName}.pkg`;
-    const appPath = await getFileAtGlobPath(`${projectRef.exportPath}/**/*.app`);
-    await (0, exec_1.exec)('productbuild', ['--component', appPath, '/Applications', pkgPath], {
+    const appPath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
+    const productBuildExitCode = await (0, exec_1.exec)('xcrun', ['productbuild', '--component', appPath, '/Applications', pkgPath], {
         listeners: {
             stdout: (data) => {
                 output += data.toString();
             }
-        }
+        },
+        ignoreReturnCode: true
     });
+    if (productBuildExitCode !== 0) {
+        (0, utilities_1.log)(output, 'error');
+        throw new Error(`Failed to create the pkg!`);
+    }
     try {
         await fs.promises.access(pkgPath, fs.constants.R_OK);
     }
     catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
+    const signPkgPath = __nccwpck_require__.ab + "sign-app-pkg.sh";
+    core.info(`Signing pkg: ${pkgPath}`);
+    let codesignOutput = '';
+    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-pkg.sh", pkgPath], {
+        listeners: {
+            stdout: (data) => {
+                codesignOutput += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
+    if (codesignExitCode !== 0) {
+        (0, utilities_1.log)(codesignOutput, 'error');
+        throw new Error(`Failed to code sign the pkg!`);
+    }
     return pkgPath;
+}
+async function notarizeArchive(projectRef, archivePath, staplePath) {
+    const notarizeArgs = [
+        'notarytool',
+        'submit',
+        '--key', projectRef.credential.appStoreConnectKeyPath,
+        '--key-id', projectRef.credential.appStoreConnectKeyId,
+        '--issuer', projectRef.credential.appStoreConnectIssuerId,
+        '--team-id', projectRef.credential.teamId,
+        '--wait',
+        '--no-progress',
+        '--output-format', 'json',
+    ];
+    if (core.isDebug()) {
+        notarizeArgs.push('--verbose');
+    }
+    let notarizeOutput = '';
+    const notarizeExitCode = await (0, exec_1.exec)(xcrun, [...notarizeArgs, archivePath], {
+        listeners: {
+            stdout: (data) => {
+                notarizeOutput += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
+    if (notarizeExitCode !== 0) {
+        (0, utilities_1.log)(notarizeOutput, 'error');
+        throw new Error(`Failed to notarize the app!`);
+    }
+    core.debug(notarizeOutput);
+    const notaryResult = JSON.parse(notarizeOutput);
+    if (notaryResult.status !== 'Accepted') {
+        const notaryLogs = await getNotarizationLog(projectRef, notaryResult.id);
+        throw new Error(`Notarization failed! Status: ${notaryResult.status}\n${notaryLogs}`);
+    }
+    const stapleArgs = [
+        'stapler',
+        'staple',
+        staplePath,
+    ];
+    if (core.isDebug()) {
+        stapleArgs.push('--verbose');
+    }
+    let stapleOutput = '';
+    const stapleExitCode = await (0, exec_1.exec)(xcrun, stapleArgs, {
+        listeners: {
+            stdout: (data) => {
+                stapleOutput += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
+    if (stapleExitCode !== 0) {
+        (0, utilities_1.log)(stapleOutput, 'error');
+        throw new Error(`Failed to staple the notarization ticket!`);
+    }
+    core.info(stapleOutput);
+}
+async function getNotarizationLog(projectRef, id) {
+    let output = '';
+    const notaryLogArgs = [
+        'notarytool',
+        'log',
+        id,
+        '--key', projectRef.credential.appStoreConnectKeyPath,
+        '--key-id', projectRef.credential.appStoreConnectKeyId,
+        '--issuer', projectRef.credential.appStoreConnectIssuerId,
+        '--team-id', projectRef.credential.teamId,
+    ];
+    if (core.isDebug()) {
+        notaryLogArgs.push('--verbose');
+    }
+    const logExitCode = await (0, exec_1.exec)(xcrun, notaryLogArgs, {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
+    if (logExitCode !== 0) {
+        throw new Error(`Failed to get notarization log!`);
+    }
 }
 async function getExportOptions(projectRef) {
     const exportOptionPlistInput = core.getInput('export-option-plist');
@@ -58466,7 +58744,8 @@ async function getExportOptions(projectRef) {
         if (projectRef.platform === 'macOS') {
             switch (exportOption) {
                 case 'steam':
-                    method = 'developer-id';
+                    method = 'mac-application';
+                    projectRef.isSteamBuild = true;
                     break;
                 case 'ad-hoc':
                     method = 'development';
@@ -58477,7 +58756,12 @@ async function getExportOptions(projectRef) {
             }
         }
         else {
-            method = exportOption;
+            if (exportOption === 'steam') {
+                method = 'development';
+            }
+            else {
+                method = exportOption;
+            }
         }
         const xcodeMinVersion = semver.coerce('15.4');
         if (semver.gte(projectRef.xcodeVersion, xcodeMinVersion)) {
@@ -58720,7 +59004,7 @@ async function UploadApp(projectRef) {
         ignoreReturnCode: true
     });
     const outputJson = JSON.stringify(JSON.parse(output), null, 2);
-    if (exitCode > 0) {
+    if (exitCode !== 0) {
         (0, utilities_1.log)(outputJson, 'error');
         throw new Error(`Failed to upload app!`);
     }
@@ -58731,7 +59015,7 @@ async function UploadApp(projectRef) {
         await (0, AppStoreConnectClient_1.UpdateTestDetails)(projectRef, whatsNew);
     }
     catch (error) {
-        (0, utilities_1.log)(`Failed to upload test details!\n${error}`, 'error');
+        (0, utilities_1.log)(`Failed to update test details!\n${error}`, 'error');
     }
 }
 async function getWhatsNew() {

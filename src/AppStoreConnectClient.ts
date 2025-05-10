@@ -12,6 +12,12 @@ import {
     PrereleaseVersion,
     PreReleaseVersionsGetCollectionData,
     BetaBuildLocalizationCreateRequest,
+    BetaGroupsGetCollectionData,
+    BuildsBetaGroupsCreateToManyRelationshipData,
+    BetaGroup,
+    Certificate,
+    CertificateType,
+    CertificatesCreateInstanceData,
 } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
 import { log } from './utilities';
 import core = require('@actions/core');
@@ -156,12 +162,12 @@ async function getLastPrereleaseBuild(prereleaseVersion: PrereleaseVersion): Pro
         }
     };
     log(`GET /builds?${JSON.stringify(buildsRequest.query)}`);
-    const { data: buildsResponse, error: buildsError } = await appStoreConnectClient.api.BuildsService.buildsGetCollection(buildsRequest);
-    const responseJson = JSON.stringify(buildsResponse, null, 2);
-    if (buildsError) {
-        checkAuthError(buildsError);
-        throw new Error(`Error fetching builds: ${JSON.stringify(buildsError, null, 2)}`);
+    const { data: buildsResponse, error: responseError } = await appStoreConnectClient.api.BuildsService.buildsGetCollection(buildsRequest);
+    if (responseError) {
+        checkAuthError(responseError);
+        throw new Error(`Error fetching builds: ${JSON.stringify(responseError, null, 2)}`);
     }
+    const responseJson = JSON.stringify(buildsResponse, null, 2);
     if (!buildsResponse || !buildsResponse.data || buildsResponse.data.length === 0) {
         throw new Error(`No builds found! ${responseJson}`);
     }
@@ -246,9 +252,9 @@ async function updateBetaBuildLocalization(betaBuildLocalization: BetaBuildLocal
 
 async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60, interval: number = 30): Promise<Build> {
     log(`Polling build validation...`);
-    await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
     while (++retries < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, interval * 1000));
         core.info(`Polling for build... Attempt ${retries}/${maxRetries}`);
         let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
         if (preReleaseVersion) {
@@ -280,7 +286,6 @@ async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60,
         } else {
             core.info(`Waiting for pre-release build ${project.versionString}...`);
         }
-        await new Promise(resolve => setTimeout(resolve, interval * 1000));
     }
     throw new Error('Timed out waiting for valid build!');
 }
@@ -297,8 +302,82 @@ export async function UpdateTestDetails(project: XcodeProject, whatsNew: string)
         core.info(`Updating beta build localization...`);
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
+    const testGroups = core.getInput('test-groups');
+    core.info(`Beta groups: ${testGroups}`);
+    if (!testGroups) { return; }
+    const testGroupNames = testGroups.split(',').map(group => group.trim());
+    await AddBuildToTestGroups(project, build, testGroupNames);
 }
 
 function normalizeVersion(version: string): string {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
+}
+
+export async function AddBuildToTestGroups(project: XcodeProject, build: Build, testGroups: string[]): Promise<void> {
+    await getOrCreateClient(project);
+    const betaGroups = (await getBetaGroupsByName(project, testGroups)).map(group => ({
+        type: group.type,
+        id: group.id
+    }));
+    // POST https://api.appstoreconnect.apple.com/v1/builds/{id}/relationships/betaGroups
+    const payload: BuildsBetaGroupsCreateToManyRelationshipData = {
+        path: { id: build.id },
+        body: { data: betaGroups }
+    };
+    core.info(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
+    const { data: response, error } = await appStoreConnectClient.api.BuildsService.buildsBetaGroupsCreateToManyRelationship(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error adding build to test group: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    core.info(responseJson);
+}
+
+async function getBetaGroupsByName(project: XcodeProject, groupNames: string[]): Promise<BetaGroup[]> {
+    await getOrCreateClient(project);
+    const request: BetaGroupsGetCollectionData = {
+        query: {
+            "filter[name]": groupNames,
+        }
+    }
+    core.info(`GET /betaGroups?${JSON.stringify(request.query)}`);
+    const { data: response, error } = await appStoreConnectClient.api.BetaGroupsService.betaGroupsGetCollection(request);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error fetching test groups: ${JSON.stringify(error)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data || response.data.length === 0) {
+        throw new Error(`No test groups found!`);
+    }
+    core.info(responseJson);
+    return response.data;
+}
+
+export async function CreateNewCertificate(project: XcodeProject, certificateType: CertificateType, csrContent: string): Promise<Certificate> {
+    await getOrCreateClient(project);
+    const request: CertificatesCreateInstanceData = {
+        body: {
+            data: {
+                type: 'certificates',
+                attributes: {
+                    certificateType: certificateType,
+                    csrContent: csrContent
+                }
+            }
+        }
+    }
+    core.info(`POST /certificates\n${JSON.stringify(request, null, 2)}`);
+    const { data: response, error } = await appStoreConnectClient.api.CertificatesService.certificatesCreateInstance(request)
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error creating certificate: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data) {
+        throw new Error(`No certificate found!`);
+    }
+    core.info(responseJson);
+    return response.data;
 }
