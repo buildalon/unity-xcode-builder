@@ -12,11 +12,10 @@ import {
     UpdateTestDetails,
     UnauthorizedError,
     GetAppId,
-    GetCertificate
 } from './AppStoreConnectClient';
 import { log } from './utilities';
 import core = require('@actions/core');
-import { AppleCredential, ImportCertificate } from './AppleCredential';
+import { AppleCredential } from './AppleCredential';
 import { SemVer } from 'semver';
 
 const xcodebuild = '/usr/bin/xcodebuild';
@@ -431,15 +430,20 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
             projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
             if (notarizeInput === 'true') {
                 await signMacOSAppBundle(projectRef);
-                if (!projectRef.isSteamBuild) {
-                    projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
-                } else {
+                const archiveType = core.getInput('archive-type') || 'app';
+                if (projectRef.isSteamBuild || archiveType === 'app') {
                     const isNotarized = await isAppBundleNotarized(projectRef.executablePath);
                     if (!isNotarized) {
                         const zipPath = path.join(projectRef.exportPath, projectRef.executablePath.replace('.app', '.zip'));
                         await exec('ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', projectRef.executablePath, zipPath]);
                         await notarizeArchive(projectRef, zipPath, projectRef.executablePath);
                     }
+                } else if (archiveType === 'pkg') {
+                    projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
+                } else if (archiveType === 'dmg') {
+                    throw new Error('DMG export is not supported yet!');
+                } else {
+                    throw new Error(`Invalid archive type: ${archiveType}`);
                 }
             }
         }
@@ -523,11 +527,9 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
     } catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
-    // /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/VisionOS/com.test.buildalon.xcode/Info.plist
-    // /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/iOS/com.test.buildalon.xcode/Info.plist
-    const developerIdInstallerCert = await GetCertificate(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
-    core.info(`Found Developer ID Installer certificate: [${developerIdInstallerCert.id}] ${developerIdInstallerCert.attributes.name}`);
-    await ImportCertificate(developerIdInstallerCert);
+    // const developerIdInstallerCert = await GetCertificate(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
+    // core.info(`Found Developer ID Installer certificate: [${developerIdInstallerCert.id}] ${developerIdInstallerCert.attributes.name}`);
+    // await ImportCertificate(developerIdInstallerCert);
     // sign the .pkg using ./sign-app-pkg.sh
     const signPkgPath = path.join(__dirname, 'sign-app-pkg.sh');
     core.info(`Signing pkg: ${pkgPath}`);

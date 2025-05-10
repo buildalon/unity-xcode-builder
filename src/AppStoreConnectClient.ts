@@ -12,11 +12,13 @@ import {
     PrereleaseVersion,
     PreReleaseVersionsGetCollectionData,
     BetaBuildLocalizationCreateRequest,
-    CertificatesGetCollectionData,
     BetaGroupsGetCollectionData,
     BuildsBetaGroupsCreateToManyRelationshipData,
     BetaGroup,
     Certificate,
+    CertificateCreateRequest,
+    CertificateType,
+    CertificatesCreateInstanceData,
 } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
 import { log } from './utilities';
 import core = require('@actions/core');
@@ -311,36 +313,6 @@ function normalizeVersion(version: string): string {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
 }
 
-/**
-* https://developer.apple.com/documentation/appstoreconnectapi/list_and_download_certificates
-*/
-export async function GetCertificate(project: XcodeProject, certificateType: 'APPLE_PAY' | 'APPLE_PAY_MERCHANT_IDENTITY' | 'APPLE_PAY_PSP_IDENTITY' | 'APPLE_PAY_RSA' | 'DEVELOPER_ID_KEXT' | 'DEVELOPER_ID_KEXT_G2' | 'DEVELOPER_ID_APPLICATION' | 'DEVELOPER_ID_APPLICATION_G2' | 'DEVELOPMENT' | 'DISTRIBUTION' | 'IDENTITY_ACCESS' | 'IOS_DEVELOPMENT' | 'IOS_DISTRIBUTION' | 'MAC_APP_DISTRIBUTION' | 'MAC_INSTALLER_DISTRIBUTION' | 'MAC_APP_DEVELOPMENT' | 'PASS_TYPE_ID' | 'PASS_TYPE_ID_WITH_NFC' = null): Promise<Certificate> {
-    await getOrCreateClient(project);
-    const certificateQuery: CertificatesGetCollectionData = {};
-    if (certificateType) {
-        certificateQuery.query = {
-            'filter[certificateType]': [certificateType],
-        }
-    }
-    log(`GET /certificates?${JSON.stringify(certificateQuery.query)}`);
-    const { data: response, error: responseError } = await appStoreConnectClient.api.CertificatesService.certificatesGetCollection(certificateQuery);
-    if (responseError) {
-        checkAuthError(responseError);
-        throw new Error(`Error fetching certificates: ${JSON.stringify(responseError, null, 2)}`);
-    }
-    const responseJson = JSON.stringify(response, null, 2);
-    if (!response || !response.data || response.data.length === 0) {
-        return null;
-    }
-    log(responseJson);
-    const validCerts = response.data.filter(certificate => {
-        if (!certificate.attributes) { return false; }
-        const isExpired = new Date(certificate.attributes.expirationDate) < new Date();
-        return certificate.attributes.activated && !isExpired;
-    });
-    return validCerts.length === 0 ? null : validCerts[0];
-}
-
 export async function AddBuildToTestGroups(project: XcodeProject, build: Build, testGroups: string[]): Promise<void> {
     await getOrCreateClient(project);
     const betaGroups = await getBetaGroupsByName(project, testGroups);
@@ -349,14 +321,14 @@ export async function AddBuildToTestGroups(project: XcodeProject, build: Build, 
         path: { id: build.id },
         body: { data: betaGroups }
     };
-    log(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
+    core.info(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
     const { data: response, error } = await appStoreConnectClient.api.BuildsService.buildsBetaGroupsCreateToManyRelationship(payload);
     if (error) {
         checkAuthError(error);
         throw new Error(`Error adding build to test group: ${JSON.stringify(error, null, 2)}`);
     }
     const responseJson = JSON.stringify(response, null, 2);
-    log(responseJson);
+    core.info(responseJson);
 }
 
 async function getBetaGroupsByName(project: XcodeProject, groupNames: string[]): Promise<BetaGroup[]> {
@@ -366,7 +338,7 @@ async function getBetaGroupsByName(project: XcodeProject, groupNames: string[]):
             "filter[name]": groupNames,
         }
     }
-    log(`GET /betaGroups?${JSON.stringify(request.query)}`);
+    core.info(`GET /betaGroups?${JSON.stringify(request.query)}`);
     const { data: response, error } = await appStoreConnectClient.api.BetaGroupsService.betaGroupsGetCollection(request);
     if (error) {
         checkAuthError(error);
@@ -376,6 +348,33 @@ async function getBetaGroupsByName(project: XcodeProject, groupNames: string[]):
     if (!response || !response.data || response.data.length === 0) {
         throw new Error(`No test groups found!`);
     }
-    log(responseJson);
+    core.info(responseJson);
+    return response.data;
+}
+
+export async function CreateNewCertificate(project: XcodeProject, certificateType: CertificateType, csrContent: string): Promise<Certificate> {
+    await getOrCreateClient(project);
+    const request: CertificatesCreateInstanceData = {
+        body: {
+            data: {
+                type: 'certificates',
+                attributes: {
+                    certificateType: certificateType,
+                    csrContent: csrContent
+                }
+            }
+        }
+    }
+    core.info(`POST /certificates\n${JSON.stringify(request, null, 2)}`);
+    const { data: response, error } = await appStoreConnectClient.api.CertificatesService.certificatesCreateInstance(request)
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error creating certificate: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data) {
+        throw new Error(`No certificate found!`);
+    }
+    core.info(responseJson);
     return response.data;
 }

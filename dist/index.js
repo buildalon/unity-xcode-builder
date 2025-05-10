@@ -57464,8 +57464,8 @@ exports.UnauthorizedError = void 0;
 exports.GetAppId = GetAppId;
 exports.GetLatestBundleVersion = GetLatestBundleVersion;
 exports.UpdateTestDetails = UpdateTestDetails;
-exports.GetCertificate = GetCertificate;
 exports.AddBuildToTestGroups = AddBuildToTestGroups;
+exports.CreateNewCertificate = CreateNewCertificate;
 const app_store_connect_api_1 = __nccwpck_require__(9073);
 const utilities_1 = __nccwpck_require__(5739);
 const core = __nccwpck_require__(2186);
@@ -57756,34 +57756,6 @@ async function UpdateTestDetails(project, whatsNew) {
 function normalizeVersion(version) {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
 }
-async function GetCertificate(project, certificateType = null) {
-    await getOrCreateClient(project);
-    const certificateQuery = {};
-    if (certificateType) {
-        certificateQuery.query = {
-            'filter[certificateType]': [certificateType],
-        };
-    }
-    (0, utilities_1.log)(`GET /certificates?${JSON.stringify(certificateQuery.query)}`);
-    const { data: response, error: responseError } = await appStoreConnectClient.api.CertificatesService.certificatesGetCollection(certificateQuery);
-    if (responseError) {
-        checkAuthError(responseError);
-        throw new Error(`Error fetching certificates: ${JSON.stringify(responseError, null, 2)}`);
-    }
-    const responseJson = JSON.stringify(response, null, 2);
-    if (!response || !response.data || response.data.length === 0) {
-        return null;
-    }
-    (0, utilities_1.log)(responseJson);
-    const validCerts = response.data.filter(certificate => {
-        if (!certificate.attributes) {
-            return false;
-        }
-        const isExpired = new Date(certificate.attributes.expirationDate) < new Date();
-        return certificate.attributes.activated && !isExpired;
-    });
-    return validCerts.length === 0 ? null : validCerts[0];
-}
 async function AddBuildToTestGroups(project, build, testGroups) {
     await getOrCreateClient(project);
     const betaGroups = await getBetaGroupsByName(project, testGroups);
@@ -57791,14 +57763,14 @@ async function AddBuildToTestGroups(project, build, testGroups) {
         path: { id: build.id },
         body: { data: betaGroups }
     };
-    (0, utilities_1.log)(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
+    core.info(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
     const { data: response, error } = await appStoreConnectClient.api.BuildsService.buildsBetaGroupsCreateToManyRelationship(payload);
     if (error) {
         checkAuthError(error);
         throw new Error(`Error adding build to test group: ${JSON.stringify(error, null, 2)}`);
     }
     const responseJson = JSON.stringify(response, null, 2);
-    (0, utilities_1.log)(responseJson);
+    core.info(responseJson);
 }
 async function getBetaGroupsByName(project, groupNames) {
     await getOrCreateClient(project);
@@ -57807,7 +57779,7 @@ async function getBetaGroupsByName(project, groupNames) {
             "filter[name]": groupNames,
         }
     };
-    (0, utilities_1.log)(`GET /betaGroups?${JSON.stringify(request.query)}`);
+    core.info(`GET /betaGroups?${JSON.stringify(request.query)}`);
     const { data: response, error } = await appStoreConnectClient.api.BetaGroupsService.betaGroupsGetCollection(request);
     if (error) {
         checkAuthError(error);
@@ -57817,7 +57789,33 @@ async function getBetaGroupsByName(project, groupNames) {
     if (!response || !response.data || response.data.length === 0) {
         throw new Error(`No test groups found!`);
     }
-    (0, utilities_1.log)(responseJson);
+    core.info(responseJson);
+    return response.data;
+}
+async function CreateNewCertificate(project, certificateType, csrContent) {
+    await getOrCreateClient(project);
+    const request = {
+        body: {
+            data: {
+                type: 'certificates',
+                attributes: {
+                    certificateType: certificateType,
+                    csrContent: csrContent
+                }
+            }
+        }
+    };
+    core.info(`POST /certificates\n${JSON.stringify(request, null, 2)}`);
+    const { data: response, error } = await appStoreConnectClient.api.CertificatesService.certificatesCreateInstance(request);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error creating certificate: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data) {
+        throw new Error(`No certificate found!`);
+    }
+    core.info(responseJson);
     return response.data;
 }
 
@@ -57833,11 +57831,13 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AppleCredential = void 0;
 exports.ImportCredentials = ImportCredentials;
 exports.RemoveCredentials = RemoveCredentials;
-exports.ImportCertificate = ImportCertificate;
+exports.CreateSigningCertificate = CreateSigningCertificate;
 const core = __nccwpck_require__(2186);
 const exec = __nccwpck_require__(1514);
 const uuid = __nccwpck_require__(5840);
+const path = __nccwpck_require__(1017);
 const fs = __nccwpck_require__(7147);
+const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const security = '/usr/bin/security';
 const temp = process.env['RUNNER_TEMP'] || '.';
 const appStoreConnectKeyDir = `${process.env.HOME}/.appstoreconnect/private_keys`;
@@ -57882,7 +57882,8 @@ async function ImportCredentials() {
         if (certificateBase64) {
             const certificatePassword = core.getInput('certificate-password', { required: true });
             core.info('Importing certificate...');
-            const certificatePath = `${temp}/${tempCredential}.p12`;
+            const certificateDirectory = await getCertificateDirectory();
+            const certificatePath = `${certificateDirectory}/${tempCredential}.p12`;
             const certificate = Buffer.from(certificateBase64, 'base64').toString('binary');
             await fs.promises.writeFile(certificatePath, certificate, 'binary');
             await exec.exec(security, ['import', certificatePath, '-P', certificatePassword, '-A', '-t', 'cert', '-f', 'pkcs12', '-k', keychainPath]);
@@ -57893,7 +57894,6 @@ async function ImportCredentials() {
                 silent: !core.isDebug()
             });
             await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
-            await fs.promises.unlink(certificatePath);
             if (!signingIdentity) {
                 let output = '';
                 core.info(`[command]${security} find-identity -v -p codesigning ${keychainPath}`);
@@ -57984,15 +57984,45 @@ async function RemoveCredentials() {
     catch (error) {
         core.error(`Failed to remove app store connect key!\n${error.stack}`);
     }
-}
-async function ImportCertificate(certificate) {
-    const tempCredential = core.getState('tempCredential');
-    if (!tempCredential) {
-        throw new Error('Missing tempCredential state');
+    core.info('Removing certificate directory...');
+    const certificateDirectory = await getCertificateDirectory();
+    try {
+        await fs.promises.rmdir(certificateDirectory, { recursive: true });
     }
-    const keychainPath = `${temp}/${tempCredential}.keychain-db`;
-    const certificatePath = `${temp}/${certificate.attributes.name}.cer`;
-    core.info('Importing certificate...');
+    catch (error) {
+        core.error(`Failed to remove certificate directory!\n${error.stack}`);
+    }
+}
+async function CreateSigningCertificate(project, certificateType) {
+    const certId = `${uuid.v4()}`;
+    const csrContent = await createCSR(certId);
+    const certificate = await (0, AppStoreConnectClient_1.CreateNewCertificate)(project, certificateType, csrContent);
+    const certificateDirectory = await getCertificateDirectory();
+    const certificateName = `${certificateType}-${certId}.cer`;
+    const certificatePath = `${certificateDirectory}/${certificateName}`;
+    core.debug(`Certificate path: ${certificatePath}`);
+}
+async function createCSR(certId) {
+    const certificateDirectory = await getCertificateDirectory();
+    const privateKeyPath = path.join(certificateDirectory, `signing-${certId}.key`);
+    const csrPath = path.join(certificateDirectory, `signing-${certId}.csr`);
+    await exec.exec('openssl', ['genrsa', '-out', privateKeyPath, '2048']);
+    await exec.exec('openssl', [
+        'req', '-new', '-key', privateKeyPath, '-out', csrPath,
+        '-subj', '/CN=Apple Distribution',
+    ]);
+    return await fs.promises.readFile(csrPath, 'utf8');
+}
+async function getCertificateDirectory() {
+    const certificateDirectory = `${temp}/certificates`;
+    try {
+        await fs.promises.access(certificateDirectory, fs.constants.R_OK);
+    }
+    catch (error) {
+        core.info(`Creating directory ${certificateDirectory}`);
+        await fs.promises.mkdir(certificateDirectory, { recursive: true });
+    }
+    return certificateDirectory;
 }
 
 
@@ -58093,7 +58123,6 @@ const semver = __nccwpck_require__(1383);
 const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const utilities_1 = __nccwpck_require__(5739);
 const core = __nccwpck_require__(2186);
-const AppleCredential_1 = __nccwpck_require__(4199);
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
@@ -58492,16 +58521,23 @@ async function ExportXcodeArchive(projectRef) {
             projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
             if (notarizeInput === 'true') {
                 await signMacOSAppBundle(projectRef);
-                if (!projectRef.isSteamBuild) {
-                    projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
-                }
-                else {
+                const archiveType = core.getInput('archive-type') || 'app';
+                if (projectRef.isSteamBuild || archiveType === 'app') {
                     const isNotarized = await isAppBundleNotarized(projectRef.executablePath);
                     if (!isNotarized) {
                         const zipPath = path.join(projectRef.exportPath, projectRef.executablePath.replace('.app', '.zip'));
                         await (0, exec_1.exec)('ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', projectRef.executablePath, zipPath]);
                         await notarizeArchive(projectRef, zipPath, projectRef.executablePath);
                     }
+                }
+                else if (archiveType === 'pkg') {
+                    projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
+                }
+                else if (archiveType === 'dmg') {
+                    throw new Error('DMG export is not supported yet!');
+                }
+                else {
+                    throw new Error(`Invalid archive type: ${archiveType}`);
                 }
             }
         }
@@ -58584,9 +58620,6 @@ async function createMacOSInstallerPkg(projectRef) {
     catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
-    const developerIdInstallerCert = await (0, AppStoreConnectClient_1.GetCertificate)(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
-    core.info(`Found Developer ID Installer certificate: [${developerIdInstallerCert.id}] ${developerIdInstallerCert.attributes.name}`);
-    await (0, AppleCredential_1.ImportCertificate)(developerIdInstallerCert);
     const signPkgPath = __nccwpck_require__.ab + "sign-app-pkg.sh";
     core.info(`Signing pkg: ${pkgPath}`);
     let codesignOutput = '';
