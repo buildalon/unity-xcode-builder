@@ -303,10 +303,11 @@ export async function UpdateTestDetails(project: XcodeProject, whatsNew: string)
         core.info(`Updating beta build localization...`);
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
-    const betaGroups = core.getInput('beta-groups');
-    if (!betaGroups) { return; }
-    const betaGroupNames = betaGroups.split(',').map(group => group.trim());
-    await AddBuildToTestGroups(project, build, betaGroupNames);
+    const testGroups = core.getInput('test-groups');
+    core.info(`Beta groups: ${testGroups}`);
+    if (!testGroups) { return; }
+    const testGroupNames = testGroups.split(',').map(group => group.trim());
+    await AddBuildToTestGroups(project, build, testGroupNames);
 }
 
 function normalizeVersion(version: string): string {

@@ -57746,12 +57746,13 @@ async function UpdateTestDetails(project, whatsNew) {
         core.info(`Updating beta build localization...`);
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
-    const betaGroups = core.getInput('beta-groups');
-    if (!betaGroups) {
+    const testGroups = core.getInput('test-groups');
+    core.info(`Beta groups: ${testGroups}`);
+    if (!testGroups) {
         return;
     }
-    const betaGroupNames = betaGroups.split(',').map(group => group.trim());
-    await AddBuildToTestGroups(project, build, betaGroupNames);
+    const testGroupNames = testGroups.split(',').map(group => group.trim());
+    await AddBuildToTestGroups(project, build, testGroupNames);
 }
 function normalizeVersion(version) {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
@@ -57995,21 +57996,32 @@ async function RemoveCredentials() {
 }
 async function CreateSigningCertificate(project, certificateType) {
     const certId = `${uuid.v4()}`;
-    const csrContent = await createCSR(certId);
+    const csrContent = await createCSR(certId, certificateType);
     const certificate = await (0, AppStoreConnectClient_1.CreateNewCertificate)(project, certificateType, csrContent);
     const certificateDirectory = await getCertificateDirectory();
     const certificateName = `${certificateType}-${certId}.cer`;
     const certificatePath = `${certificateDirectory}/${certificateName}`;
     core.debug(`Certificate path: ${certificatePath}`);
 }
-async function createCSR(certId) {
+async function createCSR(certId, certificateType) {
+    const tempCredential = core.getState('tempCredential');
     const certificateDirectory = await getCertificateDirectory();
     const privateKeyPath = path.join(certificateDirectory, `signing-${certId}.key`);
     const csrPath = path.join(certificateDirectory, `signing-${certId}.csr`);
-    await exec.exec('openssl', ['genrsa', '-out', privateKeyPath, '2048']);
     await exec.exec('openssl', [
-        'req', '-new', '-key', privateKeyPath, '-out', csrPath,
-        '-subj', '/CN=Apple Distribution',
+        'genpkey',
+        '-algorithm', 'RSA',
+        '-aes256',
+        '-pass', `pass:${tempCredential}`,
+        '-out', privateKeyPath,
+        '-pkeyopt', 'rsa_keygen_bits:2048'
+    ]);
+    await exec.exec('openssl', [
+        'req', '-new',
+        '-key', privateKeyPath,
+        '-out', csrPath,
+        '-subj', `/CN=${certificateType}/O=App Store Connect API`,
+        '-passin', `pass:${tempCredential}`
     ]);
     return await fs.promises.readFile(csrPath, 'utf8');
 }
