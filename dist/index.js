@@ -58046,7 +58046,7 @@ async function RemoveCredentials() {
     }
 }
 async function CreateSigningCertificate(project, certificateType) {
-    const csrContent = await createCSR(certificateType);
+    const csrContent = await createCSR(project.credential.name, certificateType);
     const certificate = await (0, AppStoreConnectClient_1.CreateNewCertificate)(project, certificateType, csrContent);
     const certificateDirectory = await getCertificateDirectory();
     const certificateName = `${certificateType}-${certificate.id}.cer`;
@@ -58061,11 +58061,11 @@ async function CreateSigningCertificate(project, certificateType) {
     ]);
     return project;
 }
-async function createCSR(certificateType) {
-    const tempCredential = core.getState('tempCredential');
+async function createCSR(tempCredential, certificateType) {
     const certificateDirectory = await getCertificateDirectory();
     const privateKeyPath = path.join(certificateDirectory, `signing-${tempCredential}.key`);
     const csrPath = path.join(certificateDirectory, `signing-${tempCredential}.csr`);
+    core.info(`[command]openssl genpkey -algorithm RSA -aes256 -pass pass:${tempCredential} -out ${privateKeyPath} -pkeyopt rsa_keygen_bits:2048`);
     await exec.exec('openssl', [
         'genpkey',
         '-algorithm', 'RSA',
@@ -58073,14 +58073,15 @@ async function createCSR(certificateType) {
         '-pass', `pass:${tempCredential}`,
         '-out', privateKeyPath,
         '-pkeyopt', 'rsa_keygen_bits:2048'
-    ]);
+    ], { silent: true });
+    core.info(`[command]openssl req -new -key ${privateKeyPath} -out ${csrPath} -subj /CN=${certificateType}/O=App Store Connect API -passin pass:${tempCredential}`);
     await exec.exec('openssl', [
         'req', '-new',
         '-key', privateKeyPath,
         '-out', csrPath,
         '-subj', `/CN=${certificateType}/O=App Store Connect API`,
         '-passin', `pass:${tempCredential}`
-    ]);
+    ], { silent: true });
     return await fs.promises.readFile(csrPath, 'utf8');
 }
 async function getCertificateDirectory() {
