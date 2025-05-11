@@ -437,7 +437,7 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
     projectRef.exportPath = `${projectDirectory}/${projectName}`;
     core.info(`Export path: ${projectRef.exportPath}`);
     core.setOutput('output-directory', projectRef.exportPath);
-    const { teamId, manualProvisioningProfileUUID } = projectRef.credential;
+    const { manualProvisioningProfileUUID } = projectRef.credential;
     const exportArgs = [
         '-exportArchive',
         '-archivePath', archivePath,
@@ -447,9 +447,6 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
     ];
-    if (teamId) {
-        exportArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
-    }
     if (!manualProvisioningProfileUUID) {
         exportArgs.push(`-allowProvisioningUpdates`);
     }
