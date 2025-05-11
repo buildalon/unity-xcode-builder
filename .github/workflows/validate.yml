@@ -76,9 +76,13 @@ jobs:
             echo "EXPORT_OPTION=app-store-connect" >> $env:GITHUB_ENV
           } else {
             if ('${{ matrix.build-target }}' -eq 'StandaloneOSX') {
-                echo "EXPORT_OPTION=steam" >> $env:GITHUB_ENV
-              } else {
-                echo "EXPORT_OPTION=developer-id" >> $env:GITHUB_ENV
+                if ('${{ matrix.unity-version }}' -eq '2022.3.x') {
+                  echo "EXPORT_OPTION=steam" >> $env:GITHUB_ENV
+                } else {
+                  echo "EXPORT_OPTION=developer-id" >> $env:GITHUB_ENV
+                }
+            } else {
+              echo "EXPORT_OPTION=development" >> $env:GITHUB_ENV
             }
           }
         shell: pwsh
