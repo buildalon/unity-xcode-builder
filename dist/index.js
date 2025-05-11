@@ -57842,7 +57842,10 @@ async function GetCertificates(project, certificateType) {
         return [];
     }
     core.info(responseJson);
-    return response.data;
+    return response.data.filter(certificate => {
+        var _a;
+        ((_a = certificate.attributes) === null || _a === void 0 ? void 0 : _a.displayName) === 'Created via API';
+    });
 }
 async function RevokeCertificate(certificateId, options) {
     appStoreConnectClient = new app_store_connect_api_1.AppStoreConnectClient(options);
@@ -58022,36 +58025,8 @@ async function RemoveCredentials() {
     }
     core.info('Revoking temp signing certificates...');
     const authenticationKeyID = core.getState('authenticationKeyID');
-    const authenticationKeyIssuerID = core.getState('authenticationKeyIssuerID');
     const appStoreConnectKeyPath = `${appStoreConnectKeyDir}/AuthKey_${authenticationKeyID}.p8`;
     const certificateDirectory = await getCertificateDirectory();
-    const tempSigningCertificateIds = (await fs.promises.readdir(certificateDirectory))
-        .filter(file => file.endsWith('.csr'))
-        .map(file => {
-        var _a;
-        const match = file.match(/^(?<type>[A-Z_]+)-(?<id>[\w-]+)\.csr$/);
-        if (!match) {
-            core.warning(`Failed to match signing certificate id from ${file}`);
-            return null;
-        }
-        return (_a = match.groups) === null || _a === void 0 ? void 0 : _a.id;
-    }).filter(id => id !== null);
-    if (tempSigningCertificateIds &&
-        tempSigningCertificateIds.length > 0) {
-        core.info('Revoking temp signing certificates...');
-        for (const tempSigningCertificateId of tempSigningCertificateIds) {
-            try {
-                await (0, AppStoreConnectClient_1.RevokeCertificate)(tempSigningCertificateId, {
-                    privateKey: appStoreConnectKeyPath,
-                    privateKeyId: authenticationKeyID,
-                    issuerId: authenticationKeyIssuerID
-                });
-            }
-            catch (error) {
-                core.error(`Failed to revoke temp signing certificate ${tempSigningCertificateId}!\n${error.stack}`);
-            }
-        }
-    }
     core.info('Removing credentials...');
     try {
         await fs.promises.unlink(appStoreConnectKeyPath);
@@ -58061,7 +58036,7 @@ async function RemoveCredentials() {
     }
     core.info('Removing certificate directory...');
     try {
-        await fs.promises.rmdir(certificateDirectory, { recursive: true });
+        await fs.promises.rm(certificateDirectory, { recursive: true, force: true });
     }
     catch (error) {
         core.error(`Failed to remove certificate directory!\n${error.stack}`);
@@ -58687,7 +58662,7 @@ async function signMacOSAppBundle(projectRef) {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
-    await (0, AppleCredential_1.GetOrCreateSigningCertificate)(projectRef, 'MAC_APP_DEVELOPMENT');
+    await (0, AppleCredential_1.GetOrCreateSigningCertificate)(projectRef, 'DEVELOPER_ID_APPLICATION');
     const signAppBundlePath = __nccwpck_require__.ab + "sign-app-bundle.sh";
     let codesignOutput = '';
     const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath], {

@@ -401,7 +401,9 @@ export async function GetCertificates(project: XcodeProject, certificateType: Ce
         return [];
     }
     core.info(responseJson);
-    return response.data;
+    return response.data.filter(certificate => {
+        certificate.attributes?.displayName === 'Created via API';
+    });
 }
 
 export async function RevokeCertificate(certificateId: string, options: AppStoreConnectOptions): Promise<void> {
