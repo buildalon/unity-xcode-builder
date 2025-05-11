@@ -58485,14 +58485,13 @@ async function ArchiveXcodeProject(projectRef) {
         '-archivePath', archivePath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
-        `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
-        `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
+        `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
     ];
     if (teamId) {
         archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
     }
     if (manualSigningIdentity) {
-        archiveArgs.push(`CODE_SIGN_IDENTITY=${manualSigningIdentity}`, `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`);
+        archiveArgs.push(`CODE_SIGN_IDENTITY=${manualSigningIdentity}`, `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`, `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
     }
     else {
         archiveArgs.push(`CODE_SIGN_IDENTITY=-`, `EXPANDED_CODE_SIGN_IDENTITY=-`);
