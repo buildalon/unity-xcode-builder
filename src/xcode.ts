@@ -185,7 +185,6 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             let output = '';
             await exec('security', [
                 'find-identity',
-                '-p', 'codesigning',
                 '-v', projectRef.credential.keychainPath
             ], {
                 listeners: {
@@ -193,14 +192,14 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
                         output += data.toString();
                     }
                 },
-                silent: true,
+                silent: true
             });
             if (!output.includes('Developer ID Application')) {
-                throw new Error('Developer ID Application not found! developer-id-certificate input is required for notarization.');
+                throw new Error('Developer ID Application not found! developer-id-application-certificate input is required for notarization.');
             }
             if (projectRef.archiveType === 'pkg' || projectRef.archiveType === 'dmg') {
                 if (!output.includes('Developer ID Installer')) {
-                    throw new Error('Developer ID Installer not found! developer-id-certificate input is required for notarization.');
+                    throw new Error('Developer ID Installer not found! developer-id-installer-certificate input is required for notarization.');
                 }
             }
         }
@@ -447,9 +446,6 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
     ];
     if (!projectRef.isSteamBuild) {
         exportArgs.push(`-allowProvisioningUpdates`);
-    }
-    if (projectRef.notarize && projectRef.archiveType === 'app') {
-        exportArgs.push(`-exportNotarizedApp`);
     }
     if (!core.isDebug()) {
         exportArgs.push('-quiet');

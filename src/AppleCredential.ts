@@ -70,7 +70,8 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         let installedCertificates: boolean = false;
         if (manualSigningCertificateBase64) {
             const manualSigningCertificatePassword = core.getInput('certificate-password', { required: true });
-            await importSigningCertificate(keychainPath, tempCredential, manualSigningCertificateBase64.trim(), manualSigningCertificatePassword.trim());
+            core.info('Importing manual signing certificate...');
+            await importCertificate(keychainPath, tempCredential, manualSigningCertificateBase64.trim(), manualSigningCertificatePassword.trim());
             installedCertificates = true;
             if (!manualSigningIdentity) {
                 let output = '';
@@ -132,13 +133,15 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         const developerIdApplicationCertificateBase64 = core.getInput('developer-id-application-certificate');
         if (developerIdApplicationCertificateBase64) {
             const developerIdApplicationCertificatePassword = core.getInput('developer-id-application-certificate-password', { required: true });
-            await importSigningCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64.trim(), developerIdApplicationCertificatePassword.trim());
+            core.info('Importing developer id application certificate...');
+            await importCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64.trim(), developerIdApplicationCertificatePassword.trim());
             installedCertificates = true;
         }
         const developerIdInstallerCertificateBase64 = core.getInput('developer-id-installer-certificate');
         if (developerIdInstallerCertificateBase64) {
             const developerIdInstallerCertificatePassword = core.getInput('developer-id-installer-certificate-password', { required: true });
-            await importSigningCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64.trim(), developerIdInstallerCertificatePassword.trim());
+            core.info('Importing developer id installer certificate...');
+            await importCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64.trim(), developerIdInstallerCertificatePassword.trim());
             installedCertificates = true;
         }
         if (installedCertificates) {
@@ -153,7 +156,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
                 silent: true
             });
             if (exitCode !== 0) {
-                throw new Error(`Failed to list signing identities! Exit code: ${exitCode}`);
+                throw new Error(`Failed to list identities! Exit code: ${exitCode}`);
             }
             const matches = output.matchAll(/\d\) (?<uuid>\w+) \"(?<signing_identity>[^"]+)\"$/gm);
             for (const match of matches) {
@@ -161,7 +164,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
                 const signingIdentity = match.groups?.signing_identity;
                 if (uuid && signingIdentity) {
                     core.setSecret(uuid);
-                    core.info(`Found signing identity: ${signingIdentity} (${uuid})`);
+                    core.info(`Found identity: ${signingIdentity} (${uuid})`);
                 }
             }
         }
@@ -227,8 +230,7 @@ async function getCertificateDirectory(): Promise<string> {
     return certificateDirectory;
 }
 
-async function importSigningCertificate(keychainPath: string, tempCredential: string, certificateBase64: string, certificatePassword: string): Promise<void> {
-    core.info('Importing signing certificate...');
+async function importCertificate(keychainPath: string, tempCredential: string, certificateBase64: string, certificatePassword: string): Promise<void> {
     const certificateDirectory = await getCertificateDirectory();
     const certificatePath = `${certificateDirectory}/${tempCredential}-${uuid.v4()}.p12`;
     const certificate = Buffer.from(certificateBase64, 'base64');
@@ -250,5 +252,4 @@ async function importSigningCertificate(keychainPath: string, tempCredential: st
     ], {
         silent: !core.isDebug()
     });
-    await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
 }

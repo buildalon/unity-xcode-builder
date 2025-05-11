@@ -57857,7 +57857,8 @@ async function ImportCredentials() {
         let installedCertificates = false;
         if (manualSigningCertificateBase64) {
             const manualSigningCertificatePassword = core.getInput('certificate-password', { required: true });
-            await importSigningCertificate(keychainPath, tempCredential, manualSigningCertificateBase64.trim(), manualSigningCertificatePassword.trim());
+            core.info('Importing manual signing certificate...');
+            await importCertificate(keychainPath, tempCredential, manualSigningCertificateBase64.trim(), manualSigningCertificatePassword.trim());
             installedCertificates = true;
             if (!manualSigningIdentity) {
                 let output = '';
@@ -57919,13 +57920,15 @@ async function ImportCredentials() {
         const developerIdApplicationCertificateBase64 = core.getInput('developer-id-application-certificate');
         if (developerIdApplicationCertificateBase64) {
             const developerIdApplicationCertificatePassword = core.getInput('developer-id-application-certificate-password', { required: true });
-            await importSigningCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64.trim(), developerIdApplicationCertificatePassword.trim());
+            core.info('Importing developer id application certificate...');
+            await importCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64.trim(), developerIdApplicationCertificatePassword.trim());
             installedCertificates = true;
         }
         const developerIdInstallerCertificateBase64 = core.getInput('developer-id-installer-certificate');
         if (developerIdInstallerCertificateBase64) {
             const developerIdInstallerCertificatePassword = core.getInput('developer-id-installer-certificate-password', { required: true });
-            await importSigningCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64.trim(), developerIdInstallerCertificatePassword.trim());
+            core.info('Importing developer id installer certificate...');
+            await importCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64.trim(), developerIdInstallerCertificatePassword.trim());
             installedCertificates = true;
         }
         if (installedCertificates) {
@@ -57940,7 +57943,7 @@ async function ImportCredentials() {
                 silent: true
             });
             if (exitCode !== 0) {
-                throw new Error(`Failed to list signing identities! Exit code: ${exitCode}`);
+                throw new Error(`Failed to list identities! Exit code: ${exitCode}`);
             }
             const matches = output.matchAll(/\d\) (?<uuid>\w+) \"(?<signing_identity>[^"]+)\"$/gm);
             for (const match of matches) {
@@ -57948,7 +57951,7 @@ async function ImportCredentials() {
                 const signingIdentity = (_e = match.groups) === null || _e === void 0 ? void 0 : _e.signing_identity;
                 if (uuid && signingIdentity) {
                     core.setSecret(uuid);
-                    core.info(`Found signing identity: ${signingIdentity} (${uuid})`);
+                    core.info(`Found identity: ${signingIdentity} (${uuid})`);
                 }
             }
         }
@@ -58007,8 +58010,7 @@ async function getCertificateDirectory() {
     }
     return certificateDirectory;
 }
-async function importSigningCertificate(keychainPath, tempCredential, certificateBase64, certificatePassword) {
-    core.info('Importing signing certificate...');
+async function importCertificate(keychainPath, tempCredential, certificateBase64, certificatePassword) {
     const certificateDirectory = await getCertificateDirectory();
     const certificatePath = `${certificateDirectory}/${tempCredential}-${uuid.v4()}.p12`;
     const certificate = Buffer.from(certificateBase64, 'base64');
@@ -58030,7 +58032,6 @@ async function importSigningCertificate(keychainPath, tempCredential, certificat
     ], {
         silent: !core.isDebug()
     });
-    await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
 }
 
 
@@ -58292,7 +58293,6 @@ async function GetProjectDetails(credential, xcodeVersion) {
             let output = '';
             await (0, exec_1.exec)('security', [
                 'find-identity',
-                '-p', 'codesigning',
                 '-v', projectRef.credential.keychainPath
             ], {
                 listeners: {
@@ -58300,14 +58300,14 @@ async function GetProjectDetails(credential, xcodeVersion) {
                         output += data.toString();
                     }
                 },
-                silent: true,
+                silent: true
             });
             if (!output.includes('Developer ID Application')) {
-                throw new Error('Developer ID Application not found! developer-id-certificate input is required for notarization.');
+                throw new Error('Developer ID Application not found! developer-id-application-certificate input is required for notarization.');
             }
             if (projectRef.archiveType === 'pkg' || projectRef.archiveType === 'dmg') {
                 if (!output.includes('Developer ID Installer')) {
-                    throw new Error('Developer ID Installer not found! developer-id-certificate input is required for notarization.');
+                    throw new Error('Developer ID Installer not found! developer-id-installer-certificate input is required for notarization.');
                 }
             }
         }
@@ -58542,9 +58542,6 @@ async function ExportXcodeArchive(projectRef) {
     ];
     if (!projectRef.isSteamBuild) {
         exportArgs.push(`-allowProvisioningUpdates`);
-    }
-    if (projectRef.notarize && projectRef.archiveType === 'app') {
-        exportArgs.push(`-exportNotarizedApp`);
     }
     if (!core.isDebug()) {
         exportArgs.push('-quiet');
