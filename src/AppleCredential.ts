@@ -67,9 +67,11 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         let certificateUUID: string | undefined;
         let teamId = core.getInput('team-id');
         const manualSigningCertificateBase64 = core.getInput('certificate');
+        let installedCertificates: boolean = false;
         if (manualSigningCertificateBase64) {
             const manualSigningCertificatePassword = core.getInput('certificate-password', { required: true });
             await importSigningCertificate(keychainPath, tempCredential, manualSigningCertificateBase64.trim(), manualSigningCertificatePassword.trim());
+            installedCertificates = true;
             if (!manualSigningIdentity) {
                 let output = '';
                 core.info(`[command]${security} find-identity -v -p codesigning ${keychainPath}`);
@@ -131,11 +133,37 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         if (developerIdApplicationCertificateBase64) {
             const developerIdApplicationCertificatePassword = core.getInput('developer-id-application-certificate-password', { required: true });
             await importSigningCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64.trim(), developerIdApplicationCertificatePassword.trim());
+            installedCertificates = true;
         }
         const developerIdInstallerCertificateBase64 = core.getInput('developer-id-installer-certificate');
         if (developerIdInstallerCertificateBase64) {
             const developerIdInstallerCertificatePassword = core.getInput('developer-id-installer-certificate-password', { required: true });
             await importSigningCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64.trim(), developerIdInstallerCertificatePassword.trim());
+            installedCertificates = true;
+        }
+        if (installedCertificates) {
+            let output = '';
+            core.info(`[command]${security} find-identity -v ${keychainPath}`);
+            const exitCode = await exec.exec(security, ['find-identity', '-v', keychainPath], {
+                listeners: {
+                    stdout: (data: Buffer) => {
+                        output += data.toString();
+                    }
+                },
+                silent: true
+            });
+            if (exitCode !== 0) {
+                throw new Error(`Failed to list signing identities! Exit code: ${exitCode}`);
+            }
+            const matches = output.matchAll(/\d\) (?<uuid>\w+) \"(?<signing_identity>[^"]+)\"$/gm);
+            for (const match of matches) {
+                const uuid = match.groups?.uuid;
+                const signingIdentity = match.groups?.signing_identity;
+                if (uuid && signingIdentity) {
+                    core.setSecret(uuid);
+                    core.info(`Found signing identity: ${signingIdentity} (${uuid})`);
+                }
+            }
         }
         return new AppleCredential(
             tempCredential,
