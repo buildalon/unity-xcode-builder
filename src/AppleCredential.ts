@@ -4,8 +4,7 @@ import {
 } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
 import {
     CreateNewCertificate,
-    GetCertificates,
-    RevokeCertificate
+    GetCertificates
 } from './AppStoreConnectClient';
 import {
     XcodeProject
@@ -62,11 +61,11 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         const tempCredential = uuid.v4();
         core.setSecret(tempCredential);
         core.saveState('tempCredential', tempCredential);
-        const authenticationKeyID = core.getInput('app-store-connect-key-id', { required: true });
+        const authenticationKeyID = core.getInput('app-store-connect-key-id', { required: true }).trim();
         core.saveState('authenticationKeyID', authenticationKeyID);
-        const authenticationKeyIssuerID = core.getInput('app-store-connect-issuer-id', { required: true });
+        const authenticationKeyIssuerID = core.getInput('app-store-connect-issuer-id', { required: true }).trim();
         core.saveState('authenticationKeyIssuerID', authenticationKeyIssuerID);
-        const appStoreConnectKeyBase64 = core.getInput('app-store-connect-key', { required: true });
+        const appStoreConnectKeyBase64 = core.getInput('app-store-connect-key', { required: true }).trim();
         await fs.promises.mkdir(appStoreConnectKeyDir, { recursive: true });
         const appStoreConnectKeyPath = `${appStoreConnectKeyDir}/AuthKey_${authenticationKeyID}.p8`;
         const appStoreConnectKey = Buffer.from(appStoreConnectKeyBase64, 'base64').toString('utf8');
@@ -190,7 +189,6 @@ export async function RemoveCredentials(): Promise<void> {
     } else {
         core.error('Missing tempCredential state');
     }
-    core.info('Revoking temp signing certificates...');
     const authenticationKeyID = core.getState('authenticationKeyID');
     const appStoreConnectKeyPath = `${appStoreConnectKeyDir}/AuthKey_${authenticationKeyID}.p8`;
     const certificateDirectory = await getCertificateDirectory();
