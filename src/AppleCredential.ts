@@ -62,7 +62,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         const keychainPath = `${temp}/${tempCredential}.keychain-db`;
         await exec.exec(security, ['create-keychain', '-p', tempCredential, keychainPath]);
         await exec.exec(security, ['set-keychain-settings', '-lut', '21600', keychainPath]);
-        await exec.exec(security, ['unlock-keychain', '-p', tempCredential, keychainPath]);
+        await UnlockTemporaryKeychain(keychainPath, tempCredential);
         let manualSigningIdentity = core.getInput('signing-identity');
         let certificateUUID: string | undefined;
         let teamId = core.getInput('team-id');
@@ -71,7 +71,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         if (manualSigningCertificateBase64) {
             const manualSigningCertificatePassword = core.getInput('certificate-password', { required: true });
             core.info('Importing manual signing certificate...');
-            await importCertificate(keychainPath, tempCredential, manualSigningCertificateBase64.trim(), manualSigningCertificatePassword.trim());
+            await importCertificate(keychainPath, tempCredential, manualSigningCertificateBase64.trim(), manualSigningCertificatePassword.trim(), true);
             installedCertificates = true;
             if (!manualSigningIdentity) {
                 let output = '';
@@ -134,14 +134,14 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         if (developerIdApplicationCertificateBase64) {
             const developerIdApplicationCertificatePassword = core.getInput('developer-id-application-certificate-password', { required: true });
             core.info('Importing developer id application certificate...');
-            await importCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64.trim(), developerIdApplicationCertificatePassword.trim());
+            await importCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64.trim(), developerIdApplicationCertificatePassword.trim(), true);
             installedCertificates = true;
         }
         const developerIdInstallerCertificateBase64 = core.getInput('developer-id-installer-certificate');
         if (developerIdInstallerCertificateBase64) {
             const developerIdInstallerCertificatePassword = core.getInput('developer-id-installer-certificate-password', { required: true });
             core.info('Importing developer id installer certificate...');
-            await importCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64.trim(), developerIdInstallerCertificatePassword.trim());
+            await importCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64.trim(), developerIdInstallerCertificatePassword.trim(), false);
             installedCertificates = true;
         }
         if (installedCertificates) {
@@ -224,13 +224,13 @@ async function getCertificateDirectory(): Promise<string> {
     try {
         await fs.promises.access(certificateDirectory, fs.constants.R_OK)
     } catch (error) {
-        core.info(`Creating directory ${certificateDirectory}`);
+        core.debug(`Creating directory ${certificateDirectory}`);
         await fs.promises.mkdir(certificateDirectory, { recursive: true });
     }
     return certificateDirectory;
 }
 
-async function importCertificate(keychainPath: string, tempCredential: string, certificateBase64: string, certificatePassword: string): Promise<void> {
+async function importCertificate(keychainPath: string, tempCredential: string, certificateBase64: string, certificatePassword: string, isCodeSigning: boolean): Promise<void> {
     const certificateDirectory = await getCertificateDirectory();
     const certificatePath = `${certificateDirectory}/${tempCredential}-${uuid.v4()}.p12`;
     const certificate = Buffer.from(certificateBase64, 'base64');
@@ -241,15 +241,32 @@ async function importCertificate(keychainPath: string, tempCredential: string, c
         '-A', '-t', 'cert', '-f', 'pkcs12',
         '-k', keychainPath
     ]);
+    const partitionList = isCodeSigning ? 'apple-tool:,apple:,codesign:' : 'apple-tool:,apple:';
     if (core.isDebug()) {
-        core.info(`[command]${security} set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${tempCredential} ${keychainPath}`);
+        core.info(`[command]${security} set-key-partition-list -S ${partitionList} -s -k ${tempCredential} ${keychainPath}`);
     }
     await exec.exec(security, [
         'set-key-partition-list',
-        '-S', 'apple-tool:,apple:,codesign:',
+        '-S', partitionList,
         '-s', '-k', tempCredential,
         keychainPath
     ], {
         silent: !core.isDebug()
     });
+}
+
+export async function UnlockTemporaryKeychain(keychainPath: string, tempCredential: string): Promise<void> {
+    let output = '';
+    await exec.exec(security, ['show-keychain-info', keychainPath], {
+        listeners: {
+            stdout: (data: Buffer) => {
+                output += data.toString();
+            }
+        }
+    });
+    if (output.includes('unlocked')) {
+        return;
+    }
+    core.info(`[command]${security} unlock-keychain -p ${tempCredential} ${keychainPath}`);
+    await exec.exec(security, ['unlock-keychain', '-p', tempCredential, keychainPath]);
 }

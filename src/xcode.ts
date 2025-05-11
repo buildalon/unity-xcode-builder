@@ -11,7 +11,8 @@ import { log } from './utilities';
 import { SemVer } from 'semver';
 import core = require('@actions/core');
 import {
-    AppleCredential
+    AppleCredential,
+    UnlockTemporaryKeychain
 } from './AppleCredential';
 import {
     GetLatestBundleVersion,
@@ -369,7 +370,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
-        `-otherCodeSignFlags=--keychain ${projectRef.credential.keychainPath}`,
+        // `-otherCodeSignFlags=--keychain ${projectRef.credential.keychainPath}`,
     ];
     const { teamId, manualSigningIdentity, manualProvisioningProfileUUID, keychainPath } = projectRef.credential;
     if (teamId) {
@@ -422,6 +423,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     } else {
         archiveArgs.push('-verbose');
     }
+    await UnlockTemporaryKeychain(projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase);
     if (core.isDebug()) {
         await execXcodeBuild(archiveArgs);
     } else {
@@ -444,7 +446,7 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
-        `-otherCodeSignFlags=--keychain ${projectRef.credential.keychainPath}`,
+        // `-otherCodeSignFlags=--keychain ${projectRef.credential.keychainPath}`,
     ];
     if (!projectRef.isSteamBuild) {
         exportArgs.push(`-allowProvisioningUpdates`);
@@ -454,6 +456,7 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
     } else {
         exportArgs.push('-verbose');
     }
+    await UnlockTemporaryKeychain(projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase);
     if (core.isDebug()) {
         await execXcodeBuild(exportArgs);
     } else {
