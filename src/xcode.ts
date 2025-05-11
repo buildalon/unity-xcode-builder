@@ -494,7 +494,22 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
-    await exec('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath]);
+    // check if the app bundle is already signed with the 'Developer ID Application' certificate
+    let checkCodesignOutput = '';
+    const checkCodeSignExitCode = await exec('codesign', ['-dvvv', '--verbose=4', appPath], {
+        listeners: {
+            stdout: (data: Buffer) => {
+                checkCodesignOutput += data.toString();
+            }
+        },
+        ignoreReturnCode: true,
+    });
+    if (checkCodeSignExitCode === 0) {
+        if (checkCodesignOutput.includes('Developer ID Application')) {
+            core.info(`App bundle is already signed with Developer ID Application certificate.`);
+            return;
+        }
+    }
     await GetOrCreateSigningCertificate(projectRef, 'DEVELOPER_ID_APPLICATION');
     const signAppBundlePath = path.join(__dirname, 'sign-app-bundle.sh');
     let codesignOutput = '';
