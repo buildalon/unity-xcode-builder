@@ -578,6 +578,7 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
         log(codesignOutput, 'error');
         throw new Error(`Failed to code sign the pkg!`);
     }
+    await notarizeArchive(projectRef, pkgPath, pkgPath);
     return pkgPath;
 }
 

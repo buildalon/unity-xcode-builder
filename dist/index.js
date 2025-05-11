@@ -58687,6 +58687,7 @@ async function createMacOSInstallerPkg(projectRef) {
         (0, utilities_1.log)(codesignOutput, 'error');
         throw new Error(`Failed to code sign the pkg!`);
     }
+    await notarizeArchive(projectRef, pkgPath, pkgPath);
     return pkgPath;
 }
 async function notarizeArchive(projectRef, archivePath, staplePath) {

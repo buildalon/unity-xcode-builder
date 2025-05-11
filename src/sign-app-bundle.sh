@@ -3,7 +3,7 @@
 # Usage: ./signing.sh <path_to_app_bundle> <path_to_entitlements_path> "<DEVELOPER_ID_APPLICATION_SIGNING_IDENTITY>"
 # Example: ./signing.sh /path/to/MyApp.app /path/to/entitlements.plist "Developer ID Application: Your Name (Team ID)"
 
-set -xe
+set -e
 
 APP_BUNDLE_PATH="$1"
 ENTITLEMENTS_PATH="$2"
