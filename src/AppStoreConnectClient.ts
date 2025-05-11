@@ -407,7 +407,7 @@ export async function GetCertificates(project: XcodeProject, certificateType: Ce
 export async function RevokeCertificate(certificateId: string, options: AppStoreConnectOptions): Promise<void> {
     appStoreConnectClient = new AppStoreConnectClient(options);
     const request: CertificatesDeleteInstanceData = { path: { id: certificateId } };
-    log(`DELETE /certificates/${certificateId}`);
+    core.info(`DELETE /certificates/${certificateId}`);
     const { error } = await appStoreConnectClient.api.CertificatesService.certificatesDeleteInstance(request);
     if (error) {
         checkAuthError(error);
