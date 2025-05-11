@@ -1,8 +1,10 @@
 import {
+    Certificate,
     CertificateType
 } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
 import {
     CreateNewCertificate,
+    GetCertificates,
     RevokeCertificate
 } from './AppStoreConnectClient';
 import {
@@ -233,11 +235,25 @@ export async function RemoveCredentials(): Promise<void> {
     }
 }
 
+export async function GetOrCreateSigningCertificate(project: XcodeProject, certificateType: CertificateType): Promise<void> {
+    const signingCertificates = await GetCertificates(project, certificateType);
+    if (signingCertificates.length === 0) {
+        core.info(`No signing certificate found for ${certificateType}, creating one...`);
+        await CreateSigningCertificate(project, certificateType);
+    } else {
+        await importSigningCertificate(project, signingCertificates[0]);
+    }
+}
+
 export async function CreateSigningCertificate(project: XcodeProject, certificateType: CertificateType): Promise<void> {
     const csrContent = await createCSR(project.credential.name, certificateType);
     const certificate = await CreateNewCertificate(project, certificateType, csrContent);
+    await importSigningCertificate(project, certificate);
+}
+
+async function importSigningCertificate(project: XcodeProject, certificate: Certificate) {
     const certificateDirectory = await getCertificateDirectory();
-    const certificateName = `${certificateType}-${certificate.id}.cer`;
+    const certificateName = `${certificate.type}-${certificate.id}.cer`;
     const certificatePath = `${certificateDirectory}/${certificateName}`;
     core.info(`Certificate path: ${certificatePath}`);
     const certificateContent = Buffer.from(certificate.attributes.certificateContent, 'base64');

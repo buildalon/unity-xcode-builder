@@ -57466,6 +57466,7 @@ exports.GetLatestBundleVersion = GetLatestBundleVersion;
 exports.UpdateTestDetails = UpdateTestDetails;
 exports.AddBuildToTestGroups = AddBuildToTestGroups;
 exports.CreateNewCertificate = CreateNewCertificate;
+exports.GetCertificates = GetCertificates;
 exports.RevokeCertificate = RevokeCertificate;
 const app_store_connect_api_1 = __nccwpck_require__(9073);
 const utilities_1 = __nccwpck_require__(5739);
@@ -57823,6 +57824,26 @@ async function CreateNewCertificate(project, certificateType, csrContent) {
     core.info(responseJson);
     return response.data;
 }
+async function GetCertificates(project, certificateType) {
+    await getOrCreateClient(project);
+    const request = {
+        query: {
+            "filter[certificateType]": [certificateType]
+        }
+    };
+    core.info(`GET /certificates?${JSON.stringify(request.query)}`);
+    const { data: response, error } = await appStoreConnectClient.api.CertificatesService.certificatesGetCollection(request);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error fetching certificates: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data || response.data.length === 0) {
+        return [];
+    }
+    core.info(responseJson);
+    return response.data;
+}
 async function RevokeCertificate(certificateId, options) {
     appStoreConnectClient = new app_store_connect_api_1.AppStoreConnectClient(options);
     const request = { path: { id: certificateId } };
@@ -57846,6 +57867,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AppleCredential = void 0;
 exports.ImportCredentials = ImportCredentials;
 exports.RemoveCredentials = RemoveCredentials;
+exports.GetOrCreateSigningCertificate = GetOrCreateSigningCertificate;
 exports.CreateSigningCertificate = CreateSigningCertificate;
 const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const core = __nccwpck_require__(2186);
@@ -58045,11 +58067,24 @@ async function RemoveCredentials() {
         core.error(`Failed to remove certificate directory!\n${error.stack}`);
     }
 }
+async function GetOrCreateSigningCertificate(project, certificateType) {
+    const signingCertificates = await (0, AppStoreConnectClient_1.GetCertificates)(project, certificateType);
+    if (signingCertificates.length === 0) {
+        core.info(`No signing certificate found for ${certificateType}, creating one...`);
+        await CreateSigningCertificate(project, certificateType);
+    }
+    else {
+        await importSigningCertificate(project, signingCertificates[0]);
+    }
+}
 async function CreateSigningCertificate(project, certificateType) {
     const csrContent = await createCSR(project.credential.name, certificateType);
     const certificate = await (0, AppStoreConnectClient_1.CreateNewCertificate)(project, certificateType, csrContent);
+    await importSigningCertificate(project, certificate);
+}
+async function importSigningCertificate(project, certificate) {
     const certificateDirectory = await getCertificateDirectory();
-    const certificateName = `${certificateType}-${certificate.id}.cer`;
+    const certificateName = `${certificate.type}-${certificate.id}.cer`;
     const certificatePath = `${certificateDirectory}/${certificateName}`;
     core.info(`Certificate path: ${certificatePath}`);
     const certificateContent = Buffer.from(certificate.attributes.certificateContent, 'base64');
@@ -58188,10 +58223,10 @@ const plist = __nccwpck_require__(1933);
 const path = __nccwpck_require__(1017);
 const fs = __nccwpck_require__(7147);
 const semver = __nccwpck_require__(1383);
-const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const utilities_1 = __nccwpck_require__(5739);
 const core = __nccwpck_require__(2186);
 const AppleCredential_1 = __nccwpck_require__(4199);
+const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
@@ -58652,7 +58687,7 @@ async function signMacOSAppBundle(projectRef) {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
-    await (0, AppleCredential_1.CreateSigningCertificate)(projectRef, 'MAC_APP_DEVELOPMENT');
+    await (0, AppleCredential_1.GetOrCreateSigningCertificate)(projectRef, 'MAC_APP_DEVELOPMENT');
     const signAppBundlePath = __nccwpck_require__.ab + "sign-app-bundle.sh";
     let codesignOutput = '';
     const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath], {
@@ -58690,7 +58725,7 @@ async function createMacOSInstallerPkg(projectRef) {
     catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
-    await (0, AppleCredential_1.CreateSigningCertificate)(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
+    await (0, AppleCredential_1.GetOrCreateSigningCertificate)(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
     const signPkgPath = __nccwpck_require__.ab + "sign-app-pkg.sh";
     core.info(`Signing pkg: ${pkgPath}`);
     let codesignOutput = '';

@@ -19,6 +19,7 @@ import {
     CertificateType,
     CertificatesCreateInstanceData,
     CertificatesDeleteInstanceData,
+    CertificatesGetCollectionData,
 } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
 import { log } from './utilities';
 import core = require('@actions/core');
@@ -377,6 +378,27 @@ export async function CreateNewCertificate(project: XcodeProject, certificateTyp
     const responseJson = JSON.stringify(response, null, 2);
     if (!response || !response.data) {
         throw new Error(`No certificate found!`);
+    }
+    core.info(responseJson);
+    return response.data;
+}
+
+export async function GetCertificates(project: XcodeProject, certificateType: CertificateType): Promise<Certificate[]> {
+    await getOrCreateClient(project);
+    const request: CertificatesGetCollectionData = {
+        query: {
+            "filter[certificateType]": [certificateType]
+        }
+    };
+    core.info(`GET /certificates?${JSON.stringify(request.query)}`);
+    const { data: response, error } = await appStoreConnectClient.api.CertificatesService.certificatesGetCollection(request);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error fetching certificates: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data || response.data.length === 0) {
+        return [];
     }
     core.info(responseJson);
     return response.data;
