@@ -8,30 +8,32 @@ set -xe
 APP_BUNDLE_PATH="$1"
 ENTITLEMENTS_PATH="$2"
 SIGNING_IDENTITY="$3"
+KEYCHAIN_PATH="$4"
 
 # remove any metadata from the app bundle
 xattr -cr "$APP_BUNDLE_PATH"
 
 if [ -z "$SIGNING_IDENTITY" ]; then
     # get the signing identity that matches Developer ID Application
-    SIGNING_IDENTITY=$(security find-identity -p codesigning -v | grep "Developer ID Application" | awk -F'"' '{print $2}' | head -n 1)
+    SIGNING_IDENTITY=$(security find-identity -p codesigning -v "$KEYCHAIN_PATH" | grep "Developer ID Application" | awk -F'"' '{print $2}' | head -n 1)
 fi
 
 if [ -z "$SIGNING_IDENTITY" ]; then
-    echo "No 'Developer ID Application' signing identity found!"
+    echo "No 'Developer ID Application' signing identity found in $KEYCHAIN_PATH!"
     exit 1
 fi
 
 # sign *.bundles and delete any existing *.meta files from them
-find "$APP_BUNDLE_PATH" -name "*.bundle" -exec find {} -name '*.meta' -delete \; -exec codesign --force --verify --verbose --timestamp --options runtime --sign "$SIGNING_IDENTITY" {} \;
+find "$APP_BUNDLE_PATH" -name "*.bundle" -exec find {} -name '*.meta' -delete \; -exec codesign --force --verify --verbose --timestamp --options runtime --keychain "$KEYCHAIN_PATH" --sign "$SIGNING_IDENTITY" {} \;
 
 # sign any *.dylibs
-find "$APP_BUNDLE_PATH" -name "*.dylib" -exec codesign --force --verify --verbose --timestamp --options runtime --sign "$SIGNING_IDENTITY" {} \;
+find "$APP_BUNDLE_PATH" -name "*.dylib" -exec codesign --force --verify --verbose --timestamp --options runtime --keychain "$KEYCHAIN_PATH" --sign "$SIGNING_IDENTITY" {} \;
 
 #sign the main app bundle
-codesign --deep --force --verify --verbose --timestamp --options runtime --entitlements "$ENTITLEMENTS_PATH" --sign "$SIGNING_IDENTITY" "$APP_BUNDLE_PATH"
+codesign --deep --force --verify --verbose --timestamp --options runtime --entitlements "$ENTITLEMENTS_PATH" --keychain "$KEYCHAIN_PATH" --sign "$SIGNING_IDENTITY" "$APP_BUNDLE_PATH"
 
 # verify the app bundle
-if ! codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE_PATH"; then
+if ! codesign --verify --deep --strict --verbose=2 --keychain "$KEYCHAIN_PATH" "$APP_BUNDLE_PATH"; then
     exit 1
 fi
+echo "App bundle signed successfully!"

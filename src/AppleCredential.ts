@@ -196,7 +196,7 @@ export async function RemoveCredentials(): Promise<void> {
     const tempSigningCertificateIds = (await fs.promises.readdir(certificateDirectory))
         .filter(file => file.endsWith('.csr'))
         .map(file => {
-            // CERTIFICATE_TYPE-uuid-1234.csr
+            // CERTIFICATE_TYPE-353BU6R6PX.csr
             const match = file.match(/^(?<type>[A-Z_]+)-(?<id>[\w-]+)\.csr$/);
             if (!match) {
                 core.warning(`Failed to match signing certificate id from ${file}`);
@@ -233,13 +233,13 @@ export async function RemoveCredentials(): Promise<void> {
     }
 }
 
-export async function CreateSigningCertificate(project: XcodeProject, certificateType: CertificateType) {
+export async function CreateSigningCertificate(project: XcodeProject, certificateType: CertificateType): Promise<void> {
     const csrContent = await createCSR(project.credential.name, certificateType);
     const certificate = await CreateNewCertificate(project, certificateType, csrContent);
     const certificateDirectory = await getCertificateDirectory();
     const certificateName = `${certificateType}-${certificate.id}.cer`;
     const certificatePath = `${certificateDirectory}/${certificateName}`;
-    core.debug(`Certificate path: ${certificatePath}`);
+    core.info(`Certificate path: ${certificatePath}`);
     const certificateContent = Buffer.from(certificate.attributes.certificateContent, 'base64');
     await fs.promises.writeFile(certificatePath, certificateContent);
     await exec.exec(security, [
@@ -247,7 +247,6 @@ export async function CreateSigningCertificate(project: XcodeProject, certificat
         '-A', '-t', 'cert', '-f', 'x509',
         '-k', project.credential.keychainPath,
     ]);
-    return project;
 }
 
 async function createCSR(tempCredential: string, certificateType: CertificateType): Promise<string> {

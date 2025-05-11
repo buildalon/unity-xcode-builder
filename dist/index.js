@@ -58051,7 +58051,7 @@ async function CreateSigningCertificate(project, certificateType) {
     const certificateDirectory = await getCertificateDirectory();
     const certificateName = `${certificateType}-${certificate.id}.cer`;
     const certificatePath = `${certificateDirectory}/${certificateName}`;
-    core.debug(`Certificate path: ${certificatePath}`);
+    core.info(`Certificate path: ${certificatePath}`);
     const certificateContent = Buffer.from(certificate.attributes.certificateContent, 'base64');
     await fs.promises.writeFile(certificatePath, certificateContent);
     await exec.exec(security, [
@@ -58059,7 +58059,6 @@ async function CreateSigningCertificate(project, certificateType) {
         '-A', '-t', 'cert', '-f', 'x509',
         '-k', project.credential.keychainPath,
     ]);
-    return project;
 }
 async function createCSR(tempCredential, certificateType) {
     const certificateDirectory = await getCertificateDirectory();
@@ -58656,7 +58655,7 @@ async function signMacOSAppBundle(projectRef) {
     await (0, AppleCredential_1.CreateSigningCertificate)(projectRef, 'MAC_APP_DEVELOPMENT');
     const signAppBundlePath = __nccwpck_require__.ab + "sign-app-bundle.sh";
     let codesignOutput = '';
-    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath], {
+    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath], {
         listeners: {
             stdout: (data) => {
                 codesignOutput += data.toString();
@@ -58695,7 +58694,7 @@ async function createMacOSInstallerPkg(projectRef) {
     const signPkgPath = __nccwpck_require__.ab + "sign-app-pkg.sh";
     core.info(`Signing pkg: ${pkgPath}`);
     let codesignOutput = '';
-    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-pkg.sh", pkgPath], {
+    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-pkg.sh", pkgPath, projectRef.credential.keychainPath], {
         listeners: {
             stdout: (data) => {
                 codesignOutput += data.toString();

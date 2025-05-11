@@ -493,7 +493,7 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     await CreateSigningCertificate(projectRef, 'MAC_APP_DEVELOPMENT');
     const signAppBundlePath = path.join(__dirname, 'sign-app-bundle.sh');
     let codesignOutput = '';
-    const codesignExitCode = await exec('sh', [signAppBundlePath, appPath, projectRef.entitlementsPath], {
+    const codesignExitCode = await exec('sh', [signAppBundlePath, appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath], {
         listeners: {
             stdout: (data: Buffer) => {
                 codesignOutput += data.toString();
@@ -533,7 +533,7 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
     const signPkgPath = path.join(__dirname, 'sign-app-pkg.sh');
     core.info(`Signing pkg: ${pkgPath}`);
     let codesignOutput = '';
-    const codesignExitCode = await exec('sh', [signPkgPath, pkgPath], {
+    const codesignExitCode = await exec('sh', [signPkgPath, pkgPath, projectRef.credential.keychainPath], {
         listeners: {
             stdout: (data: Buffer) => {
                 codesignOutput += data.toString();
