@@ -58012,6 +58012,7 @@ async function getCertificateDirectory() {
     return certificateDirectory;
 }
 async function importCertificate(keychainPath, tempCredential, certificateBase64, certificatePassword, isCodeSigning) {
+    await UnlockTemporaryKeychain(keychainPath, tempCredential);
     const certificateDirectory = await getCertificateDirectory();
     const certificatePath = `${certificateDirectory}/${tempCredential}-${uuid.v4()}.p12`;
     const certificate = Buffer.from(certificateBase64, 'base64');
@@ -58036,19 +58037,10 @@ async function importCertificate(keychainPath, tempCredential, certificateBase64
     });
 }
 async function UnlockTemporaryKeychain(keychainPath, tempCredential) {
-    let output = '';
-    await exec.exec(security, ['show-keychain-info', keychainPath], {
-        listeners: {
-            stdout: (data) => {
-                output += data.toString();
-            }
-        }
-    });
-    if (output.includes('unlocked')) {
-        return;
+    const exitCode = await exec.exec(security, ['unlock-keychain', '-p', tempCredential, keychainPath]);
+    if (exitCode !== 0) {
+        throw new Error(`Failed to unlock keychain! Exit code: ${exitCode}`);
     }
-    core.info(`[command]${security} unlock-keychain -p ${tempCredential} ${keychainPath}`);
-    await exec.exec(security, ['unlock-keychain', '-p', tempCredential, keychainPath]);
 }
 
 
@@ -58483,6 +58475,7 @@ async function ArchiveXcodeProject(projectRef) {
     else {
         projectRef.entitlementsPath = entitlementsPath;
     }
+    const { teamId, manualSigningIdentity, manualProvisioningProfileUUID, keychainPath } = projectRef.credential;
     const archiveArgs = [
         'archive',
         '-project', projectPath,
@@ -58493,13 +58486,13 @@ async function ArchiveXcodeProject(projectRef) {
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
+        `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
     ];
-    const { teamId, manualSigningIdentity, manualProvisioningProfileUUID, keychainPath } = projectRef.credential;
     if (teamId) {
         archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
     }
     if (manualSigningIdentity) {
-        archiveArgs.push(`CODE_SIGN_IDENTITY=${manualSigningIdentity}`, `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`, `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
+        archiveArgs.push(`CODE_SIGN_IDENTITY=${manualSigningIdentity}`, `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`);
     }
     else {
         archiveArgs.push(`CODE_SIGN_IDENTITY=-`, `EXPANDED_CODE_SIGN_IDENTITY=-`);
@@ -58550,6 +58543,7 @@ async function ExportXcodeArchive(projectRef) {
     projectRef.exportPath = `${projectDirectory}/${projectName}`;
     core.info(`Export path: ${projectRef.exportPath}`);
     core.setOutput('output-directory', projectRef.exportPath);
+    const { teamId, manualProvisioningProfileUUID } = projectRef.credential;
     const exportArgs = [
         '-exportArchive',
         '-archivePath', archivePath,
@@ -58557,9 +58551,12 @@ async function ExportXcodeArchive(projectRef) {
         '-exportOptionsPlist', exportOptionsPath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
-        `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
+        `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
     ];
-    if (!projectRef.isSteamBuild) {
+    if (teamId) {
+        exportArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
+    }
+    if (!manualProvisioningProfileUUID) {
         exportArgs.push(`-allowProvisioningUpdates`);
     }
     if (!core.isDebug()) {

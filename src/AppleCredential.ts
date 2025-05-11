@@ -231,6 +231,7 @@ async function getCertificateDirectory(): Promise<string> {
 }
 
 async function importCertificate(keychainPath: string, tempCredential: string, certificateBase64: string, certificatePassword: string, isCodeSigning: boolean): Promise<void> {
+    await UnlockTemporaryKeychain(keychainPath, tempCredential);
     const certificateDirectory = await getCertificateDirectory();
     const certificatePath = `${certificateDirectory}/${tempCredential}-${uuid.v4()}.p12`;
     const certificate = Buffer.from(certificateBase64, 'base64');
@@ -256,17 +257,8 @@ async function importCertificate(keychainPath: string, tempCredential: string, c
 }
 
 export async function UnlockTemporaryKeychain(keychainPath: string, tempCredential: string): Promise<void> {
-    let output = '';
-    await exec.exec(security, ['show-keychain-info', keychainPath], {
-        listeners: {
-            stdout: (data: Buffer) => {
-                output += data.toString();
-            }
-        }
-    });
-    if (output.includes('unlocked')) {
-        return;
+    const exitCode = await exec.exec(security, ['unlock-keychain', '-p', tempCredential, keychainPath]);
+    if (exitCode !== 0) {
+        throw new Error(`Failed to unlock keychain! Exit code: ${exitCode}`);
     }
-    core.info(`[command]${security} unlock-keychain -p ${tempCredential} ${keychainPath}`);
-    await exec.exec(security, ['unlock-keychain', '-p', tempCredential, keychainPath]);
 }

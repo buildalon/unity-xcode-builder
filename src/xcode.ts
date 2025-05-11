@@ -360,6 +360,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     } else {
         projectRef.entitlementsPath = entitlementsPath;
     }
+    const { teamId, manualSigningIdentity, manualProvisioningProfileUUID, keychainPath } = projectRef.credential;
     const archiveArgs = [
         'archive',
         '-project', projectPath,
@@ -370,17 +371,15 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
-        // `-otherCodeSignFlags=--keychain ${projectRef.credential.keychainPath}`,
+        `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
     ];
-    const { teamId, manualSigningIdentity, manualProvisioningProfileUUID, keychainPath } = projectRef.credential;
     if (teamId) {
         archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
     }
     if (manualSigningIdentity) {
         archiveArgs.push(
             `CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
-            `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
-            `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
+            `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`
         );
     } else {
         archiveArgs.push(
@@ -438,6 +437,7 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
     projectRef.exportPath = `${projectDirectory}/${projectName}`;
     core.info(`Export path: ${projectRef.exportPath}`);
     core.setOutput('output-directory', projectRef.exportPath);
+    const { teamId, manualProvisioningProfileUUID } = projectRef.credential;
     const exportArgs = [
         '-exportArchive',
         '-archivePath', archivePath,
@@ -445,10 +445,12 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         '-exportOptionsPlist', exportOptionsPath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
-        `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
-        // `-otherCodeSignFlags=--keychain ${projectRef.credential.keychainPath}`,
+        `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
     ];
-    if (!projectRef.isSteamBuild) {
+    if (teamId) {
+        exportArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
+    }
+    if (!manualProvisioningProfileUUID) {
         exportArgs.push(`-allowProvisioningUpdates`);
     }
     if (!core.isDebug()) {
