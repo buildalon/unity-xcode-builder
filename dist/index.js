@@ -58065,23 +58065,20 @@ async function createCSR(tempCredential, certificateType) {
     const certificateDirectory = await getCertificateDirectory();
     const privateKeyPath = path.join(certificateDirectory, `signing-${tempCredential}.key`);
     const csrPath = path.join(certificateDirectory, `signing-${tempCredential}.csr`);
-    core.info(`[command]openssl genpkey -algorithm RSA -aes256 -pass pass:${tempCredential} -out ${privateKeyPath} -pkeyopt rsa_keygen_bits:2048`);
+    core.info(`[command]openssl genpkey -algorithm RSA -out ${privateKeyPath} -pkeyopt rsa_keygen_bits:2048`);
     await exec.exec('openssl', [
         'genpkey',
         '-algorithm', 'RSA',
-        '-aes256',
-        '-pass', `pass:${tempCredential}`,
         '-out', privateKeyPath,
         '-pkeyopt', 'rsa_keygen_bits:2048'
     ], { silent: true });
     const subject = `/CN=${certificateType}/O=App Store Connect API`;
-    core.info(`[command]openssl req -new -key ${privateKeyPath} -out ${csrPath} -subj "${subject}" -passin pass:${tempCredential}`);
+    core.info(`[command]openssl req -new -key ${privateKeyPath} -out ${csrPath} -subj "${subject}"`);
     await exec.exec('openssl', [
         'req', '-new',
         '-key', privateKeyPath,
         '-out', csrPath,
-        '-subj', subject,
-        '-passin', `pass:${tempCredential}`
+        '-subj', subject
     ], { silent: true });
     return await fs.promises.readFile(csrPath, 'utf8');
 }
