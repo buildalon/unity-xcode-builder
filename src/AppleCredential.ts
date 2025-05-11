@@ -21,7 +21,7 @@ const appStoreConnectKeyDir = `${process.env.HOME}/.appstoreconnect/private_keys
 
 export class AppleCredential {
     constructor(
-        name: string,
+        tempPassPhrase: string,
         keychainPath: string,
         appStoreConnectKeyId: string,
         appStoreConnectIssuerId: string,
@@ -31,7 +31,7 @@ export class AppleCredential {
         signingIdentity?: string,
         provisioningProfileUUID?: string
     ) {
-        this.name = name;
+        this.tempPassPhrase = tempPassPhrase;
         this.keychainPath = keychainPath;
         this.appStoreConnectKeyId = appStoreConnectKeyId;
         this.appStoreConnectIssuerId = appStoreConnectIssuerId;
@@ -41,7 +41,7 @@ export class AppleCredential {
         this.signingIdentity = signingIdentity;
         this.provisioningProfileUUID = provisioningProfileUUID;
     }
-    name: string;
+    tempPassPhrase: string;
     keychainPath: string;
     appStoreConnectKeyId: string;
     appStoreConnectIssuerId: string;
@@ -217,7 +217,7 @@ export async function GetOrCreateSigningCertificate(project: XcodeProject, certi
 }
 
 export async function CreateSigningCertificate(project: XcodeProject, certificateType: CertificateType): Promise<void> {
-    const csrContent = await createCSR(project.credential.name, certificateType);
+    const csrContent = await createCSR(project.credential.tempPassPhrase, certificateType);
     const certificate = await CreateNewCertificate(project, certificateType, csrContent);
     await importSigningCertificate(project, certificate);
 }
@@ -229,11 +229,20 @@ async function importSigningCertificate(project: XcodeProject, certificate: Cert
     core.info(`Certificate path: ${certificatePath}`);
     const certificateContent = Buffer.from(certificate.attributes.certificateContent, 'base64');
     await fs.promises.writeFile(certificatePath, certificateContent);
+    core.info(`[command]${security} import ${certificatePath} -A -t cert -f x509 -k ${project.credential.keychainPath}`);
     await exec.exec(security, [
         'import', certificatePath,
         '-A', '-t', 'cert', '-f', 'x509',
         '-k', project.credential.keychainPath,
-    ]);
+    ], { silent: true });
+    core.info(`[command]${security} set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${project.credential.tempPassPhrase} ${project.credential.keychainPath}`);
+    await exec.exec(security, [
+        'set-key-partition-list',
+        '-S', 'apple-tool:,apple:,codesign:',
+        '-s', '-k', project.credential.tempPassPhrase,
+        project.credential.keychainPath
+    ], { silent: true });
+    await exec.exec(security, ['find-identity', '-v', '-p', 'codesigning', project.credential.keychainPath]);
 }
 
 async function createCSR(tempCredential: string, certificateType: CertificateType): Promise<string> {
@@ -255,6 +264,19 @@ async function createCSR(tempCredential: string, certificateType: CertificateTyp
         '-key', privateKeyPath,
         '-out', csrPath,
         '-subj', subject
+    ], { silent: true });
+    core.info(`[command]${security} import ${privateKeyPath} -A -t private -k ${temp}/${tempCredential}.keychain-db`);
+    await exec.exec(security, [
+        'import', privateKeyPath,
+        '-A', '-t', 'private',
+        '-k', `${temp}/${tempCredential}.keychain-db`
+    ], { silent: true });
+    core.info(`[command]${security} set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${tempCredential} ${temp}/${tempCredential}.keychain-db`);
+    await exec.exec(security, [
+        'set-key-partition-list',
+        '-S', 'apple-tool:,apple:,codesign:',
+        '-s', '-k', tempCredential,
+        `${temp}/${tempCredential}.keychain-db`
     ], { silent: true });
     return await fs.promises.readFile(csrPath, 'utf8');
 }

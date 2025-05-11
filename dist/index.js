@@ -57879,8 +57879,8 @@ const security = '/usr/bin/security';
 const temp = process.env['RUNNER_TEMP'] || '.';
 const appStoreConnectKeyDir = `${process.env.HOME}/.appstoreconnect/private_keys`;
 class AppleCredential {
-    constructor(name, keychainPath, appStoreConnectKeyId, appStoreConnectIssuerId, appStoreConnectKeyPath, appStoreConnectKey, teamId, signingIdentity, provisioningProfileUUID) {
-        this.name = name;
+    constructor(tempPassPhrase, keychainPath, appStoreConnectKeyId, appStoreConnectIssuerId, appStoreConnectKeyPath, appStoreConnectKey, teamId, signingIdentity, provisioningProfileUUID) {
+        this.tempPassPhrase = tempPassPhrase;
         this.keychainPath = keychainPath;
         this.appStoreConnectKeyId = appStoreConnectKeyId;
         this.appStoreConnectIssuerId = appStoreConnectIssuerId;
@@ -58049,7 +58049,7 @@ async function GetOrCreateSigningCertificate(project, certificateType) {
     }
 }
 async function CreateSigningCertificate(project, certificateType) {
-    const csrContent = await createCSR(project.credential.name, certificateType);
+    const csrContent = await createCSR(project.credential.tempPassPhrase, certificateType);
     const certificate = await (0, AppStoreConnectClient_1.CreateNewCertificate)(project, certificateType, csrContent);
     await importSigningCertificate(project, certificate);
 }
@@ -58060,11 +58060,20 @@ async function importSigningCertificate(project, certificate) {
     core.info(`Certificate path: ${certificatePath}`);
     const certificateContent = Buffer.from(certificate.attributes.certificateContent, 'base64');
     await fs.promises.writeFile(certificatePath, certificateContent);
+    core.info(`[command]${security} import ${certificatePath} -A -t cert -f x509 -k ${project.credential.keychainPath}`);
     await exec.exec(security, [
         'import', certificatePath,
         '-A', '-t', 'cert', '-f', 'x509',
         '-k', project.credential.keychainPath,
-    ]);
+    ], { silent: true });
+    core.info(`[command]${security} set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${project.credential.tempPassPhrase} ${project.credential.keychainPath}`);
+    await exec.exec(security, [
+        'set-key-partition-list',
+        '-S', 'apple-tool:,apple:,codesign:',
+        '-s', '-k', project.credential.tempPassPhrase,
+        project.credential.keychainPath
+    ], { silent: true });
+    await exec.exec(security, ['find-identity', '-v', '-p', 'codesigning', project.credential.keychainPath]);
 }
 async function createCSR(tempCredential, certificateType) {
     const certificateDirectory = await getCertificateDirectory();
@@ -58084,6 +58093,19 @@ async function createCSR(tempCredential, certificateType) {
         '-key', privateKeyPath,
         '-out', csrPath,
         '-subj', subject
+    ], { silent: true });
+    core.info(`[command]${security} import ${privateKeyPath} -A -t private -k ${temp}/${tempCredential}.keychain-db`);
+    await exec.exec(security, [
+        'import', privateKeyPath,
+        '-A', '-t', 'private',
+        '-k', `${temp}/${tempCredential}.keychain-db`
+    ], { silent: true });
+    core.info(`[command]${security} set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${tempCredential} ${temp}/${tempCredential}.keychain-db`);
+    await exec.exec(security, [
+        'set-key-partition-list',
+        '-S', 'apple-tool:,apple:,codesign:',
+        '-s', '-k', tempCredential,
+        `${temp}/${tempCredential}.keychain-db`
     ], { silent: true });
     return await fs.promises.readFile(csrPath, 'utf8');
 }
@@ -58661,7 +58683,7 @@ async function signMacOSAppBundle(projectRef) {
     await (0, AppleCredential_1.GetOrCreateSigningCertificate)(projectRef, 'DEVELOPER_ID_APPLICATION');
     const signAppBundlePath = __nccwpck_require__.ab + "sign-app-bundle.sh";
     let codesignOutput = '';
-    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath, projectRef.credential.name], {
+    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase], {
         listeners: {
             stdout: (data) => {
                 codesignOutput += data.toString();
@@ -58700,7 +58722,7 @@ async function createMacOSInstallerPkg(projectRef) {
     const signPkgPath = __nccwpck_require__.ab + "sign-app-pkg.sh";
     core.info(`Signing pkg: ${pkgPath}`);
     let codesignOutput = '';
-    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-pkg.sh", pkgPath, projectRef.credential.keychainPath, projectRef.credential.name], {
+    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-pkg.sh", pkgPath, projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase], {
         listeners: {
             stdout: (data) => {
                 codesignOutput += data.toString();
