@@ -264,13 +264,14 @@ async function createCSR(tempCredential: string, certificateType: CertificateTyp
         '-out', privateKeyPath,
         '-pkeyopt', 'rsa_keygen_bits:2048'
     ], { silent: true });
-    // Generate a CSR using the encrypted private key and tempCredential as passphrase
-    core.info(`[command]openssl req -new -key ${privateKeyPath} -out ${csrPath} -subj /CN=${certificateType}/O=App Store Connect API -passin pass:${tempCredential}`);
+    // Ensure subject always starts with /CN=
+    const subject = `/CN=${certificateType}/O=App Store Connect API`;
+    core.info(`[command]openssl req -new -key ${privateKeyPath} -out ${csrPath} -subj "${subject}" -passin pass:${tempCredential}`);
     await exec.exec('openssl', [
         'req', '-new',
         '-key', privateKeyPath,
         '-out', csrPath,
-        '-subj', `/CN=${certificateType}/O=App Store Connect API`,
+        '-subj', subject,
         '-passin', `pass:${tempCredential}`
     ], { silent: true });
     return await fs.promises.readFile(csrPath, 'utf8');
