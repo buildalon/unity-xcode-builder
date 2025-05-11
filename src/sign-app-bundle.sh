@@ -7,16 +7,12 @@ set -xe
 
 APP_BUNDLE_PATH="$1"
 ENTITLEMENTS_PATH="$2"
-SIGNING_IDENTITY="$3"
-KEYCHAIN_PATH="$4"
+KEYCHAIN_PATH="$3"
 
 # remove any metadata from the app bundle
 xattr -cr "$APP_BUNDLE_PATH"
 
-if [ -z "$SIGNING_IDENTITY" ]; then
-    # get the signing identity that matches Developer ID Application
-    SIGNING_IDENTITY=$(security find-identity -p codesigning -v "$KEYCHAIN_PATH" | grep "Developer ID Application" | awk -F'"' '{print $2}' | head -n 1)
-fi
+SIGNING_IDENTITY=$(security find-identity -p codesigning -v "$KEYCHAIN_PATH" | grep "Developer ID Application" | awk -F'"' '{print $2}' | head -n 1)
 
 if [ -z "$SIGNING_IDENTITY" ]; then
     echo "No 'Developer ID Application' signing identity found in $KEYCHAIN_PATH!"

@@ -6,13 +6,9 @@
 set -xe
 
 PKG_PATH="$1"
-SIGNING_IDENTITY="$2"
-KEYCHAIN_PATH="$3"
+KEYCHAIN_PATH="$2"
 
-if [ -z "$SIGNING_IDENTITY" ]; then
-    # find the Developer ID Installer signing identity
-    SIGNING_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" | grep "Developer ID Installer" | awk -F'"' '{print $2}' | head -n 1)
-fi
+SIGNING_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" | grep "Developer ID Installer" | awk -F'"' '{print $2}' | head -n 1)
 
 if [ -z "$SIGNING_IDENTITY" ]; then
     echo "No 'Developer ID Installer' signing identity found!"

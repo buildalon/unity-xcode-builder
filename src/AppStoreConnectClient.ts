@@ -369,7 +369,7 @@ export async function CreateNewCertificate(project: XcodeProject, certificateTyp
             }
         }
     }
-    core.info(`POST /certificates\n${JSON.stringify(request, null, 2)}`);
+    log(`POST /certificates\n${JSON.stringify(request, null, 2)}`);
     const { data: response, error } = await appStoreConnectClient.api.CertificatesService.certificatesCreateInstance(request)
     if (error) {
         checkAuthError(error);
@@ -379,7 +379,7 @@ export async function CreateNewCertificate(project: XcodeProject, certificateTyp
     if (!response || !response.data) {
         throw new Error(`No certificate found!`);
     }
-    core.info(responseJson);
+    log(responseJson);
     return response.data;
 }
 
@@ -390,7 +390,7 @@ export async function GetCertificates(project: XcodeProject, certificateType: Ce
             "filter[certificateType]": [certificateType]
         }
     };
-    core.info(`GET /certificates?${JSON.stringify(request.query)}`);
+    log(`GET /certificates?${JSON.stringify(request.query)}`);
     const { data: response, error } = await appStoreConnectClient.api.CertificatesService.certificatesGetCollection(request);
     if (error) {
         checkAuthError(error);
@@ -400,14 +400,14 @@ export async function GetCertificates(project: XcodeProject, certificateType: Ce
     if (!response || !response.data || response.data.length === 0) {
         return [];
     }
-    core.info(responseJson);
+    log(responseJson);
     return response.data;
 }
 
 export async function RevokeCertificate(certificateId: string, options: AppStoreConnectOptions): Promise<void> {
     appStoreConnectClient = new AppStoreConnectClient(options);
     const request: CertificatesDeleteInstanceData = { path: { id: certificateId } };
-    core.info(`DELETE /certificates/${certificateId}`);
+    log(`DELETE /certificates/${certificateId}`);
     const { error } = await appStoreConnectClient.api.CertificatesService.certificatesDeleteInstance(request);
     if (error) {
         checkAuthError(error);
