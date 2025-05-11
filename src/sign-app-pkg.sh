@@ -7,6 +7,13 @@ set -xe
 
 PKG_PATH="$1"
 KEYCHAIN_PATH="$2"
+KEYCHAIN_PASSWORD="$3"
+
+# check if the keychain is unlocked
+if ! security show-keychain-info "$KEYCHAIN_PATH" | grep -q "unlocked"; then
+    echo "Keychain $KEYCHAIN_PATH is locked. Unlocking..."
+    security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+fi
 
 SIGNING_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" | grep "Developer ID Installer" | awk -F'"' '{print $2}' | head -n 1)
 

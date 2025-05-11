@@ -58658,10 +58658,10 @@ async function signMacOSAppBundle(projectRef) {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
-    await (0, AppleCredential_1.GetOrCreateSigningCertificate)(projectRef, 'DEVELOPER_ID_APPLICATION');
+    await (0, AppleCredential_1.GetOrCreateSigningCertificate)(projectRef, 'MAC_APP_DEVELOPMENT');
     const signAppBundlePath = __nccwpck_require__.ab + "sign-app-bundle.sh";
     let codesignOutput = '';
-    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath], {
+    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath, projectRef.credential.name], {
         listeners: {
             stdout: (data) => {
                 codesignOutput += data.toString();
@@ -58700,7 +58700,7 @@ async function createMacOSInstallerPkg(projectRef) {
     const signPkgPath = __nccwpck_require__.ab + "sign-app-pkg.sh";
     core.info(`Signing pkg: ${pkgPath}`);
     let codesignOutput = '';
-    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-pkg.sh", pkgPath, projectRef.credential.keychainPath], {
+    const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-pkg.sh", pkgPath, projectRef.credential.keychainPath, projectRef.credential.name], {
         listeners: {
             stdout: (data) => {
                 codesignOutput += data.toString();

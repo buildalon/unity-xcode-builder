@@ -8,9 +8,16 @@ set -xe
 APP_BUNDLE_PATH="$1"
 ENTITLEMENTS_PATH="$2"
 KEYCHAIN_PATH="$3"
+KEYCHAIN_PASSWORD="$4"
 
 # remove any metadata from the app bundle
 xattr -cr "$APP_BUNDLE_PATH"
+
+# check if the keychain is unlocked
+if ! security show-keychain-info "$KEYCHAIN_PATH" | grep -q "unlocked"; then
+    echo "Keychain $KEYCHAIN_PATH is locked. Unlocking..."
+    security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+fi
 
 SIGNING_IDENTITY=$(security find-identity -p codesigning -v "$KEYCHAIN_PATH" | grep "Developer ID Application" | awk -F'"' '{print $2}' | head -n 1)
 
