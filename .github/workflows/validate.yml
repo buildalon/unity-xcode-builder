@@ -144,6 +144,10 @@ jobs:
           notarize: ${{ matrix.unity-version != '6000.x' }}
           archive-type: pkg
           test-groups: Beta
+          developer-id-application-certificate: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT }}
+          developer-id-application-certificate-password: ${{ secrets.SIGNING_CERT_PASSWORD }}
+          developer-id-installer-certificate: ${{ secrets.DEVELOPER_ID_INSTALLER_CERT }}
+          developer-id-installer-certificate-password: ${{ secrets.SIGNING_CERT_PASSWORD }}
       - name: print outputs
         if: always()
         run: |
