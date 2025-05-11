@@ -1,13 +1,18 @@
+import {
+    CertificateType
+} from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
+import {
+    CreateNewCertificate,
+    RevokeCertificate
+} from './AppStoreConnectClient';
+import {
+    XcodeProject
+} from './XcodeProject';
 import core = require('@actions/core');
 import exec = require('@actions/exec');
 import uuid = require('uuid');
 import path = require('path');
 import fs = require('fs');
-import {
-    CertificateType
-} from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
-import { CreateNewCertificate } from './AppStoreConnectClient';
-import { XcodeProject } from './XcodeProject';
 
 const security = '/usr/bin/security';
 const temp = process.env['RUNNER_TEMP'] || '.';
@@ -58,6 +63,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         const authenticationKeyID = core.getInput('app-store-connect-key-id', { required: true });
         core.saveState('authenticationKeyID', authenticationKeyID);
         const authenticationKeyIssuerID = core.getInput('app-store-connect-issuer-id', { required: true });
+        core.saveState('authenticationKeyIssuerID', authenticationKeyIssuerID);
         const appStoreConnectKeyBase64 = core.getInput('app-store-connect-key', { required: true });
         await fs.promises.mkdir(appStoreConnectKeyDir, { recursive: true });
         const appStoreConnectKeyPath = `${appStoreConnectKeyDir}/AuthKey_${authenticationKeyID}.p8`;
@@ -77,9 +83,13 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             core.info('Importing certificate...');
             const certificateDirectory = await getCertificateDirectory();
             const certificatePath = `${certificateDirectory}/${tempCredential}.p12`;
-            const certificate = Buffer.from(certificateBase64, 'base64').toString('binary');
-            await fs.promises.writeFile(certificatePath, certificate, 'binary');
-            await exec.exec(security, ['import', certificatePath, '-P', certificatePassword, '-A', '-t', 'cert', '-f', 'pkcs12', '-k', keychainPath]);
+            const certificate = Buffer.from(certificateBase64, 'base64');
+            await fs.promises.writeFile(certificatePath, certificate);
+            await exec.exec(security, [
+                'import', certificatePath,
+                '-P', certificatePassword,
+                '-A', '-t', 'cert', '-f', 'pkcs12',
+                '-k', keychainPath]);
             if (core.isDebug()) {
                 core.info(`[command]${security} set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${tempCredential} ${keychainPath}`);
             }
@@ -171,22 +181,51 @@ export async function RemoveCredentials(): Promise<void> {
         }
     }
     const tempCredential = core.getState('tempCredential');
-    if (!tempCredential) {
-        throw new Error('Missing tempCredential state');
+    if (tempCredential) {
+        core.info('Removing keychain...');
+        const keychainPath = `${temp}/${tempCredential}.keychain-db`;
+        await exec.exec(security, ['delete-keychain', keychainPath]);
+    } else {
+        core.error('Missing tempCredential state');
     }
-    core.info('Removing keychain...');
-    const keychainPath = `${temp}/${tempCredential}.keychain-db`;
-    await exec.exec(security, ['delete-keychain', keychainPath]);
+    core.info('Revoking temp signing certificates...');
+    const authenticationKeyID = core.getState('authenticationKeyID');
+    const authenticationKeyIssuerID = core.getState('authenticationKeyIssuerID');
+    const appStoreConnectKeyPath = `${appStoreConnectKeyDir}/AuthKey_${authenticationKeyID}.p8`;
+    const certificateDirectory = await getCertificateDirectory();
+    const tempSigningCertificateIds = (await fs.promises.readdir(certificateDirectory))
+        .filter(file => file.endsWith('.csr'))
+        .map(file => {
+            // CERTIFICATE_TYPE-uuid-1234.csr
+            const match = file.match(/^(?<type>[A-Z_]+)-(?<id>[\w-]+)\.csr$/);
+            if (!match) {
+                core.warning(`Failed to match signing certificate id from ${file}`);
+                return null;
+            }
+            return match.groups?.id;
+        }).filter(id => id !== null) as Array<string>;
+    if (tempSigningCertificateIds &&
+        tempSigningCertificateIds.length > 0) {
+        core.info('Revoking temp signing certificates...');
+        for (const tempSigningCertificateId of tempSigningCertificateIds) {
+            try {
+                await RevokeCertificate(tempSigningCertificateId, {
+                    privateKey: appStoreConnectKeyPath,
+                    privateKeyId: authenticationKeyID,
+                    issuerId: authenticationKeyIssuerID
+                });
+            } catch (error) {
+                core.error(`Failed to revoke temp signing certificate ${tempSigningCertificateId}!\n${error.stack}`);
+            }
+        }
+    }
     core.info('Removing credentials...');
     try {
-        const authenticationKeyID = core.getState('authenticationKeyID');
-        const appStoreConnectKeyPath = `${appStoreConnectKeyDir}/AuthKey_${authenticationKeyID}.p8`;
         await fs.promises.unlink(appStoreConnectKeyPath);
     } catch (error) {
         core.error(`Failed to remove app store connect key!\n${error.stack}`);
     }
     core.info('Removing certificate directory...');
-    const certificateDirectory = await getCertificateDirectory();
     try {
         await fs.promises.rmdir(certificateDirectory, { recursive: true });
     } catch (error) {
@@ -195,21 +234,27 @@ export async function RemoveCredentials(): Promise<void> {
 }
 
 export async function CreateSigningCertificate(project: XcodeProject, certificateType: CertificateType) {
-    const certId = `${uuid.v4()}`;
-    const csrContent = await createCSR(certId, certificateType);
+    const csrContent = await createCSR(certificateType);
     const certificate = await CreateNewCertificate(project, certificateType, csrContent);
     const certificateDirectory = await getCertificateDirectory();
-    const certificateName = `${certificateType}-${certId}.cer`;
+    const certificateName = `${certificateType}-${certificate.id}.cer`;
     const certificatePath = `${certificateDirectory}/${certificateName}`;
     core.debug(`Certificate path: ${certificatePath}`);
+    const certificateContent = Buffer.from(certificate.attributes.certificateContent, 'base64');
+    await fs.promises.writeFile(certificatePath, certificateContent);
+    await exec.exec(security, [
+        'import', certificatePath,
+        '-A', '-t', 'cert', '-f', 'x509',
+        '-k', project.credential.keychainPath,
+    ]);
+    return project;
 }
 
-async function createCSR(certId: string, certificateType: CertificateType): Promise<string> {
+async function createCSR(certificateType: CertificateType): Promise<string> {
     const tempCredential = core.getState('tempCredential');
     const certificateDirectory = await getCertificateDirectory();
-    const privateKeyPath = path.join(certificateDirectory, `signing-${certId}.key`);
-    const csrPath = path.join(certificateDirectory, `signing-${certId}.csr`);
-
+    const privateKeyPath = path.join(certificateDirectory, `signing-${tempCredential}.key`);
+    const csrPath = path.join(certificateDirectory, `signing-${tempCredential}.csr`);
     // Generate a new RSA private key (encrypted with tempCredential as passphrase)
     await exec.exec('openssl', [
         'genpkey',
@@ -219,7 +264,6 @@ async function createCSR(certId: string, certificateType: CertificateType): Prom
         '-out', privateKeyPath,
         '-pkeyopt', 'rsa_keygen_bits:2048'
     ]);
-
     // Generate a CSR using the encrypted private key and tempCredential as passphrase
     await exec.exec('openssl', [
         'req', '-new',
@@ -228,7 +272,6 @@ async function createCSR(certId: string, certificateType: CertificateType): Prom
         '-subj', `/CN=${certificateType}/O=App Store Connect API`,
         '-passin', `pass:${tempCredential}`
     ]);
-
     return await fs.promises.readFile(csrPath, 'utf8');
 }
 

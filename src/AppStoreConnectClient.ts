@@ -18,6 +18,7 @@ import {
     Certificate,
     CertificateType,
     CertificatesCreateInstanceData,
+    CertificatesDeleteInstanceData,
 } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
 import { log } from './utilities';
 import core = require('@actions/core');
@@ -319,7 +320,6 @@ export async function AddBuildToTestGroups(project: XcodeProject, build: Build, 
         type: group.type,
         id: group.id
     }));
-    // POST https://api.appstoreconnect.apple.com/v1/builds/{id}/relationships/betaGroups
     const payload: BuildsBetaGroupsCreateToManyRelationshipData = {
         path: { id: build.id },
         body: { data: betaGroups }
@@ -380,4 +380,15 @@ export async function CreateNewCertificate(project: XcodeProject, certificateTyp
     }
     core.info(responseJson);
     return response.data;
+}
+
+export async function RevokeCertificate(certificateId: string, options: AppStoreConnectOptions): Promise<void> {
+    appStoreConnectClient = new AppStoreConnectClient(options);
+    const request: CertificatesDeleteInstanceData = { path: { id: certificateId } };
+    core.info(`DELETE /certificates/${certificateId}`);
+    const { error } = await appStoreConnectClient.api.CertificatesService.certificatesDeleteInstance(request);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error revoking certificate: ${JSON.stringify(error, null, 2)}`);
+    }
 }

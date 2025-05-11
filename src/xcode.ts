@@ -15,7 +15,7 @@ import {
 } from './AppStoreConnectClient';
 import { log } from './utilities';
 import core = require('@actions/core');
-import { AppleCredential } from './AppleCredential';
+import { AppleCredential, CreateSigningCertificate } from './AppleCredential';
 import { SemVer } from 'semver';
 
 const xcodebuild = '/usr/bin/xcodebuild';
@@ -490,6 +490,7 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
+    await CreateSigningCertificate(projectRef, 'MAC_APP_DEVELOPMENT');
     const signAppBundlePath = path.join(__dirname, 'sign-app-bundle.sh');
     let codesignOutput = '';
     const codesignExitCode = await exec('sh', [signAppBundlePath, appPath, projectRef.entitlementsPath], {
@@ -527,9 +528,7 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
     } catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
-    // const developerIdInstallerCert = await GetCertificate(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
-    // core.info(`Found Developer ID Installer certificate: [${developerIdInstallerCert.id}] ${developerIdInstallerCert.attributes.name}`);
-    // await ImportCertificate(developerIdInstallerCert);
+    await CreateSigningCertificate(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
     // sign the .pkg using ./sign-app-pkg.sh
     const signPkgPath = path.join(__dirname, 'sign-app-pkg.sh');
     core.info(`Signing pkg: ${pkgPath}`);

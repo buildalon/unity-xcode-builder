@@ -57466,6 +57466,7 @@ exports.GetLatestBundleVersion = GetLatestBundleVersion;
 exports.UpdateTestDetails = UpdateTestDetails;
 exports.AddBuildToTestGroups = AddBuildToTestGroups;
 exports.CreateNewCertificate = CreateNewCertificate;
+exports.RevokeCertificate = RevokeCertificate;
 const app_store_connect_api_1 = __nccwpck_require__(9073);
 const utilities_1 = __nccwpck_require__(5739);
 const core = __nccwpck_require__(2186);
@@ -57822,6 +57823,16 @@ async function CreateNewCertificate(project, certificateType, csrContent) {
     core.info(responseJson);
     return response.data;
 }
+async function RevokeCertificate(certificateId, options) {
+    appStoreConnectClient = new app_store_connect_api_1.AppStoreConnectClient(options);
+    const request = { path: { id: certificateId } };
+    core.info(`DELETE /certificates/${certificateId}`);
+    const { error } = await appStoreConnectClient.api.CertificatesService.certificatesDeleteInstance(request);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error revoking certificate: ${JSON.stringify(error, null, 2)}`);
+    }
+}
 
 
 /***/ }),
@@ -57836,12 +57847,12 @@ exports.AppleCredential = void 0;
 exports.ImportCredentials = ImportCredentials;
 exports.RemoveCredentials = RemoveCredentials;
 exports.CreateSigningCertificate = CreateSigningCertificate;
+const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const core = __nccwpck_require__(2186);
 const exec = __nccwpck_require__(1514);
 const uuid = __nccwpck_require__(5840);
 const path = __nccwpck_require__(1017);
 const fs = __nccwpck_require__(7147);
-const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const security = '/usr/bin/security';
 const temp = process.env['RUNNER_TEMP'] || '.';
 const appStoreConnectKeyDir = `${process.env.HOME}/.appstoreconnect/private_keys`;
@@ -57869,6 +57880,7 @@ async function ImportCredentials() {
         const authenticationKeyID = core.getInput('app-store-connect-key-id', { required: true });
         core.saveState('authenticationKeyID', authenticationKeyID);
         const authenticationKeyIssuerID = core.getInput('app-store-connect-issuer-id', { required: true });
+        core.saveState('authenticationKeyIssuerID', authenticationKeyIssuerID);
         const appStoreConnectKeyBase64 = core.getInput('app-store-connect-key', { required: true });
         await fs.promises.mkdir(appStoreConnectKeyDir, { recursive: true });
         const appStoreConnectKeyPath = `${appStoreConnectKeyDir}/AuthKey_${authenticationKeyID}.p8`;
@@ -57888,9 +57900,14 @@ async function ImportCredentials() {
             core.info('Importing certificate...');
             const certificateDirectory = await getCertificateDirectory();
             const certificatePath = `${certificateDirectory}/${tempCredential}.p12`;
-            const certificate = Buffer.from(certificateBase64, 'base64').toString('binary');
-            await fs.promises.writeFile(certificatePath, certificate, 'binary');
-            await exec.exec(security, ['import', certificatePath, '-P', certificatePassword, '-A', '-t', 'cert', '-f', 'pkcs12', '-k', keychainPath]);
+            const certificate = Buffer.from(certificateBase64, 'base64');
+            await fs.promises.writeFile(certificatePath, certificate);
+            await exec.exec(security, [
+                'import', certificatePath,
+                '-P', certificatePassword,
+                '-A', '-t', 'cert', '-f', 'pkcs12',
+                '-k', keychainPath
+            ]);
             if (core.isDebug()) {
                 core.info(`[command]${security} set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${tempCredential} ${keychainPath}`);
             }
@@ -57973,23 +57990,54 @@ async function RemoveCredentials() {
         }
     }
     const tempCredential = core.getState('tempCredential');
-    if (!tempCredential) {
-        throw new Error('Missing tempCredential state');
+    if (tempCredential) {
+        core.info('Removing keychain...');
+        const keychainPath = `${temp}/${tempCredential}.keychain-db`;
+        await exec.exec(security, ['delete-keychain', keychainPath]);
     }
-    core.info('Removing keychain...');
-    const keychainPath = `${temp}/${tempCredential}.keychain-db`;
-    await exec.exec(security, ['delete-keychain', keychainPath]);
+    else {
+        core.error('Missing tempCredential state');
+    }
+    core.info('Revoking temp signing certificates...');
+    const authenticationKeyID = core.getState('authenticationKeyID');
+    const authenticationKeyIssuerID = core.getState('authenticationKeyIssuerID');
+    const appStoreConnectKeyPath = `${appStoreConnectKeyDir}/AuthKey_${authenticationKeyID}.p8`;
+    const certificateDirectory = await getCertificateDirectory();
+    const tempSigningCertificateIds = (await fs.promises.readdir(certificateDirectory))
+        .filter(file => file.endsWith('.csr'))
+        .map(file => {
+        var _a;
+        const match = file.match(/^(?<type>[A-Z_]+)-(?<id>[\w-]+)\.csr$/);
+        if (!match) {
+            core.warning(`Failed to match signing certificate id from ${file}`);
+            return null;
+        }
+        return (_a = match.groups) === null || _a === void 0 ? void 0 : _a.id;
+    }).filter(id => id !== null);
+    if (tempSigningCertificateIds &&
+        tempSigningCertificateIds.length > 0) {
+        core.info('Revoking temp signing certificates...');
+        for (const tempSigningCertificateId of tempSigningCertificateIds) {
+            try {
+                await (0, AppStoreConnectClient_1.RevokeCertificate)(tempSigningCertificateId, {
+                    privateKey: appStoreConnectKeyPath,
+                    privateKeyId: authenticationKeyID,
+                    issuerId: authenticationKeyIssuerID
+                });
+            }
+            catch (error) {
+                core.error(`Failed to revoke temp signing certificate ${tempSigningCertificateId}!\n${error.stack}`);
+            }
+        }
+    }
     core.info('Removing credentials...');
     try {
-        const authenticationKeyID = core.getState('authenticationKeyID');
-        const appStoreConnectKeyPath = `${appStoreConnectKeyDir}/AuthKey_${authenticationKeyID}.p8`;
         await fs.promises.unlink(appStoreConnectKeyPath);
     }
     catch (error) {
         core.error(`Failed to remove app store connect key!\n${error.stack}`);
     }
     core.info('Removing certificate directory...');
-    const certificateDirectory = await getCertificateDirectory();
     try {
         await fs.promises.rmdir(certificateDirectory, { recursive: true });
     }
@@ -57998,19 +58046,26 @@ async function RemoveCredentials() {
     }
 }
 async function CreateSigningCertificate(project, certificateType) {
-    const certId = `${uuid.v4()}`;
-    const csrContent = await createCSR(certId, certificateType);
+    const csrContent = await createCSR(certificateType);
     const certificate = await (0, AppStoreConnectClient_1.CreateNewCertificate)(project, certificateType, csrContent);
     const certificateDirectory = await getCertificateDirectory();
-    const certificateName = `${certificateType}-${certId}.cer`;
+    const certificateName = `${certificateType}-${certificate.id}.cer`;
     const certificatePath = `${certificateDirectory}/${certificateName}`;
     core.debug(`Certificate path: ${certificatePath}`);
+    const certificateContent = Buffer.from(certificate.attributes.certificateContent, 'base64');
+    await fs.promises.writeFile(certificatePath, certificateContent);
+    await exec.exec(security, [
+        'import', certificatePath,
+        '-A', '-t', 'cert', '-f', 'x509',
+        '-k', project.credential.keychainPath,
+    ]);
+    return project;
 }
-async function createCSR(certId, certificateType) {
+async function createCSR(certificateType) {
     const tempCredential = core.getState('tempCredential');
     const certificateDirectory = await getCertificateDirectory();
-    const privateKeyPath = path.join(certificateDirectory, `signing-${certId}.key`);
-    const csrPath = path.join(certificateDirectory, `signing-${certId}.csr`);
+    const privateKeyPath = path.join(certificateDirectory, `signing-${tempCredential}.key`);
+    const csrPath = path.join(certificateDirectory, `signing-${tempCredential}.csr`);
     await exec.exec('openssl', [
         'genpkey',
         '-algorithm', 'RSA',
@@ -58138,6 +58193,7 @@ const semver = __nccwpck_require__(1383);
 const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const utilities_1 = __nccwpck_require__(5739);
 const core = __nccwpck_require__(2186);
+const AppleCredential_1 = __nccwpck_require__(4199);
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
@@ -58598,6 +58654,7 @@ async function signMacOSAppBundle(projectRef) {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
+    await (0, AppleCredential_1.CreateSigningCertificate)(projectRef, 'MAC_APP_DEVELOPMENT');
     const signAppBundlePath = __nccwpck_require__.ab + "sign-app-bundle.sh";
     let codesignOutput = '';
     const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath], {
@@ -58635,6 +58692,7 @@ async function createMacOSInstallerPkg(projectRef) {
     catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
+    await (0, AppleCredential_1.CreateSigningCertificate)(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
     const signPkgPath = __nccwpck_require__.ab + "sign-app-pkg.sh";
     core.info(`Signing pkg: ${pkgPath}`);
     let codesignOutput = '';
