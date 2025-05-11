@@ -16,8 +16,8 @@ export class AppleCredential {
         appStoreConnectKeyPath?: string,
         appStoreConnectKey?: string,
         teamId?: string,
-        signingIdentity?: string,
-        provisioningProfileUUID?: string
+        manualSigningIdentity?: string,
+        manualProvisioningProfileUUID?: string
     ) {
         this.tempPassPhrase = tempPassPhrase;
         this.keychainPath = keychainPath;
@@ -26,8 +26,8 @@ export class AppleCredential {
         this.appStoreConnectKeyPath = appStoreConnectKeyPath;
         this.appStoreConnectKey = appStoreConnectKey;
         this.teamId = teamId;
-        this.signingIdentity = signingIdentity;
-        this.provisioningProfileUUID = provisioningProfileUUID;
+        this.manualSigningIdentity = manualSigningIdentity;
+        this.manualProvisioningProfileUUID = manualProvisioningProfileUUID;
     }
     tempPassPhrase: string;
     keychainPath: string;
@@ -36,8 +36,8 @@ export class AppleCredential {
     appStoreConnectKeyPath?: string;
     appStoreConnectKey?: string;
     teamId?: string;
-    signingIdentity?: string;
-    provisioningProfileUUID?: string;
+    manualSigningIdentity?: string;
+    manualProvisioningProfileUUID?: string;
     bearerToken?: string;
     ascPublicId?: string;
 }
@@ -63,30 +63,14 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         await exec.exec(security, ['create-keychain', '-p', tempCredential, keychainPath]);
         await exec.exec(security, ['set-keychain-settings', '-lut', '21600', keychainPath]);
         await exec.exec(security, ['unlock-keychain', '-p', tempCredential, keychainPath]);
-        let signingIdentity = core.getInput('signing-identity');
+        let manualSigningIdentity = core.getInput('signing-identity');
         let certificateUUID: string | undefined;
         let teamId = core.getInput('team-id');
-        const certificateBase64 = core.getInput('certificate');
-        if (certificateBase64) {
-            const certificatePassword = core.getInput('certificate-password', { required: true });
-            core.info('Importing certificate...');
-            const certificateDirectory = await getCertificateDirectory();
-            const certificatePath = `${certificateDirectory}/${tempCredential}.p12`;
-            const certificate = Buffer.from(certificateBase64, 'base64');
-            await fs.promises.writeFile(certificatePath, certificate);
-            await exec.exec(security, [
-                'import', certificatePath,
-                '-P', certificatePassword,
-                '-A', '-t', 'cert', '-f', 'pkcs12',
-                '-k', keychainPath]);
-            if (core.isDebug()) {
-                core.info(`[command]${security} set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${tempCredential} ${keychainPath}`);
-            }
-            await exec.exec(security, ['set-key-partition-list', '-S', 'apple-tool:,apple:,codesign:', '-s', '-k', tempCredential, keychainPath], {
-                silent: !core.isDebug()
-            });
-            await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
-            if (!signingIdentity) {
+        const manualSigningCertificateBase64 = core.getInput('certificate');
+        if (manualSigningCertificateBase64) {
+            const manualSigningCertificatePassword = core.getInput('certificate-password', { required: true });
+            await importSigningCertificate(keychainPath, tempCredential, manualSigningCertificateBase64, manualSigningCertificatePassword);
+            if (!manualSigningIdentity) {
                 let output = '';
                 core.info(`[command]${security} find-identity -v -p codesigning ${keychainPath}`);
                 await exec.exec(security, ['find-identity', '-v', '-p', 'codesigning', keychainPath], {
@@ -103,12 +87,12 @@ export async function ImportCredentials(): Promise<AppleCredential> {
                 }
                 certificateUUID = match.groups?.uuid;
                 core.setSecret(certificateUUID);
-                signingIdentity = match.groups?.signing_identity;
-                if (!signingIdentity) {
+                manualSigningIdentity = match.groups?.signing_identity;
+                if (!manualSigningIdentity) {
                     throw new Error('Failed to find signing identity!');
                 }
                 if (!teamId) {
-                    const teamMatch = signingIdentity.match(/(?<team_id>[A-Z0-9]{10})\s/);
+                    const teamMatch = manualSigningIdentity.match(/(?<team_id>[A-Z0-9]{10})\s/);
                     if (!teamMatch) {
                         throw new Error('Failed to match team id!');
                     }
@@ -121,9 +105,9 @@ export async function ImportCredentials(): Promise<AppleCredential> {
                 core.info(output);
             }
         }
-        const provisioningProfileBase64 = core.getInput('provisioning-profile');
-        let provisioningProfileUUID: string | undefined;
-        if (provisioningProfileBase64) {
+        const manualProvisioningProfileBase64 = core.getInput('provisioning-profile');
+        let manualProvisioningProfileUUID: string | undefined;
+        if (manualProvisioningProfileBase64) {
             core.info('Importing provisioning profile...');
             const provisioningProfileName = core.getInput('provisioning-profile-name', { required: true });
             if (!provisioningProfileName.endsWith('.mobileprovision') &&
@@ -132,16 +116,26 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             }
             const provisioningProfilePath = `${temp}/${provisioningProfileName}`;
             core.saveState('provisioningProfilePath', provisioningProfilePath);
-            const provisioningProfile = Buffer.from(provisioningProfileBase64, 'base64').toString('binary');
+            const provisioningProfile = Buffer.from(manualProvisioningProfileBase64, 'base64').toString('binary');
             await fs.promises.writeFile(provisioningProfilePath, provisioningProfile, 'binary');
             const provisioningProfileContent = await fs.promises.readFile(provisioningProfilePath, 'utf8');
             const uuidMatch = provisioningProfileContent.match(/<key>UUID<\/key>\s*<string>([^<]+)<\/string>/);
             if (uuidMatch) {
-                provisioningProfileUUID = uuidMatch[1];
+                manualProvisioningProfileUUID = uuidMatch[1];
             }
-            if (!provisioningProfileUUID) {
+            if (!manualProvisioningProfileUUID) {
                 throw new Error('Failed to parse provisioning profile UUID');
             }
+        }
+        const developerIdApplicationCertificateBase64 = core.getInput('developer-id-application-certificate');
+        if (developerIdApplicationCertificateBase64) {
+            const developerIdApplicationCertificatePassword = core.getInput('developer-id-application-certificate-password', { required: true });
+            await importSigningCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64, developerIdApplicationCertificatePassword);
+        }
+        const developerIdInstallerCertificateBase64 = core.getInput('developer-id-installer-certificate');
+        if (developerIdInstallerCertificateBase64) {
+            const developerIdInstallerCertificatePassword = core.getInput('developer-id-installer-certificate-password', { required: true });
+            await importSigningCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64, developerIdInstallerCertificatePassword);
         }
         return new AppleCredential(
             tempCredential,
@@ -151,8 +145,8 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             appStoreConnectKeyPath,
             appStoreConnectKey,
             teamId,
-            signingIdentity,
-            provisioningProfileUUID
+            manualSigningIdentity,
+            manualProvisioningProfileUUID
         );
     } finally {
         core.endGroup();
@@ -203,4 +197,30 @@ async function getCertificateDirectory(): Promise<string> {
         await fs.promises.mkdir(certificateDirectory, { recursive: true });
     }
     return certificateDirectory;
+}
+
+async function importSigningCertificate(keychainPath: string, tempCredential: string, certificateBase64: string, certificatePassword: string): Promise<void> {
+    core.info('Importing signing certificate...');
+    const certificateDirectory = await getCertificateDirectory();
+    const certificatePath = `${certificateDirectory}/${tempCredential}-${uuid.v4()}.p12`;
+    const certificate = Buffer.from(certificateBase64, 'base64');
+    await fs.promises.writeFile(certificatePath, certificate);
+    await exec.exec(security, [
+        'import', certificatePath,
+        '-P', certificatePassword,
+        '-A', '-t', 'cert', '-f', 'pkcs12',
+        '-k', keychainPath
+    ]);
+    if (core.isDebug()) {
+        core.info(`[command]${security} set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${tempCredential} ${keychainPath}`);
+    }
+    await exec.exec(security, [
+        'set-key-partition-list',
+        '-S', 'apple-tool:,apple:,codesign:',
+        '-s', '-k', tempCredential,
+        keychainPath
+    ], {
+        silent: !core.isDebug()
+    });
+    await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
 }

@@ -57816,7 +57816,7 @@ const security = '/usr/bin/security';
 const temp = process.env['RUNNER_TEMP'] || '.';
 const appStoreConnectKeyDir = `${process.env.HOME}/.appstoreconnect/private_keys`;
 class AppleCredential {
-    constructor(tempPassPhrase, keychainPath, appStoreConnectKeyId, appStoreConnectIssuerId, appStoreConnectKeyPath, appStoreConnectKey, teamId, signingIdentity, provisioningProfileUUID) {
+    constructor(tempPassPhrase, keychainPath, appStoreConnectKeyId, appStoreConnectIssuerId, appStoreConnectKeyPath, appStoreConnectKey, teamId, manualSigningIdentity, manualProvisioningProfileUUID) {
         this.tempPassPhrase = tempPassPhrase;
         this.keychainPath = keychainPath;
         this.appStoreConnectKeyId = appStoreConnectKeyId;
@@ -57824,8 +57824,8 @@ class AppleCredential {
         this.appStoreConnectKeyPath = appStoreConnectKeyPath;
         this.appStoreConnectKey = appStoreConnectKey;
         this.teamId = teamId;
-        this.signingIdentity = signingIdentity;
-        this.provisioningProfileUUID = provisioningProfileUUID;
+        this.manualSigningIdentity = manualSigningIdentity;
+        this.manualProvisioningProfileUUID = manualProvisioningProfileUUID;
     }
 }
 exports.AppleCredential = AppleCredential;
@@ -57850,31 +57850,14 @@ async function ImportCredentials() {
         await exec.exec(security, ['create-keychain', '-p', tempCredential, keychainPath]);
         await exec.exec(security, ['set-keychain-settings', '-lut', '21600', keychainPath]);
         await exec.exec(security, ['unlock-keychain', '-p', tempCredential, keychainPath]);
-        let signingIdentity = core.getInput('signing-identity');
+        let manualSigningIdentity = core.getInput('signing-identity');
         let certificateUUID;
         let teamId = core.getInput('team-id');
-        const certificateBase64 = core.getInput('certificate');
-        if (certificateBase64) {
-            const certificatePassword = core.getInput('certificate-password', { required: true });
-            core.info('Importing certificate...');
-            const certificateDirectory = await getCertificateDirectory();
-            const certificatePath = `${certificateDirectory}/${tempCredential}.p12`;
-            const certificate = Buffer.from(certificateBase64, 'base64');
-            await fs.promises.writeFile(certificatePath, certificate);
-            await exec.exec(security, [
-                'import', certificatePath,
-                '-P', certificatePassword,
-                '-A', '-t', 'cert', '-f', 'pkcs12',
-                '-k', keychainPath
-            ]);
-            if (core.isDebug()) {
-                core.info(`[command]${security} set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${tempCredential} ${keychainPath}`);
-            }
-            await exec.exec(security, ['set-key-partition-list', '-S', 'apple-tool:,apple:,codesign:', '-s', '-k', tempCredential, keychainPath], {
-                silent: !core.isDebug()
-            });
-            await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
-            if (!signingIdentity) {
+        const manualSigningCertificateBase64 = core.getInput('certificate');
+        if (manualSigningCertificateBase64) {
+            const manualSigningCertificatePassword = core.getInput('certificate-password', { required: true });
+            await importSigningCertificate(keychainPath, tempCredential, manualSigningCertificateBase64, manualSigningCertificatePassword);
+            if (!manualSigningIdentity) {
                 let output = '';
                 core.info(`[command]${security} find-identity -v -p codesigning ${keychainPath}`);
                 await exec.exec(security, ['find-identity', '-v', '-p', 'codesigning', keychainPath], {
@@ -57891,12 +57874,12 @@ async function ImportCredentials() {
                 }
                 certificateUUID = (_a = match.groups) === null || _a === void 0 ? void 0 : _a.uuid;
                 core.setSecret(certificateUUID);
-                signingIdentity = (_b = match.groups) === null || _b === void 0 ? void 0 : _b.signing_identity;
-                if (!signingIdentity) {
+                manualSigningIdentity = (_b = match.groups) === null || _b === void 0 ? void 0 : _b.signing_identity;
+                if (!manualSigningIdentity) {
                     throw new Error('Failed to find signing identity!');
                 }
                 if (!teamId) {
-                    const teamMatch = signingIdentity.match(/(?<team_id>[A-Z0-9]{10})\s/);
+                    const teamMatch = manualSigningIdentity.match(/(?<team_id>[A-Z0-9]{10})\s/);
                     if (!teamMatch) {
                         throw new Error('Failed to match team id!');
                     }
@@ -57909,9 +57892,9 @@ async function ImportCredentials() {
                 core.info(output);
             }
         }
-        const provisioningProfileBase64 = core.getInput('provisioning-profile');
-        let provisioningProfileUUID;
-        if (provisioningProfileBase64) {
+        const manualProvisioningProfileBase64 = core.getInput('provisioning-profile');
+        let manualProvisioningProfileUUID;
+        if (manualProvisioningProfileBase64) {
             core.info('Importing provisioning profile...');
             const provisioningProfileName = core.getInput('provisioning-profile-name', { required: true });
             if (!provisioningProfileName.endsWith('.mobileprovision') &&
@@ -57920,18 +57903,28 @@ async function ImportCredentials() {
             }
             const provisioningProfilePath = `${temp}/${provisioningProfileName}`;
             core.saveState('provisioningProfilePath', provisioningProfilePath);
-            const provisioningProfile = Buffer.from(provisioningProfileBase64, 'base64').toString('binary');
+            const provisioningProfile = Buffer.from(manualProvisioningProfileBase64, 'base64').toString('binary');
             await fs.promises.writeFile(provisioningProfilePath, provisioningProfile, 'binary');
             const provisioningProfileContent = await fs.promises.readFile(provisioningProfilePath, 'utf8');
             const uuidMatch = provisioningProfileContent.match(/<key>UUID<\/key>\s*<string>([^<]+)<\/string>/);
             if (uuidMatch) {
-                provisioningProfileUUID = uuidMatch[1];
+                manualProvisioningProfileUUID = uuidMatch[1];
             }
-            if (!provisioningProfileUUID) {
+            if (!manualProvisioningProfileUUID) {
                 throw new Error('Failed to parse provisioning profile UUID');
             }
         }
-        return new AppleCredential(tempCredential, keychainPath, authenticationKeyID, authenticationKeyIssuerID, appStoreConnectKeyPath, appStoreConnectKey, teamId, signingIdentity, provisioningProfileUUID);
+        const developerIdApplicationCertificateBase64 = core.getInput('developer-id-application-certificate');
+        if (developerIdApplicationCertificateBase64) {
+            const developerIdApplicationCertificatePassword = core.getInput('developer-id-application-certificate-password', { required: true });
+            await importSigningCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64, developerIdApplicationCertificatePassword);
+        }
+        const developerIdInstallerCertificateBase64 = core.getInput('developer-id-installer-certificate');
+        if (developerIdInstallerCertificateBase64) {
+            const developerIdInstallerCertificatePassword = core.getInput('developer-id-installer-certificate-password', { required: true });
+            await importSigningCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64, developerIdInstallerCertificatePassword);
+        }
+        return new AppleCredential(tempCredential, keychainPath, authenticationKeyID, authenticationKeyIssuerID, appStoreConnectKeyPath, appStoreConnectKey, teamId, manualSigningIdentity, manualProvisioningProfileUUID);
     }
     finally {
         core.endGroup();
@@ -57985,6 +57978,31 @@ async function getCertificateDirectory() {
         await fs.promises.mkdir(certificateDirectory, { recursive: true });
     }
     return certificateDirectory;
+}
+async function importSigningCertificate(keychainPath, tempCredential, certificateBase64, certificatePassword) {
+    core.info('Importing signing certificate...');
+    const certificateDirectory = await getCertificateDirectory();
+    const certificatePath = `${certificateDirectory}/${tempCredential}-${uuid.v4()}.p12`;
+    const certificate = Buffer.from(certificateBase64, 'base64');
+    await fs.promises.writeFile(certificatePath, certificate);
+    await exec.exec(security, [
+        'import', certificatePath,
+        '-P', certificatePassword,
+        '-A', '-t', 'cert', '-f', 'pkcs12',
+        '-k', keychainPath
+    ]);
+    if (core.isDebug()) {
+        core.info(`[command]${security} set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${tempCredential} ${keychainPath}`);
+    }
+    await exec.exec(security, [
+        'set-key-partition-list',
+        '-S', 'apple-tool:,apple:,codesign:',
+        '-s', '-k', tempCredential,
+        keychainPath
+    ], {
+        silent: !core.isDebug()
+    });
+    await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
 }
 
 
@@ -58238,7 +58256,32 @@ async function GetProjectDetails(credential, xcodeVersion) {
         if (projectRef.platform === 'macOS') {
             const notarizeInput = core.getInput('notarize') || 'true';
             core.debug(`Notarize input: ${notarizeInput}`);
-            projectRef.notarize = notarizeInput === 'true' || projectRef.isSteamBuild;
+            projectRef.notarize =
+                notarizeInput === 'true' ||
+                    projectRef.isSteamBuild ||
+                    projectRef.archiveType === 'pkg' ||
+                    projectRef.archiveType === 'dmg';
+            let output = '';
+            await (0, exec_1.exec)('security', [
+                'find-identity',
+                '-p', 'codesigning',
+                '-v', projectRef.credential.keychainPath
+            ], {
+                listeners: {
+                    stdout: (data) => {
+                        output += data.toString();
+                    }
+                },
+                silent: true,
+            });
+            if (!output.includes('Developer ID Application')) {
+                throw new Error('Developer ID Application not found! developer-id-certificate input is required for notarization.');
+            }
+            if (projectRef.archiveType === 'pkg' || projectRef.archiveType === 'dmg') {
+                if (!output.includes('Developer ID Installer')) {
+                    throw new Error('Developer ID Installer not found! developer-id-certificate input is required for notarization.');
+                }
+            }
         }
     }
     const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
@@ -58405,19 +58448,19 @@ async function ArchiveXcodeProject(projectRef) {
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
     ];
-    const { teamId, signingIdentity, provisioningProfileUUID, keychainPath } = projectRef.credential;
+    const { teamId, manualSigningIdentity, manualProvisioningProfileUUID, keychainPath } = projectRef.credential;
     if (teamId) {
         archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
     }
-    if (signingIdentity) {
-        archiveArgs.push(`CODE_SIGN_IDENTITY=${signingIdentity}`, `EXPANDED_CODE_SIGN_IDENTITY=${signingIdentity}`, `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
+    if (manualSigningIdentity) {
+        archiveArgs.push(`CODE_SIGN_IDENTITY=${manualSigningIdentity}`, `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`, `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
     }
     else {
         archiveArgs.push(`CODE_SIGN_IDENTITY=-`, `EXPANDED_CODE_SIGN_IDENTITY=-`);
     }
-    archiveArgs.push(`CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`);
-    if (provisioningProfileUUID) {
-        archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
+    archiveArgs.push(`CODE_SIGN_STYLE=${manualProvisioningProfileUUID || manualSigningIdentity ? 'Manual' : 'Automatic'}`);
+    if (manualProvisioningProfileUUID) {
+        archiveArgs.push(`PROVISIONING_PROFILE=${manualProvisioningProfileUUID}`);
     }
     else {
         archiveArgs.push(`AD_HOC_CODE_SIGNING_ALLOWED=YES`, `-allowProvisioningUpdates`);
@@ -58739,7 +58782,7 @@ async function getExportOptions(projectRef) {
         }
         const exportOptions = {
             method: method,
-            signingStyle: projectRef.credential.signingIdentity ? 'manual' : 'automatic',
+            signingStyle: projectRef.credential.manualSigningIdentity ? 'manual' : 'automatic',
             teamID: `${projectRef.credential.teamId}`
         };
         if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {

@@ -178,7 +178,32 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         if (projectRef.platform === 'macOS') {
             const notarizeInput = core.getInput('notarize') || 'true';
             core.debug(`Notarize input: ${notarizeInput}`);
-            projectRef.notarize = notarizeInput === 'true' || projectRef.isSteamBuild;
+            projectRef.notarize =
+                notarizeInput === 'true' ||
+                projectRef.isSteamBuild ||
+                projectRef.archiveType === 'pkg' ||
+                projectRef.archiveType === 'dmg';
+            let output = '';
+            await exec('security', [
+                'find-identity',
+                '-p', 'codesigning',
+                '-v', projectRef.credential.keychainPath
+            ], {
+                listeners: {
+                    stdout: (data: Buffer) => {
+                        output += data.toString();
+                    }
+                },
+                silent: true,
+            });
+            if (!output.includes('Developer ID Application')) {
+                throw new Error('Developer ID Application not found! developer-id-certificate input is required for notarization.');
+            }
+            if (projectRef.archiveType === 'pkg' || projectRef.archiveType === 'dmg') {
+                if (!output.includes('Developer ID Installer')) {
+                    throw new Error('Developer ID Installer not found! developer-id-certificate input is required for notarization.');
+                }
+            }
         }
     }
     const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
@@ -347,14 +372,14 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
     ];
-    const { teamId, signingIdentity, provisioningProfileUUID, keychainPath } = projectRef.credential;
+    const { teamId, manualSigningIdentity, manualProvisioningProfileUUID, keychainPath } = projectRef.credential;
     if (teamId) {
         archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
     }
-    if (signingIdentity) {
+    if (manualSigningIdentity) {
         archiveArgs.push(
-            `CODE_SIGN_IDENTITY=${signingIdentity}`,
-            `EXPANDED_CODE_SIGN_IDENTITY=${signingIdentity}`,
+            `CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
+            `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
             `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
         );
     } else {
@@ -364,10 +389,10 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         );
     }
     archiveArgs.push(
-        `CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`
+        `CODE_SIGN_STYLE=${manualProvisioningProfileUUID || manualSigningIdentity ? 'Manual' : 'Automatic'}`
     );
-    if (provisioningProfileUUID) {
-        archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
+    if (manualProvisioningProfileUUID) {
+        archiveArgs.push(`PROVISIONING_PROFILE=${manualProvisioningProfileUUID}`);
     } else {
         archiveArgs.push(
             `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
@@ -695,7 +720,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
         }
         const exportOptions = {
             method: method,
-            signingStyle: projectRef.credential.signingIdentity ? 'manual' : 'automatic',
+            signingStyle: projectRef.credential.manualSigningIdentity ? 'manual' : 'automatic',
             teamID: `${projectRef.credential.teamId}`
         };
         if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {
