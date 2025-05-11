@@ -369,6 +369,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
+        `-otherCodeSignFlags=--keychain ${projectRef.credential.keychainPath}`,
     ];
     const { teamId, manualSigningIdentity, manualProvisioningProfileUUID, keychainPath } = projectRef.credential;
     if (teamId) {
@@ -442,7 +443,8 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         '-exportOptionsPlist', exportOptionsPath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
-        `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
+        `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId,
+        `-otherCodeSignFlags=--keychain ${projectRef.credential.keychainPath}`,
     ];
     if (!projectRef.isSteamBuild) {
         exportArgs.push(`-allowProvisioningUpdates`);
