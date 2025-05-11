@@ -57856,7 +57856,7 @@ async function ImportCredentials() {
         const manualSigningCertificateBase64 = core.getInput('certificate');
         if (manualSigningCertificateBase64) {
             const manualSigningCertificatePassword = core.getInput('certificate-password', { required: true });
-            await importSigningCertificate(keychainPath, tempCredential, manualSigningCertificateBase64, manualSigningCertificatePassword);
+            await importSigningCertificate(keychainPath, tempCredential, manualSigningCertificateBase64.trim(), manualSigningCertificatePassword.trim());
             if (!manualSigningIdentity) {
                 let output = '';
                 core.info(`[command]${security} find-identity -v -p codesigning ${keychainPath}`);
@@ -57917,12 +57917,12 @@ async function ImportCredentials() {
         const developerIdApplicationCertificateBase64 = core.getInput('developer-id-application-certificate');
         if (developerIdApplicationCertificateBase64) {
             const developerIdApplicationCertificatePassword = core.getInput('developer-id-application-certificate-password', { required: true });
-            await importSigningCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64, developerIdApplicationCertificatePassword);
+            await importSigningCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64.trim(), developerIdApplicationCertificatePassword.trim());
         }
         const developerIdInstallerCertificateBase64 = core.getInput('developer-id-installer-certificate');
         if (developerIdInstallerCertificateBase64) {
             const developerIdInstallerCertificatePassword = core.getInput('developer-id-installer-certificate-password', { required: true });
-            await importSigningCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64, developerIdInstallerCertificatePassword);
+            await importSigningCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64.trim(), developerIdInstallerCertificatePassword.trim());
         }
         return new AppleCredential(tempCredential, keychainPath, authenticationKeyID, authenticationKeyIssuerID, appStoreConnectKeyPath, appStoreConnectKey, teamId, manualSigningIdentity, manualProvisioningProfileUUID);
     }
@@ -58535,7 +58535,7 @@ async function ExportXcodeArchive(projectRef) {
             projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
             if (projectRef.notarize) {
                 await signMacOSAppBundle(projectRef);
-                if (projectRef.isSteamBuild || projectRef.archiveType === 'app') {
+                if (projectRef.isSteamBuild) {
                     const isNotarized = await isAppBundleNotarized(projectRef.executablePath);
                     if (!isNotarized) {
                         const zipPath = path.join(projectRef.exportPath, projectRef.executablePath.replace('.app', '.zip'));
@@ -58596,7 +58596,6 @@ async function signMacOSAppBundle(projectRef) {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
-    await (0, exec_1.exec)('codesign', ['-d', '-vv', appPath]);
     const signAppBundlePath = __nccwpck_require__.ab + "sign-app-bundle.sh";
     let codesignOutput = '';
     const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase], {
@@ -58745,7 +58744,7 @@ async function getExportOptions(projectRef) {
             projectRef.archiveType = archiveType;
             switch (exportOption) {
                 case 'steam':
-                    method = 'mac-application';
+                    method = 'developer-id';
                     projectRef.isSteamBuild = true;
                     projectRef.archiveType = 'app';
                     break;

@@ -78,7 +78,7 @@ jobs:
             if ('${{ matrix.build-target }}' -eq 'StandaloneOSX') {
                 echo "EXPORT_OPTION=steam" >> $env:GITHUB_ENV
               } else {
-                echo "EXPORT_OPTION=development" >> $env:GITHUB_ENV
+                echo "EXPORT_OPTION=developer-id" >> $env:GITHUB_ENV
             }
           }
         shell: pwsh

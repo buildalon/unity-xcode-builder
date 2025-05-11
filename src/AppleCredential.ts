@@ -69,7 +69,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         const manualSigningCertificateBase64 = core.getInput('certificate');
         if (manualSigningCertificateBase64) {
             const manualSigningCertificatePassword = core.getInput('certificate-password', { required: true });
-            await importSigningCertificate(keychainPath, tempCredential, manualSigningCertificateBase64, manualSigningCertificatePassword);
+            await importSigningCertificate(keychainPath, tempCredential, manualSigningCertificateBase64.trim(), manualSigningCertificatePassword.trim());
             if (!manualSigningIdentity) {
                 let output = '';
                 core.info(`[command]${security} find-identity -v -p codesigning ${keychainPath}`);
@@ -130,12 +130,12 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         const developerIdApplicationCertificateBase64 = core.getInput('developer-id-application-certificate');
         if (developerIdApplicationCertificateBase64) {
             const developerIdApplicationCertificatePassword = core.getInput('developer-id-application-certificate-password', { required: true });
-            await importSigningCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64, developerIdApplicationCertificatePassword);
+            await importSigningCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64.trim(), developerIdApplicationCertificatePassword.trim());
         }
         const developerIdInstallerCertificateBase64 = core.getInput('developer-id-installer-certificate');
         if (developerIdInstallerCertificateBase64) {
             const developerIdInstallerCertificatePassword = core.getInput('developer-id-installer-certificate-password', { required: true });
-            await importSigningCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64, developerIdInstallerCertificatePassword);
+            await importSigningCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64.trim(), developerIdInstallerCertificatePassword.trim());
         }
         return new AppleCredential(
             tempCredential,

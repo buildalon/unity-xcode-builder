@@ -19,7 +19,6 @@ import {
     UnauthorizedError,
     GetAppId,
 } from './AppStoreConnectClient';
-import { arch } from 'os';
 
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
@@ -467,7 +466,7 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
             projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
             if (projectRef.notarize) {
                 await signMacOSAppBundle(projectRef);
-                if (projectRef.isSteamBuild || projectRef.archiveType === 'app') {
+                if (projectRef.isSteamBuild) {
                     const isNotarized = await isAppBundleNotarized(projectRef.executablePath);
                     if (!isNotarized) {
                         const zipPath = path.join(projectRef.exportPath, projectRef.executablePath.replace('.app', '.zip'));
@@ -526,7 +525,6 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
-    await exec('codesign', ['-d', '-vv', appPath]);
     const signAppBundlePath = path.join(__dirname, 'sign-app-bundle.sh');
     let codesignOutput = '';
     const codesignExitCode = await exec('sh', [signAppBundlePath, appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase], {
@@ -682,7 +680,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
             projectRef.archiveType = archiveType;
             switch (exportOption) {
                 case 'steam':
-                    method = 'mac-application';
+                    method = 'developer-id';
                     projectRef.isSteamBuild = true;
                     projectRef.archiveType = 'app';
                     break;

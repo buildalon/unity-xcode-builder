@@ -15,14 +15,20 @@ if ! security show-keychain-info "$KEYCHAIN_PATH" | grep -q "unlocked"; then
     security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 fi
 
-SIGNING_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" | grep "Developer ID Installer" | awk -F'"' '{print $2}' | head -n 1)
+DEVELOPER_ID_INSTALLER_SIGNING_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" | grep "Developer ID Installer" | awk -F'"' '{print $2}' | head -n 1)
 
-if [ -z "$SIGNING_IDENTITY" ]; then
+if [ -z "$DEVELOPER_ID_INSTALLER_SIGNING_IDENTITY" ]; then
     echo "No 'Developer ID Installer' signing identity found in $KEYCHAIN_PATH!"
     exit 1
 fi
 
-productsign --sign "$SIGNING_IDENTITY" --keychain "$KEYCHAIN_PATH" "$PKG_PATH" "${PKG_PATH%.pkg}-signed.pkg"
+# check if the package is already signed with the same identity, if so, skip and return 0
+if pkgutil --check-signature "$PKG_PATH" | grep -q "signed with identity"; then
+    echo "Package is already signed with the same identity. Skipping signing."
+    exit 0
+fi
+
+productsign --sign "$DEVELOPER_ID_INSTALLER_SIGNING_IDENTITY" --keychain "$KEYCHAIN_PATH" "$PKG_PATH" "${PKG_PATH%.pkg}-signed.pkg"
 
 # verify the signed package
 if ! pkgutil --check-signature "${PKG_PATH%.pkg}-signed.pkg"; then
@@ -33,3 +39,4 @@ fi
 rm "$PKG_PATH"
 mv "${PKG_PATH%.pkg}-signed.pkg" "$PKG_PATH"
 echo "Package signed successfully!"
+exit 0
