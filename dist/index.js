@@ -57808,7 +57808,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AppleCredential = void 0;
 exports.ImportCredentials = ImportCredentials;
 exports.RemoveCredentials = RemoveCredentials;
-exports.UnlockTemporaryKeychain = UnlockTemporaryKeychain;
 const core = __nccwpck_require__(2186);
 const exec = __nccwpck_require__(1514);
 const uuid = __nccwpck_require__(5840);
@@ -57850,7 +57849,7 @@ async function ImportCredentials() {
         const keychainPath = `${temp}/${tempCredential}.keychain-db`;
         await exec.exec(security, ['create-keychain', '-p', tempCredential, keychainPath]);
         await exec.exec(security, ['set-keychain-settings', '-lut', '21600', keychainPath]);
-        await UnlockTemporaryKeychain(keychainPath, tempCredential);
+        await unlockTemporaryKeychain(keychainPath, tempCredential);
         let manualSigningIdentity = core.getInput('signing-identity');
         let certificateUUID;
         let teamId = core.getInput('team-id');
@@ -58012,7 +58011,6 @@ async function getCertificateDirectory() {
     return certificateDirectory;
 }
 async function importCertificate(keychainPath, tempCredential, certificateBase64, certificatePassword) {
-    await UnlockTemporaryKeychain(keychainPath, tempCredential);
     const certificateDirectory = await getCertificateDirectory();
     const certificatePath = `${certificateDirectory}/${tempCredential}-${uuid.v4()}.p12`;
     const certificate = Buffer.from(certificateBase64, 'base64');
@@ -58037,7 +58035,7 @@ async function importCertificate(keychainPath, tempCredential, certificateBase64
     });
     await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
 }
-async function UnlockTemporaryKeychain(keychainPath, tempCredential) {
+async function unlockTemporaryKeychain(keychainPath, tempCredential) {
     const exitCode = await exec.exec(security, ['unlock-keychain', '-p', tempCredential, keychainPath]);
     if (exitCode !== 0) {
         throw new Error(`Failed to unlock keychain! Exit code: ${exitCode}`);
@@ -58141,7 +58139,6 @@ const fs = __nccwpck_require__(7147);
 const semver = __nccwpck_require__(1383);
 const utilities_1 = __nccwpck_require__(5739);
 const core = __nccwpck_require__(2186);
-const AppleCredential_1 = __nccwpck_require__(4199);
 const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
@@ -58528,7 +58525,6 @@ async function ArchiveXcodeProject(projectRef) {
     else {
         archiveArgs.push('-verbose');
     }
-    await (0, AppleCredential_1.UnlockTemporaryKeychain)(projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase);
     if (core.isDebug()) {
         await execXcodeBuild(archiveArgs);
     }
@@ -58562,7 +58558,6 @@ async function ExportXcodeArchive(projectRef) {
     else {
         exportArgs.push('-verbose');
     }
-    await (0, AppleCredential_1.UnlockTemporaryKeychain)(projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase);
     if (core.isDebug()) {
         await execXcodeBuild(exportArgs);
     }
@@ -58705,8 +58700,12 @@ async function notarizeArchive(projectRef, archivePath, staplePath) {
     if (core.isDebug()) {
         notarizeArgs.push('--verbose');
     }
+    else {
+        core.info(`[command]${xcrun} ${notarizeArgs.join(' ')} ${archivePath}`);
+    }
     let notarizeOutput = '';
     const notarizeExitCode = await (0, exec_1.exec)(xcrun, [...notarizeArgs, archivePath], {
+        silent: !core.isDebug(),
         listeners: {
             stdout: (data) => {
                 notarizeOutput += data.toString();
@@ -58718,7 +58717,7 @@ async function notarizeArchive(projectRef, archivePath, staplePath) {
         (0, utilities_1.log)(notarizeOutput, 'error');
         throw new Error(`Failed to notarize the app!`);
     }
-    core.debug(notarizeOutput);
+    (0, utilities_1.log)(notarizeOutput);
     const notaryResult = JSON.parse(notarizeOutput);
     if (notaryResult.status !== 'Accepted') {
         const notaryLogs = await getNotarizationLog(projectRef, notaryResult.id);
@@ -58732,8 +58731,12 @@ async function notarizeArchive(projectRef, archivePath, staplePath) {
     if (core.isDebug()) {
         stapleArgs.push('--verbose');
     }
+    else {
+        core.info(`[command]${xcrun} ${stapleArgs.join(' ')}`);
+    }
     let stapleOutput = '';
     const stapleExitCode = await (0, exec_1.exec)(xcrun, stapleArgs, {
+        silent: !core.isDebug(),
         listeners: {
             stdout: (data) => {
                 stapleOutput += data.toString();
@@ -58745,7 +58748,10 @@ async function notarizeArchive(projectRef, archivePath, staplePath) {
         (0, utilities_1.log)(stapleOutput, 'error');
         throw new Error(`Failed to staple the notarization ticket!`);
     }
-    core.info(stapleOutput);
+    (0, utilities_1.log)(stapleOutput);
+    if (!stapleOutput.includes('The staple and validate action worked!')) {
+        throw new Error(`Failed to staple the notarization ticket!\n${stapleOutput}`);
+    }
 }
 async function getNotarizationLog(projectRef, id) {
     let output = '';

@@ -11,8 +11,7 @@ import { log } from './utilities';
 import { SemVer } from 'semver';
 import core = require('@actions/core');
 import {
-    AppleCredential,
-    UnlockTemporaryKeychain
+    AppleCredential
 } from './AppleCredential';
 import {
     GetLatestBundleVersion,
@@ -410,11 +409,9 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         archiveArgs.push(`CODE_SIGN_ENTITLEMENTS=${projectRef.entitlementsPath}`);
     }
     if (projectRef.platform === 'iOS') {
-        // don't strip debug symbols during copy
         archiveArgs.push('COPY_PHASE_STRIP=NO');
     }
     if (projectRef.platform === 'macOS' && !projectRef.isAppStoreUpload()) {
-        // enable hardened runtime
         archiveArgs.push('ENABLE_HARDENED_RUNTIME=YES');
     }
     if (!core.isDebug()) {
@@ -422,7 +419,6 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     } else {
         archiveArgs.push('-verbose');
     }
-    await UnlockTemporaryKeychain(projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase);
     if (core.isDebug()) {
         await execXcodeBuild(archiveArgs);
     } else {
@@ -455,7 +451,6 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
     } else {
         exportArgs.push('-verbose');
     }
-    await UnlockTemporaryKeychain(projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase);
     if (core.isDebug()) {
         await execXcodeBuild(exportArgs);
     } else {
@@ -596,10 +591,12 @@ async function notarizeArchive(projectRef: XcodeProject, archivePath: string, st
     ];
     if (core.isDebug()) {
         notarizeArgs.push('--verbose');
+    } else {
+        core.info(`[command]${xcrun} ${notarizeArgs.join(' ')} ${archivePath}`);
     }
     let notarizeOutput = '';
     const notarizeExitCode = await exec(xcrun, [...notarizeArgs, archivePath], {
-        // silent: !core.isDebug(),
+        silent: !core.isDebug(),
         listeners: {
             stdout: (data: Buffer) => {
                 notarizeOutput += data.toString();
@@ -611,9 +608,7 @@ async function notarizeArchive(projectRef: XcodeProject, archivePath: string, st
         log(notarizeOutput, 'error');
         throw new Error(`Failed to notarize the app!`);
     }
-    core.debug(notarizeOutput);
-    // example json output:
-    // {"message":"Processing complete","id":"e0595a17-0db3-42a5-afa9-da2891716ba8","status":"Accepted"}
+    log(notarizeOutput);
     const notaryResult = JSON.parse(notarizeOutput);
     if (notaryResult.status !== 'Accepted') {
         const notaryLogs = await getNotarizationLog(projectRef, notaryResult.id);
@@ -626,9 +621,12 @@ async function notarizeArchive(projectRef: XcodeProject, archivePath: string, st
     ];
     if (core.isDebug()) {
         stapleArgs.push('--verbose');
+    } else {
+        core.info(`[command]${xcrun} ${stapleArgs.join(' ')}`);
     }
     let stapleOutput = '';
     const stapleExitCode = await exec(xcrun, stapleArgs, {
+        silent: !core.isDebug(),
         listeners: {
             stdout: (data: Buffer) => {
                 stapleOutput += data.toString();
@@ -640,7 +638,10 @@ async function notarizeArchive(projectRef: XcodeProject, archivePath: string, st
         log(stapleOutput, 'error');
         throw new Error(`Failed to staple the notarization ticket!`);
     }
-    core.info(stapleOutput);
+    log(stapleOutput);
+    if (!stapleOutput.includes('The staple and validate action worked!')) {
+        throw new Error(`Failed to staple the notarization ticket!\n${stapleOutput}`);
+    }
 }
 
 async function getNotarizationLog(projectRef: XcodeProject, id: string) {

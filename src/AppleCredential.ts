@@ -62,7 +62,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         const keychainPath = `${temp}/${tempCredential}.keychain-db`;
         await exec.exec(security, ['create-keychain', '-p', tempCredential, keychainPath]);
         await exec.exec(security, ['set-keychain-settings', '-lut', '21600', keychainPath]);
-        await UnlockTemporaryKeychain(keychainPath, tempCredential);
+        await unlockTemporaryKeychain(keychainPath, tempCredential);
         let manualSigningIdentity = core.getInput('signing-identity');
         let certificateUUID: string | undefined;
         let teamId = core.getInput('team-id');
@@ -243,7 +243,6 @@ async function getCertificateDirectory(): Promise<string> {
 }
 
 async function importCertificate(keychainPath: string, tempCredential: string, certificateBase64: string, certificatePassword: string): Promise<void> {
-    await UnlockTemporaryKeychain(keychainPath, tempCredential);
     const certificateDirectory = await getCertificateDirectory();
     const certificatePath = `${certificateDirectory}/${tempCredential}-${uuid.v4()}.p12`;
     const certificate = Buffer.from(certificateBase64, 'base64');
@@ -269,7 +268,7 @@ async function importCertificate(keychainPath: string, tempCredential: string, c
     await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
 }
 
-export async function UnlockTemporaryKeychain(keychainPath: string, tempCredential: string): Promise<void> {
+async function unlockTemporaryKeychain(keychainPath: string, tempCredential: string): Promise<void> {
     const exitCode = await exec.exec(security, ['unlock-keychain', '-p', tempCredential, keychainPath]);
     if (exitCode !== 0) {
         throw new Error(`Failed to unlock keychain! Exit code: ${exitCode}`);
