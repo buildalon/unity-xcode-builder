@@ -493,7 +493,7 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
-    await GetOrCreateSigningCertificate(projectRef, 'MAC_APP_DEVELOPMENT');
+    await GetOrCreateSigningCertificate(projectRef, 'DEVELOPER_ID_APPLICATION');
     const signAppBundlePath = path.join(__dirname, 'sign-app-bundle.sh');
     let codesignOutput = '';
     const codesignExitCode = await exec('sh', [signAppBundlePath, appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath, projectRef.credential.name], {
