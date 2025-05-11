@@ -250,7 +250,7 @@ async function updateBetaBuildLocalization(betaBuildLocalization: BetaBuildLocal
     return betaBuildLocalization;
 }
 
-async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60, interval: number = 30): Promise<Build> {
+async function pollForValidBuild(project: XcodeProject, maxRetries: number = 180, interval: number = 30): Promise<Build> {
     log(`Polling build validation...`);
     let retries = 0;
     while (++retries < maxRetries) {

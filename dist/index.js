@@ -57690,7 +57690,7 @@ async function updateBetaBuildLocalization(betaBuildLocalization, whatsNew) {
     }
     return betaBuildLocalization;
 }
-async function pollForValidBuild(project, maxRetries = 60, interval = 30) {
+async function pollForValidBuild(project, maxRetries = 180, interval = 30) {
     var _a, _b, _c;
     (0, utilities_1.log)(`Polling build validation...`);
     let retries = 0;
