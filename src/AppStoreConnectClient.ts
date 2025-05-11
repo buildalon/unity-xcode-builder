@@ -379,7 +379,7 @@ export async function CreateNewCertificate(project: XcodeProject, certificateTyp
     if (!response || !response.data) {
         throw new Error(`No certificate found!`);
     }
-    log(responseJson);
+    core.info(responseJson);
     return response.data;
 }
 
@@ -390,7 +390,7 @@ export async function GetCertificates(project: XcodeProject, certificateType: Ce
             "filter[certificateType]": [certificateType]
         }
     };
-    log(`GET /certificates?${JSON.stringify(request.query)}`);
+    core.info(`GET /certificates?${JSON.stringify(request.query)}`);
     const { data: response, error } = await appStoreConnectClient.api.CertificatesService.certificatesGetCollection(request);
     if (error) {
         checkAuthError(error);
@@ -400,7 +400,7 @@ export async function GetCertificates(project: XcodeProject, certificateType: Ce
     if (!response || !response.data || response.data.length === 0) {
         return [];
     }
-    log(responseJson);
+    core.info(responseJson);
     return response.data;
 }
 

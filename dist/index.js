@@ -57821,7 +57821,7 @@ async function CreateNewCertificate(project, certificateType, csrContent) {
     if (!response || !response.data) {
         throw new Error(`No certificate found!`);
     }
-    (0, utilities_1.log)(responseJson);
+    core.info(responseJson);
     return response.data;
 }
 async function GetCertificates(project, certificateType) {
@@ -57831,7 +57831,7 @@ async function GetCertificates(project, certificateType) {
             "filter[certificateType]": [certificateType]
         }
     };
-    (0, utilities_1.log)(`GET /certificates?${JSON.stringify(request.query)}`);
+    core.info(`GET /certificates?${JSON.stringify(request.query)}`);
     const { data: response, error } = await appStoreConnectClient.api.CertificatesService.certificatesGetCollection(request);
     if (error) {
         checkAuthError(error);
@@ -57841,7 +57841,7 @@ async function GetCertificates(project, certificateType) {
     if (!response || !response.data || response.data.length === 0) {
         return [];
     }
-    (0, utilities_1.log)(responseJson);
+    core.info(responseJson);
     return response.data;
 }
 async function RevokeCertificate(certificateId, options) {
