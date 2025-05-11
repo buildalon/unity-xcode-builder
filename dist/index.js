@@ -57821,7 +57821,7 @@ async function CreateNewCertificate(project, certificateType, csrContent) {
     if (!response || !response.data) {
         throw new Error(`No certificate found!`);
     }
-    core.info(responseJson);
+    (0, utilities_1.log)(responseJson);
     return response.data;
 }
 async function GetCertificates(project, certificateType) {
@@ -57831,7 +57831,7 @@ async function GetCertificates(project, certificateType) {
             "filter[certificateType]": [certificateType]
         }
     };
-    core.info(`GET /certificates?${JSON.stringify(request.query)}`);
+    (0, utilities_1.log)(`GET /certificates?${JSON.stringify(request.query)}`);
     const { data: response, error } = await appStoreConnectClient.api.CertificatesService.certificatesGetCollection(request);
     if (error) {
         checkAuthError(error);
@@ -57841,7 +57841,7 @@ async function GetCertificates(project, certificateType) {
     if (!response || !response.data || response.data.length === 0) {
         return [];
     }
-    core.info(responseJson);
+    (0, utilities_1.log)(responseJson);
     return response.data.filter(certificate => {
         var _a;
         ((_a = certificate.attributes) === null || _a === void 0 ? void 0 : _a.displayName) === 'Created via API';
@@ -57850,7 +57850,7 @@ async function GetCertificates(project, certificateType) {
 async function RevokeCertificate(certificateId, options) {
     appStoreConnectClient = new app_store_connect_api_1.AppStoreConnectClient(options);
     const request = { path: { id: certificateId } };
-    core.info(`DELETE /certificates/${certificateId}`);
+    (0, utilities_1.log)(`DELETE /certificates/${certificateId}`);
     const { error } = await appStoreConnectClient.api.CertificatesService.certificatesDeleteInstance(request);
     if (error) {
         checkAuthError(error);

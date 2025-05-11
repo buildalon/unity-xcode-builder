@@ -192,35 +192,8 @@ export async function RemoveCredentials(): Promise<void> {
     }
     core.info('Revoking temp signing certificates...');
     const authenticationKeyID = core.getState('authenticationKeyID');
-    // const authenticationKeyIssuerID = core.getState('authenticationKeyIssuerID');
     const appStoreConnectKeyPath = `${appStoreConnectKeyDir}/AuthKey_${authenticationKeyID}.p8`;
     const certificateDirectory = await getCertificateDirectory();
-    // const tempSigningCertificateIds = (await fs.promises.readdir(certificateDirectory))
-    //     .filter(file => file.endsWith('.csr'))
-    //     .map(file => {
-    //         // CERTIFICATE_TYPE-353BU6R6PX.csr
-    //         const match = file.match(/^(?<type>[A-Z_]+)-(?<id>[\w-]+)\.csr$/);
-    //         if (!match) {
-    //             core.warning(`Failed to match signing certificate id from ${file}`);
-    //             return null;
-    //         }
-    //         return match.groups?.id;
-    //     }).filter(id => id !== null) as Array<string>;
-    // if (tempSigningCertificateIds &&
-    //     tempSigningCertificateIds.length > 0) {
-    //     core.info('Revoking temp signing certificates...');
-    //     for (const tempSigningCertificateId of tempSigningCertificateIds) {
-    //         try {
-    //             await RevokeCertificate(tempSigningCertificateId, {
-    //                 privateKey: appStoreConnectKeyPath,
-    //                 privateKeyId: authenticationKeyID,
-    //                 issuerId: authenticationKeyIssuerID
-    //             });
-    //         } catch (error) {
-    //             core.error(`Failed to revoke temp signing certificate ${tempSigningCertificateId}!\n${error.stack}`);
-    //         }
-    //     }
-    // }
     core.info('Removing credentials...');
     try {
         await fs.promises.unlink(appStoreConnectKeyPath);
