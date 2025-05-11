@@ -58537,14 +58537,13 @@ async function ArchiveXcodeProject(projectRef) {
         archiveArgs.push(`CODE_SIGN_IDENTITY=${signingIdentity}`, `EXPANDED_CODE_SIGN_IDENTITY=${signingIdentity}`, `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
     }
     else {
-        archiveArgs.push(`CODE_SIGN_IDENTITY=-`, `EXPANDED_CODE_SIGN_IDENTITY=-`);
     }
     archiveArgs.push(`CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`);
     if (provisioningProfileUUID) {
         archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
     }
     else {
-        archiveArgs.push(`AD_HOC_CODE_SIGNING_ALLOWED=YES`, `-allowProvisioningUpdates`);
+        archiveArgs.push(`-allowProvisioningUpdates`);
     }
     if (projectRef.entitlementsPath) {
         core.debug(`Entitlements path: ${projectRef.entitlementsPath}`);
@@ -58685,12 +58684,6 @@ async function signMacOSAppBundle(projectRef) {
         },
         ignoreReturnCode: true,
     });
-    if (checkCodeSignExitCode === 0) {
-        if (checkCodesignOutput.includes('Developer ID Application')) {
-            core.info(`App bundle is already signed with Developer ID Application certificate.`);
-            return;
-        }
-    }
     await (0, AppleCredential_1.GetOrCreateSigningCertificate)(projectRef, 'DEVELOPER_ID_APPLICATION');
     const signAppBundlePath = __nccwpck_require__.ab + "sign-app-bundle.sh";
     let codesignOutput = '';

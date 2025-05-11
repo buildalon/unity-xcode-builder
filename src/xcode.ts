@@ -352,10 +352,10 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
             `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
         );
     } else {
-        archiveArgs.push(
-            `CODE_SIGN_IDENTITY=-`,
-            `EXPANDED_CODE_SIGN_IDENTITY=-`
-        );
+        // archiveArgs.push(
+        //     `CODE_SIGN_IDENTITY=-`,
+        //     `EXPANDED_CODE_SIGN_IDENTITY=-`
+        // );
     }
     archiveArgs.push(
         `CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`
@@ -364,7 +364,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
     } else {
         archiveArgs.push(
-            `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
+            // `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
             `-allowProvisioningUpdates`
         );
     }
@@ -504,12 +504,6 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
         },
         ignoreReturnCode: true,
     });
-    if (checkCodeSignExitCode === 0) {
-        if (checkCodesignOutput.includes('Developer ID Application')) {
-            core.info(`App bundle is already signed with Developer ID Application certificate.`);
-            return;
-        }
-    }
     await GetOrCreateSigningCertificate(projectRef, 'DEVELOPER_ID_APPLICATION');
     const signAppBundlePath = path.join(__dirname, 'sign-app-bundle.sh');
     let codesignOutput = '';
