@@ -348,6 +348,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     if (signingIdentity) {
         archiveArgs.push(
             `CODE_SIGN_IDENTITY=${signingIdentity}`,
+            `EXPANDED_CODE_SIGN_IDENTITY=${signingIdentity}`,
             `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
         );
     } else {
@@ -493,6 +494,7 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
+    await exec('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath]);
     await GetOrCreateSigningCertificate(projectRef, 'DEVELOPER_ID_APPLICATION');
     const signAppBundlePath = path.join(__dirname, 'sign-app-bundle.sh');
     let codesignOutput = '';

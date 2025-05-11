@@ -58534,7 +58534,7 @@ async function ArchiveXcodeProject(projectRef) {
         archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
     }
     if (signingIdentity) {
-        archiveArgs.push(`CODE_SIGN_IDENTITY=${signingIdentity}`, `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
+        archiveArgs.push(`CODE_SIGN_IDENTITY=${signingIdentity}`, `EXPANDED_CODE_SIGN_IDENTITY=${signingIdentity}`, `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
     }
     else {
         archiveArgs.push(`CODE_SIGN_IDENTITY=-`, `EXPANDED_CODE_SIGN_IDENTITY=-`);
@@ -58676,6 +58676,7 @@ async function signMacOSAppBundle(projectRef) {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
+    await (0, exec_1.exec)('codesign', ['--verify', '--deep', '--strict', '--verbose=2', appPath]);
     await (0, AppleCredential_1.GetOrCreateSigningCertificate)(projectRef, 'DEVELOPER_ID_APPLICATION');
     const signAppBundlePath = __nccwpck_require__.ab + "sign-app-bundle.sh";
     let codesignOutput = '';
