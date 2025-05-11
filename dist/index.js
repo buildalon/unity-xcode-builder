@@ -57842,10 +57842,7 @@ async function GetCertificates(project, certificateType) {
         return [];
     }
     (0, utilities_1.log)(responseJson);
-    return response.data.filter(certificate => {
-        var _a;
-        ((_a = certificate.attributes) === null || _a === void 0 ? void 0 : _a.displayName) === 'Created via API';
-    });
+    return response.data;
 }
 async function RevokeCertificate(certificateId, options) {
     appStoreConnectClient = new app_store_connect_api_1.AppStoreConnectClient(options);
