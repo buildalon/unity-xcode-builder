@@ -1,18 +1,6 @@
-import {
-    Certificate,
-    CertificateType
-} from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
-import {
-    CreateNewCertificate,
-    GetCertificates
-} from './AppStoreConnectClient';
-import {
-    XcodeProject
-} from './XcodeProject';
 import core = require('@actions/core');
 import exec = require('@actions/exec');
 import uuid = require('uuid');
-import path = require('path');
 import fs = require('fs');
 
 const security = '/usr/bin/security';
@@ -204,81 +192,6 @@ export async function RemoveCredentials(): Promise<void> {
     } catch (error) {
         core.error(`Failed to remove certificate directory!\n${error.stack}`);
     }
-}
-
-export async function GetOrCreateSigningCertificate(project: XcodeProject, certificateType: CertificateType): Promise<void> {
-    const signingCertificates = await GetCertificates(project, certificateType);
-    if (signingCertificates.length === 0) {
-        core.info(`No signing certificate found for ${certificateType}, creating one...`);
-        await CreateSigningCertificate(project, certificateType);
-    } else {
-        await importSigningCertificate(project, signingCertificates[0]);
-    }
-}
-
-export async function CreateSigningCertificate(project: XcodeProject, certificateType: CertificateType): Promise<void> {
-    const csrContent = await createCSR(project.credential.tempPassPhrase, certificateType);
-    const certificate = await CreateNewCertificate(project, certificateType, csrContent);
-    await importSigningCertificate(project, certificate);
-}
-
-async function importSigningCertificate(project: XcodeProject, certificate: Certificate) {
-    const certificateDirectory = await getCertificateDirectory();
-    const certificateName = `${certificate.type}-${certificate.id}.cer`;
-    const certificatePath = `${certificateDirectory}/${certificateName}`;
-    core.info(`Certificate path: ${certificatePath}`);
-    const certificateContent = Buffer.from(certificate.attributes.certificateContent, 'base64');
-    await fs.promises.writeFile(certificatePath, certificateContent);
-    // core.info(`[command]${security} import ${certificatePath} -A -t cert -f x509 -k ${project.credential.keychainPath}`);
-    await exec.exec(security, [
-        'import', certificatePath,
-        '-A', '-t', 'cert', '-f', 'x509',
-        '-k', project.credential.keychainPath,
-    ]);
-    // core.info(`[command]${security} set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${project.credential.tempPassPhrase} ${project.credential.keychainPath}`);
-    await exec.exec(security, [
-        'set-key-partition-list',
-        '-S', 'apple-tool:,apple:,codesign:',
-        '-s', '-k', project.credential.tempPassPhrase,
-        project.credential.keychainPath
-    ]);
-    await exec.exec(security, ['find-identity', '-v', '-p', 'codesigning', project.credential.keychainPath]);
-}
-
-async function createCSR(tempCredential: string, certificateType: CertificateType): Promise<string> {
-    const certificateDirectory = await getCertificateDirectory();
-    const privateKeyPath = path.join(certificateDirectory, `signing-${tempCredential}.key`);
-    const csrPath = path.join(certificateDirectory, `signing-${tempCredential}.csr`);
-    // Generate an unencrypted private key for compatibility with OpenSSL 3.x
-    core.info(`[command]openssl genpkey -algorithm RSA -out ${privateKeyPath} -pkeyopt rsa_keygen_bits:2048`);
-    await exec.exec('openssl', [
-        'genpkey',
-        '-algorithm', 'RSA',
-        '-out', privateKeyPath,
-        '-pkeyopt', 'rsa_keygen_bits:2048'
-    ], { silent: true });
-    const subject = `/CN=${certificateType}/O=App Store Connect API`;
-    core.info(`[command]openssl req -new -key ${privateKeyPath} -out ${csrPath} -subj "${subject}"`);
-    await exec.exec('openssl', [
-        'req', '-new',
-        '-key', privateKeyPath,
-        '-out', csrPath,
-        '-subj', subject
-    ], { silent: true });
-    // core.info(`[command]${security} import ${privateKeyPath} -A -t private -k ${temp}/${tempCredential}.keychain-db`);
-    await exec.exec(security, [
-        'import', privateKeyPath,
-        '-A', '-t', 'private',
-        '-k', `${temp}/${tempCredential}.keychain-db`
-    ]);
-    // core.info(`[command]${security} set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ${tempCredential} ${temp}/${tempCredential}.keychain-db`);
-    await exec.exec(security, [
-        'set-key-partition-list',
-        '-S', 'apple-tool:,apple:,codesign:',
-        '-s', '-k', tempCredential,
-        `${temp}/${tempCredential}.keychain-db`
-    ]);
-    return await fs.promises.readFile(csrPath, 'utf8');
 }
 
 async function getCertificateDirectory(): Promise<string> {

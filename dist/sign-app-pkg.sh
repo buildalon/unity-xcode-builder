@@ -18,7 +18,7 @@ fi
 SIGNING_IDENTITY=$(security find-identity -v "$KEYCHAIN_PATH" | grep "Developer ID Installer" | awk -F'"' '{print $2}' | head -n 1)
 
 if [ -z "$SIGNING_IDENTITY" ]; then
-    echo "No 'Developer ID Installer' signing identity found!"
+    echo "No 'Developer ID Installer' signing identity found in $KEYCHAIN_PATH!"
     exit 1
 fi
 

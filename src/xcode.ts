@@ -11,8 +11,7 @@ import { log } from './utilities';
 import { SemVer } from 'semver';
 import core = require('@actions/core');
 import {
-    AppleCredential,
-    GetOrCreateSigningCertificate
+    AppleCredential
 } from './AppleCredential';
 import {
     GetLatestBundleVersion,
@@ -352,10 +351,10 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
             `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
         );
     } else {
-        // archiveArgs.push(
-        //     `CODE_SIGN_IDENTITY=-`,
-        //     `EXPANDED_CODE_SIGN_IDENTITY=-`
-        // );
+        archiveArgs.push(
+            `CODE_SIGN_IDENTITY=-`,
+            `EXPANDED_CODE_SIGN_IDENTITY=-`
+        );
     }
     archiveArgs.push(
         `CODE_SIGN_STYLE=${provisioningProfileUUID || signingIdentity ? 'Manual' : 'Automatic'}`
@@ -364,7 +363,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         archiveArgs.push(`PROVISIONING_PROFILE=${provisioningProfileUUID}`);
     } else {
         archiveArgs.push(
-            // `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
+            `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
             `-allowProvisioningUpdates`
         );
     }
@@ -494,17 +493,6 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
-    // check if the app bundle is already signed with the 'Developer ID Application' certificate
-    let checkCodesignOutput = '';
-    const checkCodeSignExitCode = await exec('codesign', ['-dvvv', '--verbose=4', appPath], {
-        listeners: {
-            stdout: (data: Buffer) => {
-                checkCodesignOutput += data.toString();
-            }
-        },
-        ignoreReturnCode: true,
-    });
-    await GetOrCreateSigningCertificate(projectRef, 'DEVELOPER_ID_APPLICATION');
     const signAppBundlePath = path.join(__dirname, 'sign-app-bundle.sh');
     let codesignOutput = '';
     const codesignExitCode = await exec('sh', [signAppBundlePath, appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase], {
@@ -542,7 +530,6 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
     } catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
-    await GetOrCreateSigningCertificate(projectRef, 'MAC_INSTALLER_DISTRIBUTION');
     // sign the .pkg using ./sign-app-pkg.sh
     const signPkgPath = path.join(__dirname, 'sign-app-pkg.sh');
     core.info(`Signing pkg: ${pkgPath}`);
@@ -659,7 +646,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
         if (projectRef.platform === 'macOS') {
             switch (exportOption) {
                 case 'steam':
-                    method = 'mac-application';
+                    method = 'developer-id';
                     projectRef.isSteamBuild = true;
                     break;
                 case 'ad-hoc':

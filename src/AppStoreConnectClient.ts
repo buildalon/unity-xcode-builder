@@ -15,11 +15,6 @@ import {
     BetaGroupsGetCollectionData,
     BuildsBetaGroupsCreateToManyRelationshipData,
     BetaGroup,
-    Certificate,
-    CertificateType,
-    CertificatesCreateInstanceData,
-    CertificatesDeleteInstanceData,
-    CertificatesGetCollectionData,
 } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
 import { log } from './utilities';
 import core = require('@actions/core');
@@ -354,63 +349,4 @@ async function getBetaGroupsByName(project: XcodeProject, groupNames: string[]):
     }
     log(responseJson);
     return response.data;
-}
-
-export async function CreateNewCertificate(project: XcodeProject, certificateType: CertificateType, csrContent: string): Promise<Certificate> {
-    await getOrCreateClient(project);
-    const request: CertificatesCreateInstanceData = {
-        body: {
-            data: {
-                type: 'certificates',
-                attributes: {
-                    certificateType: certificateType,
-                    csrContent: csrContent
-                }
-            }
-        }
-    }
-    log(`POST /certificates\n${JSON.stringify(request, null, 2)}`);
-    const { data: response, error } = await appStoreConnectClient.api.CertificatesService.certificatesCreateInstance(request)
-    if (error) {
-        checkAuthError(error);
-        throw new Error(`Error creating certificate: ${JSON.stringify(error, null, 2)}`);
-    }
-    const responseJson = JSON.stringify(response, null, 2);
-    if (!response || !response.data) {
-        throw new Error(`No certificate found!`);
-    }
-    log(responseJson);
-    return response.data;
-}
-
-export async function GetCertificates(project: XcodeProject, certificateType: CertificateType): Promise<Certificate[]> {
-    await getOrCreateClient(project);
-    const request: CertificatesGetCollectionData = {
-        query: {
-            "filter[certificateType]": [certificateType]
-        }
-    };
-    log(`GET /certificates?${JSON.stringify(request.query)}`);
-    const { data: response, error } = await appStoreConnectClient.api.CertificatesService.certificatesGetCollection(request);
-    if (error) {
-        checkAuthError(error);
-        throw new Error(`Error fetching certificates: ${JSON.stringify(error, null, 2)}`);
-    }
-    const responseJson = JSON.stringify(response, null, 2);
-    if (!response || !response.data || response.data.length === 0) {
-        return [];
-    }
-    log(responseJson);
-    return response.data;
-}
-
-export async function RevokeCertificate(certificateId: string, options: AppStoreConnectOptions): Promise<void> {
-    appStoreConnectClient = new AppStoreConnectClient(options);
-    const request: CertificatesDeleteInstanceData = { path: { id: certificateId } };
-    log(`DELETE /certificates/${certificateId}`);
-    const { error } = await appStoreConnectClient.api.CertificatesService.certificatesDeleteInstance(request);
-    if (error) {
-        checkAuthError(error);
-        throw new Error(`Error revoking certificate: ${JSON.stringify(error, null, 2)}`);
-    }
 }
