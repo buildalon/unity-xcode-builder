@@ -48,6 +48,8 @@ export class XcodeProject {
     xcodeVersion: SemVer;
     autoIncrementBuildNumber: boolean;
     isSteamBuild: boolean;
+    archiveType: string;
+    notarize: boolean;
     isAppStoreUpload(): boolean {
         return this.exportOption === 'app-store' || this.exportOption === 'app-store-connect';
     }

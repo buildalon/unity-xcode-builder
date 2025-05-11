@@ -58234,6 +58234,13 @@ async function GetProjectDetails(credential, xcodeVersion) {
             }
         }
     }
+    else {
+        if (projectRef.platform === 'macOS') {
+            const notarizeInput = core.getInput('notarize') || 'true';
+            core.debug(`Notarize input: ${notarizeInput}`);
+            projectRef.notarize = notarizeInput === 'true' || projectRef.isSteamBuild;
+        }
+    }
     const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
     try {
         infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
@@ -58451,7 +58458,7 @@ async function ArchiveXcodeProject(projectRef) {
 async function ExportXcodeArchive(projectRef) {
     const { projectName, projectDirectory, archivePath, exportOptionsPath } = projectRef;
     projectRef.exportPath = `${projectDirectory}/${projectName}`;
-    core.debug(`Export path: ${projectRef.exportPath}`);
+    core.info(`Export path: ${projectRef.exportPath}`);
     core.setOutput('output-directory', projectRef.exportPath);
     const exportArgs = [
         '-exportArchive',
@@ -58464,6 +58471,9 @@ async function ExportXcodeArchive(projectRef) {
     ];
     if (!projectRef.isSteamBuild) {
         exportArgs.push(`-allowProvisioningUpdates`);
+    }
+    if (projectRef.notarize && projectRef.archiveType === 'app') {
+        exportArgs.push(`-exportNotarizedApp`);
     }
     if (!core.isDebug()) {
         exportArgs.push('-quiet');
@@ -58479,12 +58489,10 @@ async function ExportXcodeArchive(projectRef) {
     }
     if (projectRef.platform === 'macOS') {
         if (!projectRef.isAppStoreUpload()) {
-            const notarizeInput = core.getInput('notarize') || 'true';
             projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
-            if (notarizeInput === 'true') {
+            if (projectRef.notarize) {
                 await signMacOSAppBundle(projectRef);
-                const archiveType = core.getInput('archive-type') || 'app';
-                if (projectRef.isSteamBuild || archiveType === 'app') {
+                if (projectRef.isSteamBuild || projectRef.archiveType === 'app') {
                     const isNotarized = await isAppBundleNotarized(projectRef.executablePath);
                     if (!isNotarized) {
                         const zipPath = path.join(projectRef.exportPath, projectRef.executablePath.replace('.app', '.zip'));
@@ -58492,14 +58500,14 @@ async function ExportXcodeArchive(projectRef) {
                         await notarizeArchive(projectRef, zipPath, projectRef.executablePath);
                     }
                 }
-                else if (archiveType === 'pkg') {
+                else if (projectRef.archiveType === 'pkg') {
                     projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
                 }
-                else if (archiveType === 'dmg') {
+                else if (projectRef.archiveType === 'dmg') {
                     throw new Error('DMG export is not supported yet!');
                 }
                 else {
-                    throw new Error(`Invalid archive type: ${archiveType}`);
+                    throw new Error(`Invalid archive type: ${projectRef.archiveType}`);
                 }
             }
         }
@@ -58545,6 +58553,7 @@ async function signMacOSAppBundle(projectRef) {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
+    await (0, exec_1.exec)('codesign', ['-d', '-vv', appPath]);
     const signAppBundlePath = __nccwpck_require__.ab + "sign-app-bundle.sh";
     let codesignOutput = '';
     const codesignExitCode = await (0, exec_1.exec)('sh', [__nccwpck_require__.ab + "sign-app-bundle.sh", appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase], {
@@ -58689,10 +58698,13 @@ async function getExportOptions(projectRef) {
         const exportOption = core.getInput('export-option') || 'development';
         let method;
         if (projectRef.platform === 'macOS') {
+            const archiveType = core.getInput('archive-type') || 'app';
+            projectRef.archiveType = archiveType;
             switch (exportOption) {
                 case 'steam':
                     method = 'developer-id';
                     projectRef.isSteamBuild = true;
+                    projectRef.archiveType = 'app';
                     break;
                 case 'ad-hoc':
                     method = 'development';
@@ -58701,6 +58713,7 @@ async function getExportOptions(projectRef) {
                     method = exportOption;
                     break;
             }
+            core.info(`Export Archive type: ${archiveType}`);
         }
         else {
             if (exportOption === 'steam') {
