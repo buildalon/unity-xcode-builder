@@ -657,7 +657,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
             projectRef.archiveType = archiveType;
             switch (exportOption) {
                 case 'steam':
-                    method = 'developer-id';
+                    method = 'mac-application';
                     projectRef.isSteamBuild = true;
                     projectRef.archiveType = 'app';
                     break;

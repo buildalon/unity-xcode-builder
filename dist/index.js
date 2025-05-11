@@ -58702,7 +58702,7 @@ async function getExportOptions(projectRef) {
             projectRef.archiveType = archiveType;
             switch (exportOption) {
                 case 'steam':
-                    method = 'developer-id';
+                    method = 'mac-application';
                     projectRef.isSteamBuild = true;
                     projectRef.archiveType = 'app';
                     break;
