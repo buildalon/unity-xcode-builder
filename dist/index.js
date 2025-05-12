@@ -58537,7 +58537,7 @@ async function ArchiveXcodeProject(projectRef) {
 async function ExportXcodeArchive(projectRef) {
     const { projectName, projectDirectory, archivePath, exportOptionsPath } = projectRef;
     projectRef.exportPath = `${projectDirectory}/${projectName}`;
-    core.info(`Export path: ${projectRef.exportPath}`);
+    core.debug(`Export path: ${projectRef.exportPath}`);
     core.setOutput('output-directory', projectRef.exportPath);
     const { manualProvisioningProfileUUID } = projectRef.credential;
     const exportArgs = [
@@ -58607,7 +58607,11 @@ async function ExportXcodeArchive(projectRef) {
 }
 async function isAppBundleNotarized(appPath) {
     let output = '';
+    if (!core.isDebug()) {
+        core.info(`[command]stapler validate ${appPath}`);
+    }
     await (0, exec_1.exec)('stapler', ['validate', appPath], {
+        silent: !core.isDebug(),
         listeners: {
             stdout: (data) => { output += data.toString(); }
         },
@@ -58616,7 +58620,10 @@ async function isAppBundleNotarized(appPath) {
     if (output.includes('The validate action worked!')) {
         return true;
     }
-    return false;
+    if (output.includes('does not have a ticket stapled to it')) {
+        return false;
+    }
+    throw new Error(`Failed to validate the notarization ticket!\n${output}`);
 }
 async function getFirstPathWithGlob(globPattern) {
     const globber = await glob.create(globPattern);
@@ -58844,6 +58851,10 @@ async function notarizeArchive(projectRef, archivePath, staplePath) {
     (0, utilities_1.log)(stapleOutput);
     if (!stapleOutput.includes('The staple and validate action worked!')) {
         throw new Error(`Failed to staple the notarization ticket!\n${stapleOutput}`);
+    }
+    const notarization = await isAppBundleNotarized(staplePath);
+    if (!notarization) {
+        throw new Error(`Failed to notarize the app bundle!`);
     }
 }
 async function getNotarizationLog(projectRef, id) {
