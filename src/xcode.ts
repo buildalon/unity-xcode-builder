@@ -431,7 +431,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
 export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<XcodeProject> {
     const { projectName, projectDirectory, archivePath, exportOptionsPath } = projectRef;
     projectRef.exportPath = `${projectDirectory}/${projectName}`;
-    core.info(`Export path: ${projectRef.exportPath}`);
+    core.debug(`Export path: ${projectRef.exportPath}`);
     core.setOutput('output-directory', projectRef.exportPath);
     const { manualProvisioningProfileUUID } = projectRef.credential;
     const exportArgs = [
@@ -495,7 +495,11 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
 
 export async function isAppBundleNotarized(appPath: string): Promise<boolean> {
     let output = '';
+    if (!core.isDebug()) {
+        core.info(`[command]stapler validate ${appPath}`);
+    }
     await exec('stapler', ['validate', appPath], {
+        silent: !core.isDebug(),
         listeners: {
             stdout: (data: Buffer) => { output += data.toString(); }
         },
@@ -504,7 +508,10 @@ export async function isAppBundleNotarized(appPath: string): Promise<boolean> {
     if (output.includes('The validate action worked!')) {
         return true;
     }
-    return false;
+    if (output.includes('does not have a ticket stapled to it')) {
+        return false;
+    }
+    throw new Error(`Failed to validate the notarization ticket!\n${output}`);
 }
 
 async function getFirstPathWithGlob(globPattern: string): Promise<string> {
@@ -727,6 +734,10 @@ async function notarizeArchive(projectRef: XcodeProject, archivePath: string, st
     log(stapleOutput);
     if (!stapleOutput.includes('The staple and validate action worked!')) {
         throw new Error(`Failed to staple the notarization ticket!\n${stapleOutput}`);
+    }
+    const notarization = await isAppBundleNotarized(staplePath);
+    if (!notarization) {
+        throw new Error(`Failed to notarize the app bundle!`);
     }
 }
 
