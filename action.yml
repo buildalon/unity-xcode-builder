@@ -83,7 +83,7 @@ inputs:
     description: Whether to notarize the exported Xcode project. Defaults to `true` if `export-option !== app-store-connect`.
     required: false
   archive-type:
-    description: The archive type to use when exporting macOS applications when not uploading to the App Store. Can be one of `app`, `dmg`, or `pkg`. Defaults to `app`. Forces `app` if `export-option === steam`.
+    description: The archive type to use when exporting macOS applications when not uploading to the App Store. Can be one of `app` or `pkg`. Defaults to `app`. Forces `app` if `export-option === steam`.
     required: false
     default: app
   upload:

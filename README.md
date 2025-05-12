@@ -53,7 +53,7 @@ This action requires several secrets that need to be setup in the repository or 
 | `app-store-connect-issuer-id` | The issuer ID of the App Store Connect API key. | true |
 | `manual-signing-certificate` | Exported signing certificate.p12 encoded as base64 string. Overrides the automatic signing in Xcode. | Defaults to Automatic signing. |
 | `manual-signing-certificate-password` | The password for the exported certificate. | Required if `manual-signing-certificate` is provided. |
-| `signing-identity` | The signing identity to use for signing the Xcode project. | Parsed from the `manual-signing-certificate` if not provided. |
+| `manual-signing-identity` | The signing identity to use for signing the Xcode project. | Parsed from the `manual-signing-certificate` if not provided. |
 | `provisioning-profile` | The provisioning profile to use as base64 string. Use when manually signing the Xcode project. | Defaults to Automatic signing. |
 | `provisioning-profile-name` | The name of the provisioning profile file, including the type to use for signing the Xcode project. Must end with either `.mobileprovision` or `.provisionprofile`. | Required if `provisioning-profile` is provided. |
 | `team-id` | The team ID to use for signing the Xcode project. | Defaults to parsing team ID from `manual-signing-certificate` if provided. |
@@ -67,7 +67,7 @@ This action requires several secrets that need to be setup in the repository or 
 | `export-option-plist` | The path to custom export option plist file to use when exporting the Xcode project. | Overrides `export-option`. |
 | `entitlements-plist` | The path to custom entitlements plist file. | Generates [default hardened runtime entitlements](https://developer.apple.com/documentation/security/hardened-runtime) if not provided. |
 | `notarize` | Whether to notarize the exported Xcode project. | Defaults to `true` if `export-option !== app-store-connect`. |
-| `archive-type` | The archive type to use when exporting macOS applications when not uploading to the App Store. Can be one of `app`, `dmg`, or `pkg`. | Defaults to `app`. Forces `app` if `export-option === steam`. |
+| `archive-type` | The archive type to use when exporting macOS applications when not uploading to the App Store. Can be one of `app` or `pkg`. | Defaults to `app`. Forces `app` if `export-option === steam`. |
 | `upload` | Whether to upload the exported Xcode project to App Store Connect. | Defaults to `true` if `export-option === app-store-connect`. |
 | `whats-new` | When `uploading === true`, Let your testers know what you would like them to test in this build. This information will be available to testers in all groups who have access to this build. | Defaults to the last git commit sha, current branch name, and commit message up to 4000 characters. |
 | `auto-increment-build-number` | Whether to automatically increment the `CFBundleVersion` in the Xcode project. | Defaults to `true` if `export-option === app-store-connect`. |
