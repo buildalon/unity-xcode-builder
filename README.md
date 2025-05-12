@@ -63,7 +63,7 @@ This action requires several secrets that need to be setup in the repository or 
 | `destination` | The destination to use when building the xcode project. | Defaults to `generic/platform={platform}`. |
 | `platform` | The platform to build for. Can be one of `iOS`, `macOS`, `tvOS`, `visionOS`. | Defaults to parsing platform from `.xcodeproj`. |
 | `platform-sdk-version` | The version of the platform SDK to use for building the Xcode project. | Defaults to the latest version of the platform SDK defined in the `.xcodeproj`. |
-| `export-option` | The export option to use for exporting the Xcode project. Can be one of `app-store-connect`, `steam`, `release-testing`, `package`, `enterprise`, `debugging`, `developer-id`, `mac-application`. | Defaults to `development` |
+| `export-option` | The export option to use for exporting the Xcode project. Can be one of `app-store-connect`, `steam`, `release-testing`, `enterprise`, `debugging`, `developer-id`, `mac-application`. | Defaults to `development` |
 | `export-option-plist` | The path to custom export option plist file to use when exporting the Xcode project. | Overrides `export-option`. |
 | `entitlements-plist` | The path to custom entitlements plist file. | Generates [default hardened runtime entitlements](https://developer.apple.com/documentation/security/hardened-runtime) if not provided. |
 | `notarize` | Whether to notarize the exported Xcode project. | Defaults to `true` if `export-option !== app-store-connect`. |

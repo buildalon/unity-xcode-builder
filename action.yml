@@ -70,7 +70,7 @@ inputs:
     description: The version of the platform SDK to use for building the Xcode project. Defaults to the latest version of the platform SDK defined in the `.xcodeproj`.
     required: false
   export-option:
-    description: The export option to use for exporting the Xcode project. Can be one of `app-store-connect`, `steam`, `release-testing`, `package`, `enterprise`, `debugging`, `developer-id`, `mac-application`. Defaults to `development`
+    description: The export option to use for exporting the Xcode project. Can be one of `app-store-connect`, `steam`, `release-testing`, `enterprise`, `debugging`, `developer-id`, `mac-application`. Defaults to `development`
     required: false
     default: development
   export-option-plist:
