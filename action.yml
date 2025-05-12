@@ -5,12 +5,12 @@ branding:
   color: red
 inputs:
   xcode-version:
-    description: The version of Xcode to use for building the Xcode project. Defaults to the active version of Xcode on the runner.
+    description: The version of Xcode to use for building the Xcode project. Defaults to the [latest version of Xcode on the runner](https://github.com/actions/runner-images#available-images).
     required: false
     default: latest
   project-path:
     description: The directory that contains the exported xcode project from Unity.
-    required: true
+    required: false
   app-store-connect-key:
     description: The App Store Connect API AuthKey_*.p8 key encoded as base64 string.
     required: true
@@ -23,26 +23,38 @@ inputs:
   certificate:
     description: Exported signing certificate.p12 encoded as base64 string. Overrides the automatic signing in Xcode.
     required: false
+    deprecationMessage: use `manual-signing-certificate` instead.
+  manual-signing-certificate:
+    description: Exported signing certificate.p12 encoded as base64 string. Overrides the automatic signing in Xcode.
+    required: false
   certificate-password:
     description: The password for the exported certificate. Required if `certificate` is provided.
     required: false
+    deprecationMessage: use `manual-signing-certificate-password` instead.
+  manual-signing-certificate-password:
+    description: The password for the exported certificate. Required if `manual-signing-certificate` is provided.
+    required: false
   signing-identity:
-    description: The signing identity to use for signing the Xcode project. Parsed from the `certificate` if not provided.
+    description: The signing identity to use for signing the Xcode project. Parsed from the `manual-signing-certificate` if not provided.
+    required: false
+    deprecationMessage: use `manual-signing-identity` instead.
+  manual-signing-identity:
+    description: The signing identity to use for signing the Xcode project. Parsed from the `manual-signing-certificate` if not provided.
     required: false
   provisioning-profile:
-    description: The provisioning profile to use as base64 string. Overrides the automatic signing in Xcode.
+    description: The provisioning profile to use as base64 string. Use when manually signing the Xcode project.
     required: false
   provisioning-profile-name:
-    description: The name of the provisioning profile file, including the type to use for signing the Xcode project. Required if `provisioning-profile` is provided. Must end with either `.mobileprovision` or `.provisionprofile`.
+    description: The name of the provisioning profile file, including the type to use for signing the Xcode project. Must end with either `.mobileprovision` or `.provisionprofile`. Required if `provisioning-profile` is provided.
     required: false
   team-id:
-    description: The team ID to use for signing the Xcode project. Defaults to parsing team ID from `.xcodeproj`.
+    description: The team ID to use for signing the Xcode project. Defaults to parsing team ID from `manual-signing-certificate` if provided.
     required: false
   bundle-id:
-    description: The bundle ID of the Xcode project. Defaults to parsing bundle ID from `.xcodeproj`.
+    description: The bundle ID of the Xcode project. Overrides the value in the exported Unity project. Defaults to parsing bundle ID from `.xcodeproj`.
     required: false
   configuration:
-    description: The configuration to use when building the xcode project. Defaults to `Release`.
+    description: The configuration to build the Xcode project with. Defaults to `Release`.
     required: false
     default: 'Release'
   scheme:
@@ -52,52 +64,52 @@ inputs:
     description: The destination to use when building the xcode project. Defaults to `generic/platform={platform}`.
     required: false
   platform:
-    description: The platform to build for. Can be one of `iOS`, `macOS`, `visionOS`, `tvOS`. Defaults to parsing platform from `.xcodeproj`.
+    description: The platform to build for. Can be one of `iOS`, `macOS`, `tvOS`, `visionOS`. Defaults to parsing platform from `.xcodeproj`.
     required: false
   platform-sdk-version:
     description: The version of the platform SDK to use for building the Xcode project. Defaults to the latest version of the platform SDK defined in the `.xcodeproj`.
     required: false
   export-option:
-    description: The export option to use for exporting the Xcode project. Can be one of `app-store-connect`, `steam`, `release-testing`, `package`, `enterprise`, `debugging`, `developer-id`, `mac-application`.
+    description: The export option to use for exporting the Xcode project. Can be one of `app-store-connect`, `steam`, `release-testing`, `package`, `enterprise`, `debugging`, `developer-id`, `mac-application`. Defaults to `development`
     required: false
     default: development
   export-option-plist:
     description: The path to custom export option plist file to use when exporting the Xcode project. Overrides `export-option`.
     required: false
   entitlements-plist:
-    description: The path to custom entitlements plist file. Generates default hardened runtime entitlements if not provided.
+    description: The path to custom entitlements plist file. Generates [default hardened runtime entitlements](https://developer.apple.com/documentation/security/hardened-runtime) if not provided.
     required: false
   notarize:
-    description: Whether to notarize the exported Xcode project. Apps to be uploaded to Steam must be notarized by Apple. Defaults to `true` if `export-option === steam`.
+    description: Whether to notarize the exported Xcode project. Defaults to `true` if `export-option !== app-store-connect`.
     required: false
   archive-type:
-    description: The archive type to use when exporting macOS applications when not uploading to the App Store. Can be one of `app` or `pkg`. Defaults to `app`. Forces `app` if `export-option === steam`.
+    description: The archive type to use when exporting macOS applications when not uploading to the App Store. Can be one of `app`, `dmg`, or `pkg`. Defaults to `app`. Forces `app` if `export-option === steam`.
     required: false
     default: app
   upload:
     description: Whether to upload the exported Xcode project to App Store Connect. Defaults to `true` if `export-option === app-store-connect`.
     required: false
   whats-new:
-    description: 'When `uploading === true`, Let your testers know what you would like them to test in this build. This information will be available to testers in all groups who have access to this build. Defaults to the last git commit sha, current branch name, and commit message.'
+    description: When `uploading === true`, Let your testers know what you would like them to test in this build. This information will be available to testers in all groups who have access to this build. Defaults to the last git commit sha, current branch name, and commit message up to 4000 characters.
     required: false
   auto-increment-build-number:
-    description: Whether to automatically increment the CFBundleVersion in the Xcode project. Defaults to `true` if `export-option === app-store-connect`.
+    description: Whether to automatically increment the `CFBundleVersion` in the Xcode project. Defaults to `true` if `export-option === app-store-connect`.
     required: false
     default: 'true'
   test-groups:
-    description: One or more test groups to automatically add to the build when uploading to TestFlight. When using multiple groups, separate them with commas.
+    description: One or more test groups to automatically add to the build when uploading to TestFlight. When using multiple groups, separate them with commas. None by default.
     required: false
   developer-id-application-certificate:
-    description: The Developer ID Application certificate encoded as base64 string. Required if `export-option === steam` or using `developer-id`.
+    description: The `Developer ID Application` certificate encoded as base64 string. Required if `export-option === steam` or `export-option === developer-id` or `notarize === true`.
     required: false
   developer-id-application-certificate-password:
-    description: The password for the developer ID certificate. Required if `developer-id-application-certificate` is provided.
+    description: The password for the `Developer ID Application` certificate. Required if `developer-id-application-certificate` is provided.
     required: false
   developer-id-installer-certificate:
-    description: The developer ID installer certificate encoded as base64 string. Required when creating an installer package for masOS application.
+    description: The `Developer ID Installer` certificate encoded as base64 string. Required when creating an installer package for macOS application.
     required: false
   developer-id-installer-certificate-password:
-    description: The password for the developer ID installer certificate. Required if `developer-id-installer-certificate` is provided.
+    description: The password for the `Developer ID Installer` certificate. Required if `developer-id-installer-certificate` is provided.
     required: false
 outputs:
   executable:

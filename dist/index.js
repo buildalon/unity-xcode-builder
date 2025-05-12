@@ -57850,13 +57850,16 @@ async function ImportCredentials() {
         await exec.exec(security, ['create-keychain', '-p', tempCredential, keychainPath]);
         await exec.exec(security, ['set-keychain-settings', '-lut', '21600', keychainPath]);
         await unlockTemporaryKeychain(keychainPath, tempCredential);
-        let manualSigningIdentity = core.getInput('signing-identity');
+        let manualSigningIdentity = core.getInput('manual-signing-identity') || core.getInput('signing-identity');
         let certificateUUID;
         let teamId = core.getInput('team-id');
-        const manualSigningCertificateBase64 = core.getInput('certificate');
+        const manualSigningCertificateBase64 = core.getInput('manual-signing-certificate') || core.getInput('certificate');
         let installedCertificates = false;
         if (manualSigningCertificateBase64) {
-            const manualSigningCertificatePassword = core.getInput('certificate-password', { required: true });
+            const manualSigningCertificatePassword = core.getInput('manual-signing-certificate-password') || core.getInput('certificate-password');
+            if (!manualSigningCertificatePassword) {
+                throw new Error('manual-signing-certificate-password is required when manual-signing-certificate is provided!');
+            }
             core.info('Importing manual signing certificate...');
             await importCertificate(keychainPath, tempCredential, manualSigningCertificateBase64.trim(), manualSigningCertificatePassword.trim());
             installedCertificates = true;
