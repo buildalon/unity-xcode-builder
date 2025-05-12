@@ -58666,27 +58666,31 @@ async function signMacOSAppBundle(projectRef) {
     if (!developerIdApplicationSigningIdentity) {
         throw new Error(`Failed to find the Developer ID Application signing identity!`);
     }
+    const codesignArgs = [
+        '--force',
+        '--verify',
+        '--timestamp',
+        '--options', 'runtime',
+        '--keychain', projectRef.credential.keychainPath,
+        '--sign', developerIdApplicationSigningIdentity,
+    ];
+    if (core.isDebug()) {
+        codesignArgs.unshift('--verbose');
+    }
     await (0, exec_1.exec)('find', [
         appPath,
         '-name', '*.bundle',
         '-exec', 'find', '{}', '-name', '*.meta', '-delete', ';',
-        '-exec', 'codesign', '--force', '--verify', '--verbose', '--timestamp', '--options', 'runtime', '--keychain', projectRef.credential.keychainPath, '--sign', developerIdApplicationSigningIdentity, '{}', ';'
+        '-exec', 'codesign', ...codesignArgs, '{}', ';'
     ]);
     await (0, exec_1.exec)('find', [
         appPath,
         '-name', '*.dylib',
-        '-exec', 'codesign', '--force', '--verify', '--verbose', '--timestamp', '--options', 'runtime', '--keychain', projectRef.credential.keychainPath, '--sign', developerIdApplicationSigningIdentity, '{}', ';'
+        '-exec', 'codesign', ...codesignArgs, '{}', ';'
     ]);
     await (0, exec_1.exec)('codesign', [
         '--deep',
-        '--force',
-        '--verify',
-        '--verbose',
-        '--timestamp',
-        '--options', 'runtime',
-        '--entitlements', projectRef.entitlementsPath,
-        '--keychain', projectRef.credential.keychainPath,
-        '--sign', developerIdApplicationSigningIdentity,
+        ...codesignArgs,
         appPath
     ]);
     const verifyExitCode = await (0, exec_1.exec)('codesign', [
