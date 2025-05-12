@@ -501,7 +501,13 @@ export async function isAppBundleNotarized(appPath: string): Promise<boolean> {
         },
         ignoreReturnCode: true
     });
-    return exitCode === 0 && output.includes('The validate action worked!');
+    if (exitCode !== 0) {
+        throw new Error(`Failed to validate if the app bundle is notarized!`);
+    }
+    if (output.includes('The validate action worked!')) {
+        return true;
+    }
+    return false;
 }
 
 async function getFirstPathWithGlob(globPattern: string): Promise<string> {
@@ -520,18 +526,69 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
-    const signAppBundlePath = path.join(__dirname, 'sign-app-bundle.sh');
-    let codesignOutput = '';
-    const codesignExitCode = await exec('sh', [signAppBundlePath, appPath, projectRef.entitlementsPath, projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase], {
+    await exec('xattr', ['-cr', appPath]);
+    let findSigningIdentityOutput = '';
+    const findSigningIdentityExitCode = await exec('security', [
+        'find-identity',
+        '-p', 'codesigning',
+        '-v', projectRef.credential.keychainPath
+    ], {
         listeners: {
             stdout: (data: Buffer) => {
-                codesignOutput += data.toString();
+                findSigningIdentityOutput += data.toString();
             }
         },
         ignoreReturnCode: true
     });
-    if (codesignExitCode !== 0) {
-        throw new Error(`Failed to code sign the app!`);
+    if (findSigningIdentityExitCode !== 0) {
+        log(findSigningIdentityOutput, 'error');
+        throw new Error(`Failed to find the signing identity!`);
+    }
+    const matches = findSigningIdentityOutput.matchAll(/\d\) (?<uuid>\w+) \"(?<signing_identity>[^"]+)\"$/gm);
+    const signingIdentities = Array.from(matches).map(match => ({
+        uuid: match.groups?.['uuid'],
+        signing_identity: match.groups?.['signing_identity']
+    })).filter(identity => identity.signing_identity.includes('Developer ID Application'));
+    if (signingIdentities.length === 0) {
+        throw new Error(`Failed to find the signing identity!`);
+    }
+    const developerIdApplicationSigningIdentity = signingIdentities[0].signing_identity;
+    if (!developerIdApplicationSigningIdentity) {
+        throw new Error(`Failed to find the Developer ID Application signing identity!`);
+    }
+    await exec('find', [
+        appPath,
+        '-name', '*.bundle',
+        '-exec', 'find', '{}', '-name', '*.meta', '-delete', ';',
+        '-exec', 'codesign', '--force', '--verify', '--verbose', '--timestamp', '--options', 'runtime', '--keychain', projectRef.credential.keychainPath, '--sign', developerIdApplicationSigningIdentity, '{}', ';'
+    ]);
+    await exec('find', [
+        appPath,
+        '-name', '*.dylib',
+        '-exec', 'codesign', '--force', '--verify', '--verbose', '--timestamp', '--options', 'runtime', '--keychain', projectRef.credential.keychainPath, '--sign', developerIdApplicationSigningIdentity, '{}', ';'
+    ]);
+    await exec('codesign', [
+        '--deep',
+        '--force',
+        '--verify',
+        '--verbose',
+        '--timestamp',
+        '--options', 'runtime',
+        '--entitlements', projectRef.entitlementsPath,
+        '--keychain', projectRef.credential.keychainPath,
+        '--sign', developerIdApplicationSigningIdentity,
+        appPath
+    ]);
+    const verifyExitCode = await exec('codesign', [
+        '--verify',
+        '--deep',
+        '--strict',
+        '--verbose=2',
+        '--keychain', projectRef.credential.keychainPath,
+        appPath
+    ], { ignoreReturnCode: true });
+    if (verifyExitCode !== 0) {
+        throw new Error('App bundle codesign verification failed!');
     }
 }
 
@@ -540,7 +597,12 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
     let output = '';
     const pkgPath = `${projectRef.exportPath}/${projectRef.projectName}.pkg`;
     const appPath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
-    const productBuildExitCode = await exec('xcrun', ['productbuild', '--component', appPath, '/Applications', pkgPath], {
+    const productBuildExitCode = await exec('xcrun', [
+        'productbuild',
+        '--component',
+        appPath, '/Applications',
+        pkgPath
+    ], {
         listeners: {
             stdout: (data: Buffer) => {
                 output += data.toString();
@@ -557,22 +619,45 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
     } catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
-    // sign the .pkg using ./sign-app-pkg.sh
-    const signPkgPath = path.join(__dirname, 'sign-app-pkg.sh');
-    core.info(`Signing pkg: ${pkgPath}`);
-    let codesignOutput = '';
-    const codesignExitCode = await exec('sh', [signPkgPath, pkgPath, projectRef.credential.keychainPath, projectRef.credential.tempPassPhrase], {
+    let findSigningIdentityOutput = '';
+    const findSigningIdentityExitCode = await exec('security', [
+        'find-identity',
+        '-v', projectRef.credential.keychainPath
+    ], {
         listeners: {
             stdout: (data: Buffer) => {
-                codesignOutput += data.toString();
+                findSigningIdentityOutput += data.toString();
             }
         },
         ignoreReturnCode: true
     });
-    if (codesignExitCode !== 0) {
-        log(codesignOutput, 'error');
-        throw new Error(`Failed to code sign the pkg!`);
+    if (findSigningIdentityExitCode !== 0) {
+        log(findSigningIdentityOutput, 'error');
+        throw new Error(`Failed to get the signing identity!`);
     }
+    const matches = findSigningIdentityOutput.matchAll(/\d\) (?<uuid>\w+) \"(?<signing_identity>[^"]+)\"$/gm);
+    const signingIdentities = Array.from(matches).map(match => ({
+        uuid: match.groups?.['uuid'],
+        signing_identity: match.groups?.['signing_identity']
+    })).filter(identity => identity.signing_identity.includes('Developer ID Installer'));
+    if (signingIdentities.length === 0) {
+        throw new Error(`Failed to find the signing identity!`);
+    }
+    const developerIdInstallerSigningIdentity = signingIdentities[0].signing_identity;
+    if (!developerIdInstallerSigningIdentity) {
+        throw new Error(`Failed to find the Developer ID Installer signing identity!`);
+    }
+    const signedPkgPath = pkgPath.replace('.pkg', '-signed.pkg');
+    await exec('xcrun', [
+        'productsign',
+        '--sign', developerIdInstallerSigningIdentity,
+        '--keychain', projectRef.credential.keychainPath,
+        pkgPath,
+        signedPkgPath
+    ]);
+    await exec('pkgutil', ['--check-signature', signedPkgPath]);
+    await fs.promises.unlink(pkgPath);
+    await fs.promises.rename(signedPkgPath, pkgPath);
     await notarizeArchive(projectRef, pkgPath, pkgPath);
     return pkgPath;
 }
