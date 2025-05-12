@@ -495,15 +495,12 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
 
 export async function isAppBundleNotarized(appPath: string): Promise<boolean> {
     let output = '';
-    const exitCode = await exec('stapler', ['validate', appPath], {
+    await exec('stapler', ['validate', appPath], {
         listeners: {
             stdout: (data: Buffer) => { output += data.toString(); }
         },
         ignoreReturnCode: true
     });
-    if (exitCode !== 0) {
-        throw new Error(`Failed to validate if the app bundle is notarized!`);
-    }
     if (output.includes('The validate action worked!')) {
         return true;
     }
