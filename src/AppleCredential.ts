@@ -256,13 +256,12 @@ async function importCertificate(keychainPath: string, tempCredential: string, c
     const certificatePath = `${certificateDirectory}/${tempCredential}-${uuid.v4()}.p12`;
     const certificate = Buffer.from(certificateBase64, 'base64');
     await fs.promises.writeFile(certificatePath, certificate);
-    const certArgs = [
+    await exec.exec(security, [
         'import', certificatePath,
         '-k', keychainPath,
         '-P', certificatePassword,
         '-A', '-t', 'cert', '-f', 'pkcs12'
-    ];
-    await exec.exec(security, certArgs);
+    ]);
     const partitionList = 'apple-tool:,apple:,codesign:';
     if (core.isDebug()) {
         core.info(`[command]${security} set-key-partition-list -S ${partitionList} -s -k ${tempCredential} ${keychainPath}`);
