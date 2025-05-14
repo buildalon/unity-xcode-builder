@@ -261,7 +261,7 @@ async function importCertificate(keychainPath: string, tempCredential: string, c
         certArgs.push('-P', '');
     }
     await exec.exec(security, certArgs);
-    const partitionList = 'apple-tool:,apple:,codesign:'; // : 'apple-tool:,apple:';
+    const partitionList = 'apple-tool:,apple:,codesign:';
     if (core.isDebug()) {
         core.info(`[command]${security} set-key-partition-list -S ${partitionList} -s -k ${tempCredential} ${keychainPath}`);
     }
