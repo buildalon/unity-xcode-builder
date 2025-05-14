@@ -57922,14 +57922,14 @@ async function ImportCredentials() {
         }
         const developerIdApplicationCertificateBase64 = core.getInput('developer-id-application-certificate');
         if (developerIdApplicationCertificateBase64) {
-            const developerIdApplicationCertificatePassword = core.getInput('developer-id-application-certificate-password', { required: true });
+            const developerIdApplicationCertificatePassword = core.getInput('developer-id-application-certificate-password');
             core.info('Importing developer id application certificate...');
             await importCertificate(keychainPath, tempCredential, developerIdApplicationCertificateBase64.trim(), developerIdApplicationCertificatePassword.trim());
             installedCertificates = true;
         }
         const developerIdInstallerCertificateBase64 = core.getInput('developer-id-installer-certificate');
         if (developerIdInstallerCertificateBase64) {
-            const developerIdInstallerCertificatePassword = core.getInput('developer-id-installer-certificate-password', { required: true });
+            const developerIdInstallerCertificatePassword = core.getInput('developer-id-installer-certificate-password');
             core.info('Importing developer id installer certificate...');
             await importCertificate(keychainPath, tempCredential, developerIdInstallerCertificateBase64.trim(), developerIdInstallerCertificatePassword.trim());
             installedCertificates = true;
@@ -58018,12 +58018,15 @@ async function importCertificate(keychainPath, tempCredential, certificateBase64
     const certificatePath = `${certificateDirectory}/${tempCredential}-${uuid.v4()}.p12`;
     const certificate = Buffer.from(certificateBase64, 'base64');
     await fs.promises.writeFile(certificatePath, certificate);
-    await exec.exec(security, [
+    const certArgs = [
         'import', certificatePath,
-        '-P', certificatePassword,
         '-A', '-t', 'cert', '-f', 'pkcs12',
         '-k', keychainPath
-    ]);
+    ];
+    if (certificatePassword && certificatePassword.length > 0) {
+        certArgs.push('-P', certificatePassword);
+    }
+    await exec.exec(security, certArgs);
     const partitionList = 'apple-tool:,apple:,codesign:';
     if (core.isDebug()) {
         core.info(`[command]${security} set-key-partition-list -S ${partitionList} -s -k ${tempCredential} ${keychainPath}`);
