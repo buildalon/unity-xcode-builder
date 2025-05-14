@@ -58020,11 +58020,14 @@ async function importCertificate(keychainPath, tempCredential, certificateBase64
     await fs.promises.writeFile(certificatePath, certificate);
     const certArgs = [
         'import', certificatePath,
-        '-A', '-t', 'cert', '-f', 'pkcs12',
-        '-k', keychainPath
+        '-k', keychainPath,
+        '-A', '-t', 'cert', '-f', 'pkcs12'
     ];
     if (certificatePassword && certificatePassword.length > 0) {
         certArgs.push('-P', certificatePassword);
+    }
+    else {
+        certArgs.push('-P', '');
     }
     await exec.exec(security, certArgs);
     const partitionList = 'apple-tool:,apple:,codesign:';
