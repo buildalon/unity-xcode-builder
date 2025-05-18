@@ -16,6 +16,8 @@ jobs:
   unity-build:
     if: github.event.pull_request.draft == false
     name: '(${{ matrix.unity-version }}) ${{ matrix.build-target }}'
+    permissions:
+      contents: read
     env:
       VERSION: ''
       TEMPLATE_PATH: ''
