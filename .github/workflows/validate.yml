@@ -1,12 +1,10 @@
 name: validate
 on:
   push:
-    branches:
-      - 'main'
+    branches: ['main']
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
-    branches:
-      - '*'
+    branches: ['*']
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 concurrency:
