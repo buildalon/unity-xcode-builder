@@ -57883,12 +57883,11 @@ async function UpdateTestDetails(project, whatsNew) {
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
     const testGroups = core.getInput('test-groups');
-    core.info(`Adding Beta groups: ${testGroups}`);
-    if (!testGroups) {
-        return;
+    if (testGroups) {
+        core.info(`Adding Beta groups: ${testGroups}`);
+        const testGroupNames = testGroups.split(',').map(group => group.trim());
+        await AddBuildToTestGroups(project, build, testGroupNames);
     }
-    const testGroupNames = testGroups.split(',').map(group => group.trim());
-    await AddBuildToTestGroups(project, build, testGroupNames);
     const submitForReview = core.getInput('submit-for-review');
     if (submitForReview) {
         core.info(`Submitting for review...`);

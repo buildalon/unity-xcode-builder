@@ -301,10 +301,11 @@ export async function UpdateTestDetails(project: XcodeProject, whatsNew: string)
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
     const testGroups = core.getInput('test-groups');
-    core.info(`Adding Beta groups: ${testGroups}`);
-    if (!testGroups) { return; }
-    const testGroupNames = testGroups.split(',').map(group => group.trim());
-    await AddBuildToTestGroups(project, build, testGroupNames);
+    if (testGroups) {
+        core.info(`Adding Beta groups: ${testGroups}`);
+        const testGroupNames = testGroups.split(',').map(group => group.trim());
+        await AddBuildToTestGroups(project, build, testGroupNames);
+    }
     const submitForReview = core.getInput('submit-for-review');
     if (submitForReview) {
         core.info(`Submitting for review...`);
