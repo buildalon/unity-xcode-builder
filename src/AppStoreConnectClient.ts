@@ -15,6 +15,7 @@ import {
     BetaGroupsGetCollectionData,
     BuildsBetaGroupsCreateToManyRelationshipData,
     BetaGroup,
+    BetaAppReviewSubmissionsCreateInstanceData,
 } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
 import { log } from './utilities';
 import core = require('@actions/core');
@@ -304,6 +305,39 @@ export async function UpdateTestDetails(project: XcodeProject, whatsNew: string)
     if (!testGroups) { return; }
     const testGroupNames = testGroups.split(',').map(group => group.trim());
     await AddBuildToTestGroups(project, build, testGroupNames);
+    const submitForReview = core.getInput('submit-for-review');
+    if (submitForReview) {
+        core.info(`Submitting for review...`);
+        await submitBetaBuildForReview(project, build);
+    }
+}
+
+async function submitBetaBuildForReview(project: XcodeProject, build: Build): Promise<void> {
+    await getOrCreateClient(project);
+    const payload: BetaAppReviewSubmissionsCreateInstanceData = {
+        body: {
+            data: {
+                relationships: {
+                    build: {
+                        data: {
+                            id: build.id,
+                            type: 'builds'
+                        }
+                    }
+                },
+                type: 'betaAppReviewSubmissions',
+            }
+        }
+    };
+    log(`POST /betaAppReviewSubmissions\n${JSON.stringify(payload, null, 2)}`);
+    const { data: response, error } = await appStoreConnectClient.api.BetaAppReviewSubmissionsService.betaAppReviewSubmissionsCreateInstance(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error submitting beta build for review: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    log(responseJson);
+    core.info(`Beta build is ${response.data.attributes.betaReviewState}`);
 }
 
 function normalizeVersion(version: string): string {

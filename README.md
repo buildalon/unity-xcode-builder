@@ -72,6 +72,7 @@ This action requires several secrets that need to be setup in the repository or 
 | `whats-new` | When `uploading === true`, Let your testers know what you would like them to test in this build. This information will be available to testers in all groups who have access to this build. | Defaults to the last git commit sha, current branch name, and commit message up to 4000 characters. |
 | `auto-increment-build-number` | Whether to automatically increment the `CFBundleVersion` in the Xcode project. | Defaults to `true` if `export-option === app-store-connect`. |
 | `test-groups` | One or more test groups to automatically add to the build when uploading to TestFlight. When using multiple groups, separate them with commas. | None by default. |
+| `submit-for-review` | Whether to submit the build for review when uploading to App Store Connect. | Defaults to `false`. |
 | `developer-id-application-certificate` | The `Developer ID Application` certificate encoded as base64 string. | Required if `export-option === steam` or `export-option === developer-id` or `notarize === true`. |
 | `developer-id-application-certificate-password` | The password for the `Developer ID Application` certificate. | Required if `developer-id-application-certificate` is provided. |
 | `developer-id-installer-certificate` | The `Developer ID Installer` certificate encoded as base64 string. | Required when creating an installer package for macOS application. |

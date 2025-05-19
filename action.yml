@@ -99,6 +99,9 @@ inputs:
   test-groups:
     description: One or more test groups to automatically add to the build when uploading to TestFlight. When using multiple groups, separate them with commas. None by default.
     required: false
+  submit-for-review:
+    description: Whether to submit the build for review when uploading to TestFlight. Defaults to `false`.
+    required: false
   developer-id-application-certificate:
     description: The `Developer ID Application` certificate encoded as base64 string. Required if `export-option === steam` or `export-option === developer-id` or `notarize === true`.
     required: false

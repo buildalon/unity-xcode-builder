@@ -57889,6 +57889,38 @@ async function UpdateTestDetails(project, whatsNew) {
     }
     const testGroupNames = testGroups.split(',').map(group => group.trim());
     await AddBuildToTestGroups(project, build, testGroupNames);
+    const submitForReview = core.getInput('submit-for-review');
+    if (submitForReview) {
+        core.info(`Submitting for review...`);
+        await submitBetaBuildForReview(project, build);
+    }
+}
+async function submitBetaBuildForReview(project, build) {
+    await getOrCreateClient(project);
+    const payload = {
+        body: {
+            data: {
+                relationships: {
+                    build: {
+                        data: {
+                            id: build.id,
+                            type: 'builds'
+                        }
+                    }
+                },
+                type: 'betaAppReviewSubmissions',
+            }
+        }
+    };
+    (0, utilities_1.log)(`POST /betaAppReviewSubmissions\n${JSON.stringify(payload, null, 2)}`);
+    const { data: response, error } = await appStoreConnectClient.api.BetaAppReviewSubmissionsService.betaAppReviewSubmissionsCreateInstance(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error submitting beta build for review: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    (0, utilities_1.log)(responseJson);
+    core.info(`Beta build is ${response.data.attributes.betaReviewState}`);
 }
 function normalizeVersion(version) {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
