@@ -57922,7 +57922,7 @@ async function submitBetaBuildForReview(project, build) {
     const responseJson = JSON.stringify(response, null, 2);
     (0, utilities_1.log)(responseJson);
     if (!response || !response.data) {
-        throw new Error(`No beta build review submission found!`);
+        throw new Error(`No beta build review submission returned!\n${responseJson}`);
     }
     core.info(`Beta build is ${(_b = (_a = response.data.attributes) === null || _a === void 0 ? void 0 : _a.betaReviewState) !== null && _b !== void 0 ? _b : 'UNKNOWN'}`);
 }

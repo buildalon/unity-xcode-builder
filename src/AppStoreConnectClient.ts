@@ -343,7 +343,7 @@ async function submitBetaBuildForReview(project: XcodeProject, build: Build): Pr
     const responseJson = JSON.stringify(response, null, 2);
     log(responseJson);
     if (!response || !response.data) {
-        throw new Error(`No beta build review submission found!`);
+        throw new Error(`No beta build review submission returned!\n${responseJson}`);
     }
     core.info(`Beta build is ${response.data.attributes?.betaReviewState ?? 'UNKNOWN'}`);
 }

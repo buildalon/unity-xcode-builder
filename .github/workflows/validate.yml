@@ -37,12 +37,7 @@ jobs:
             build-target: VisionOS
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - run: 'npm install -g openupm-cli'
-        # Installs the Unity Editor based on your project version text file
-        # sets -> env.UNITY_EDITOR_PATH
-        # sets -> env.UNITY_PROJECT_PATH
       - uses: buildalon/unity-setup@v1
         with:
           version-file: 'None'
@@ -111,7 +106,7 @@ jobs:
           build-target: ${{ matrix.build-target }}
           log-name: '${{ matrix.build-target }}-Build'
           args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild -sceneList Assets/Scenes/SampleScene.unity -export -enableAppleAutomaticSigning -bundleIdentifier com.test.buildalon.xcode -versionName ${{ env.VERSION }}'
-      - name: Update Info.Plist with encription compliance
+      - name: Update Info.Plist with encryption compliance
         shell: bash
         run: |
           set -xe
