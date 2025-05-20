@@ -57892,6 +57892,7 @@ async function UpdateTestDetails(project, whatsNew) {
     if (submitForReview) {
         core.info(`Submitting for review...`);
         await submitBetaBuildForReview(project, build);
+        await autoNotifyBetaUsers(project, build);
     }
 }
 async function submitBetaBuildForReview(project, build) {
@@ -57920,6 +57921,58 @@ async function submitBetaBuildForReview(project, build) {
     const responseJson = JSON.stringify(response, null, 2);
     (0, utilities_1.log)(responseJson);
     core.info(`Beta build is ${response.data.attributes.betaReviewState}`);
+}
+async function autoNotifyBetaUsers(project, build) {
+    var _a, _b;
+    await getOrCreateClient(project);
+    let buildBetaDetail = null;
+    if (!((_a = build.relationships) === null || _a === void 0 ? void 0 : _a.buildBetaDetail)) {
+        buildBetaDetail = await getBetaAppBuildSubmissionDetails(project, build);
+    }
+    else {
+        buildBetaDetail = build.relationships.buildBetaDetail.data;
+    }
+    if (!((_b = buildBetaDetail.attributes) === null || _b === void 0 ? void 0 : _b.autoNotifyEnabled)) {
+        buildBetaDetail.attributes.autoNotifyEnabled = true;
+    }
+    const payload = {
+        path: { id: buildBetaDetail.id },
+        body: {
+            data: {
+                id: buildBetaDetail.id,
+                type: 'buildBetaDetails',
+                attributes: {
+                    autoNotifyEnabled: buildBetaDetail.attributes.autoNotifyEnabled
+                }
+            }
+        }
+    };
+    const { data: response, error } = await appStoreConnectClient.api.BuildBetaDetailsService.buildBetaDetailsUpdateInstance(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error updating beta build details: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    (0, utilities_1.log)(responseJson);
+}
+async function getBetaAppBuildSubmissionDetails(project, build) {
+    const payload = {
+        query: {
+            "filter[build]": [build.id],
+            limit: 1
+        }
+    };
+    const { data: response, error } = await appStoreConnectClient.api.BuildBetaDetailsService.buildBetaDetailsGetCollection(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error fetching beta build details: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data || response.data.length === 0) {
+        throw new Error(`No beta build details found!`);
+    }
+    (0, utilities_1.log)(responseJson);
+    return response.data[0];
 }
 function normalizeVersion(version) {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');

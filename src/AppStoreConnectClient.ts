@@ -16,6 +16,9 @@ import {
     BuildsBetaGroupsCreateToManyRelationshipData,
     BetaGroup,
     BetaAppReviewSubmissionsCreateInstanceData,
+    BuildBetaDetailsGetCollectionData,
+    BuildBetaDetailsUpdateInstanceData,
+    BuildBetaDetail,
 } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
 import { log } from './utilities';
 import core = require('@actions/core');
@@ -310,6 +313,7 @@ export async function UpdateTestDetails(project: XcodeProject, whatsNew: string)
     if (submitForReview) {
         core.info(`Submitting for review...`);
         await submitBetaBuildForReview(project, build);
+        await autoNotifyBetaUsers(project, build);
     }
 }
 
@@ -339,6 +343,58 @@ async function submitBetaBuildForReview(project: XcodeProject, build: Build): Pr
     const responseJson = JSON.stringify(response, null, 2);
     log(responseJson);
     core.info(`Beta build is ${response.data.attributes.betaReviewState}`);
+}
+
+async function autoNotifyBetaUsers(project: XcodeProject, build: Build): Promise<void> {
+    await getOrCreateClient(project);
+    let buildBetaDetail: BuildBetaDetail = null;
+    if (!build.relationships?.buildBetaDetail) {
+        buildBetaDetail = await getBetaAppBuildSubmissionDetails(project, build);
+    } else {
+        buildBetaDetail = build.relationships.buildBetaDetail.data;
+    }
+    if (!buildBetaDetail.attributes?.autoNotifyEnabled) {
+        buildBetaDetail.attributes.autoNotifyEnabled = true;
+    }
+    const payload: BuildBetaDetailsUpdateInstanceData = {
+        path: { id: buildBetaDetail.id },
+        body: {
+            data: {
+                id: buildBetaDetail.id,
+                type: 'buildBetaDetails',
+                attributes: {
+                    autoNotifyEnabled: buildBetaDetail.attributes.autoNotifyEnabled
+                }
+            }
+        }
+    };
+    const { data: response, error } = await appStoreConnectClient.api.BuildBetaDetailsService.buildBetaDetailsUpdateInstance(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error updating beta build details: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    log(responseJson);
+}
+
+async function getBetaAppBuildSubmissionDetails(project: XcodeProject, build: Build): Promise<BuildBetaDetail> {
+    const payload: BuildBetaDetailsGetCollectionData = {
+        query: {
+            "filter[build]": [build.id],
+            limit: 1
+        }
+    };
+    const { data: response, error } = await appStoreConnectClient.api.BuildBetaDetailsService.buildBetaDetailsGetCollection(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error fetching beta build details: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data || response.data.length === 0) {
+        throw new Error(`No beta build details found!`);
+    }
+    log(responseJson);
+    return response.data[0];
 }
 
 function normalizeVersion(version: string): string {
