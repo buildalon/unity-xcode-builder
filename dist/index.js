@@ -57896,6 +57896,7 @@ async function UpdateTestDetails(project, whatsNew) {
     }
 }
 async function submitBetaBuildForReview(project, build) {
+    var _a, _b;
     await getOrCreateClient(project);
     const payload = {
         body: {
@@ -57920,7 +57921,10 @@ async function submitBetaBuildForReview(project, build) {
     }
     const responseJson = JSON.stringify(response, null, 2);
     (0, utilities_1.log)(responseJson);
-    core.info(`Beta build is ${response.data.attributes.betaReviewState}`);
+    if (!response || !response.data) {
+        throw new Error(`No beta build review submission found!`);
+    }
+    core.info(`Beta build is ${(_b = (_a = response.data.attributes) === null || _a === void 0 ? void 0 : _a.betaReviewState) !== null && _b !== void 0 ? _b : 'UNKNOWN'}`);
 }
 async function autoNotifyBetaUsers(project, build) {
     var _a, _b;
