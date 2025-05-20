@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest]
-        unity-version: [2021.x, 2022.3.x, 6000.x]
+        unity-version: [2021.x, 2022.x, 6000.x]
         build-target:
           - iOS
           - StandaloneOSX
@@ -34,6 +34,9 @@ jobs:
         exclude:
           - os: macos-latest
             unity-version: 2021.x
+            build-target: VisionOS
+          - os: macos-latest
+            unity-version: 2022.x
             build-target: VisionOS
     steps:
       - uses: actions/checkout@v4
@@ -71,7 +74,7 @@ jobs:
             echo "EXPORT_OPTION=app-store-connect" >> $env:GITHUB_ENV
           } else {
             if ('${{ matrix.build-target }}' -eq 'StandaloneOSX') {
-                if ('${{ matrix.unity-version }}' -eq '2022.3.x') {
+                if ('${{ matrix.unity-version }}' -eq '2022.x') {
                   echo "EXPORT_OPTION=steam" >> $env:GITHUB_ENV
                 } else {
                   echo "EXPORT_OPTION=developer-id" >> $env:GITHUB_ENV
