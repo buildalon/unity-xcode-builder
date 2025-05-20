@@ -1,12 +1,10 @@
 name: validate
 on:
   push:
-    branches:
-      - 'main'
+    branches: ['main']
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
-    branches:
-      - '*'
+    branches: ['*']
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 concurrency:
@@ -16,16 +14,19 @@ jobs:
   unity-build:
     if: github.event.pull_request.draft == false
     name: '(${{ matrix.unity-version }}) ${{ matrix.build-target }}'
+    permissions:
+      contents: read
     env:
       VERSION: ''
       TEMPLATE_PATH: ''
+      EXPORT_OPTION: ''
       UNITY_PROJECT_PATH: ''
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest]
-        unity-version: [2021.x, 2022.3.x, 6000.x]
+        unity-version: [2021.x, 2022.x, 6000.x]
         build-target:
           - iOS
           - StandaloneOSX
@@ -34,14 +35,12 @@ jobs:
           - os: macos-latest
             unity-version: 2021.x
             build-target: VisionOS
+          - os: macos-latest
+            unity-version: 2022.x
+            build-target: VisionOS
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - run: 'npm install -g openupm-cli'
-        # Installs the Unity Editor based on your project version text file
-        # sets -> env.UNITY_EDITOR_PATH
-        # sets -> env.UNITY_PROJECT_PATH
       - uses: buildalon/unity-setup@v1
         with:
           version-file: 'None'
@@ -69,6 +68,21 @@ jobs:
               exit 1
             }
           echo "VERSION=$version" >> $env:GITHUB_ENV
+
+          # if the unity-version is 6000.x then set export option to app-store-connect otherwise set it to development
+          if ('${{ matrix.unity-version }}' -eq '6000.x') {
+            echo "EXPORT_OPTION=app-store-connect" >> $env:GITHUB_ENV
+          } else {
+            if ('${{ matrix.build-target }}' -eq 'StandaloneOSX') {
+                if ('${{ matrix.unity-version }}' -eq '2022.x') {
+                  echo "EXPORT_OPTION=steam" >> $env:GITHUB_ENV
+                } else {
+                  echo "EXPORT_OPTION=developer-id" >> $env:GITHUB_ENV
+                }
+            } else {
+              echo "EXPORT_OPTION=development" >> $env:GITHUB_ENV
+            }
+          }
         shell: pwsh
       - uses: buildalon/activate-unity-license@v1
         with:
@@ -95,6 +109,31 @@ jobs:
           build-target: ${{ matrix.build-target }}
           log-name: '${{ matrix.build-target }}-Build'
           args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild -sceneList Assets/Scenes/SampleScene.unity -export -enableAppleAutomaticSigning -bundleIdentifier com.test.buildalon.xcode -versionName ${{ env.VERSION }}'
+      - name: Update Info.Plist with encryption compliance
+        shell: bash
+        run: |
+          set -xe
+          # find the Info.plist file in the build directory
+          # MacOSStandalone Info.plist path: /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/StandaloneOSX/com.test.buildalon.xcode/UnityProject/UnityProject/Info.plist
+          # all others: /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/iOS/com.test.buildalon.xcode/Info.plist
+          EXPORT_OPTION=${{ env.EXPORT_OPTION }}
+          if [ "$EXPORT_OPTION" != "app-store-connect" ]; then
+            exit 0
+          fi
+          TARGET_PLATFORM=${{ matrix.build-target }}
+          if [ "$TARGET_PLATFORM" == "StandaloneOSX" ]; then
+            INFO_PLIST_PATH="${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}/com.test.buildalon.xcode/UnityProject/UnityProject/Info.plist"
+          else
+            INFO_PLIST_PATH="${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}/com.test.buildalon.xcode/Info.plist"
+          fi
+          # make sure plist buddy is installed
+          if ! command -v /usr/libexec/PlistBuddy &> /dev/null
+          then
+              echo "PlistBuddy could not be found"
+              exit 1
+          fi
+          # set ITSAppUsesNonExemptEncryption to false in Info.plist using PlistBuddy
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$INFO_PLIST_PATH"
       - uses: ./ # buildalon/unity-xcode-builder
         id: xcode-build
         with:
@@ -103,8 +142,14 @@ jobs:
           app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           team-id: ${{ secrets.APPLE_TEAM_ID }}
-          export-option: app-store
-          upload: ${{ matrix.unity-version == '6000.x' }}
+          export-option: ${{ env.EXPORT_OPTION }}
+          notarize: ${{ matrix.unity-version != '6000.x' }}
+          archive-type: pkg
+          test-groups: Beta
+          developer-id-application-certificate: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT }}
+          developer-id-application-certificate-password: ${{ secrets.SIGNING_CERT_PASSWORD }}
+          developer-id-installer-certificate: ${{ secrets.DEVELOPER_ID_INSTALLER_CERT }}
+          developer-id-installer-certificate-password: ${{ secrets.SIGNING_CERT_PASSWORD }}
       - name: print outputs
         if: always()
         run: |

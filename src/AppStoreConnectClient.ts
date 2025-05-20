@@ -12,6 +12,13 @@ import {
     PrereleaseVersion,
     PreReleaseVersionsGetCollectionData,
     BetaBuildLocalizationCreateRequest,
+    BetaGroupsGetCollectionData,
+    BuildsBetaGroupsCreateToManyRelationshipData,
+    BetaGroup,
+    BetaAppReviewSubmissionsCreateInstanceData,
+    BuildBetaDetailsGetCollectionData,
+    BuildBetaDetailsUpdateInstanceData,
+    BuildBetaDetail,
 } from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
 import { log } from './utilities';
 import core = require('@actions/core');
@@ -156,12 +163,12 @@ async function getLastPrereleaseBuild(prereleaseVersion: PrereleaseVersion): Pro
         }
     };
     log(`GET /builds?${JSON.stringify(buildsRequest.query)}`);
-    const { data: buildsResponse, error: buildsError } = await appStoreConnectClient.api.BuildsService.buildsGetCollection(buildsRequest);
-    const responseJson = JSON.stringify(buildsResponse, null, 2);
-    if (buildsError) {
-        checkAuthError(buildsError);
-        throw new Error(`Error fetching builds: ${JSON.stringify(buildsError, null, 2)}`);
+    const { data: buildsResponse, error: responseError } = await appStoreConnectClient.api.BuildsService.buildsGetCollection(buildsRequest);
+    if (responseError) {
+        checkAuthError(responseError);
+        throw new Error(`Error fetching builds: ${JSON.stringify(responseError, null, 2)}`);
     }
+    const responseJson = JSON.stringify(buildsResponse, null, 2);
     if (!buildsResponse || !buildsResponse.data || buildsResponse.data.length === 0) {
         throw new Error(`No builds found! ${responseJson}`);
     }
@@ -173,7 +180,7 @@ async function getBetaBuildLocalization(build: Build): Promise<BetaBuildLocaliza
     const betaBuildLocalizationRequest: BetaBuildLocalizationsGetCollectionData = {
         query: {
             'filter[build]': [build.id],
-            "filter[locale]": ["en-US"],
+            'filter[locale]': ['en-US'],
             'fields[betaBuildLocalizations]': ['whatsNew']
         }
     };
@@ -244,11 +251,11 @@ async function updateBetaBuildLocalization(betaBuildLocalization: BetaBuildLocal
     return betaBuildLocalization;
 }
 
-async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60, interval: number = 30): Promise<Build> {
+async function pollForValidBuild(project: XcodeProject, maxRetries: number = 180, interval: number = 30): Promise<Build> {
     log(`Polling build validation...`);
-    await new Promise(resolve => setTimeout(resolve, interval * 1000));
     let retries = 0;
     while (++retries < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, interval * 1000));
         core.info(`Polling for build... Attempt ${retries}/${maxRetries}`);
         let { preReleaseVersion, build } = await getLastPreReleaseVersionAndBuild(project);
         if (preReleaseVersion) {
@@ -280,7 +287,6 @@ async function pollForValidBuild(project: XcodeProject, maxRetries: number = 60,
         } else {
             core.info(`Waiting for pre-release build ${project.versionString}...`);
         }
-        await new Promise(resolve => setTimeout(resolve, interval * 1000));
     }
     throw new Error('Timed out waiting for valid build!');
 }
@@ -297,8 +303,144 @@ export async function UpdateTestDetails(project: XcodeProject, whatsNew: string)
         core.info(`Updating beta build localization...`);
         await updateBetaBuildLocalization(betaBuildLocalization, whatsNew);
     }
+    const testGroups = core.getInput('test-groups');
+    if (testGroups) {
+        core.info(`Adding Beta groups: ${testGroups}`);
+        const testGroupNames = testGroups.split(',').map(group => group.trim());
+        await AddBuildToTestGroups(project, build, testGroupNames);
+    }
+    const submitForReview = core.getInput('submit-for-review');
+    if (submitForReview) {
+        core.info(`Submitting for review...`);
+        await submitBetaBuildForReview(project, build);
+        await autoNotifyBetaUsers(project, build);
+    }
+}
+
+async function submitBetaBuildForReview(project: XcodeProject, build: Build): Promise<void> {
+    await getOrCreateClient(project);
+    const payload: BetaAppReviewSubmissionsCreateInstanceData = {
+        body: {
+            data: {
+                relationships: {
+                    build: {
+                        data: {
+                            id: build.id,
+                            type: 'builds'
+                        }
+                    }
+                },
+                type: 'betaAppReviewSubmissions',
+            }
+        }
+    };
+    log(`POST /betaAppReviewSubmissions\n${JSON.stringify(payload, null, 2)}`);
+    const { data: response, error } = await appStoreConnectClient.api.BetaAppReviewSubmissionsService.betaAppReviewSubmissionsCreateInstance(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error submitting beta build for review: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    log(responseJson);
+    if (!response || !response.data) {
+        throw new Error(`No beta build review submission returned!\n${responseJson}`);
+    }
+    core.info(`Beta build is ${response.data.attributes?.betaReviewState ?? 'UNKNOWN'}`);
+}
+
+async function autoNotifyBetaUsers(project: XcodeProject, build: Build): Promise<void> {
+    await getOrCreateClient(project);
+    let buildBetaDetail: BuildBetaDetail = null;
+    if (!build.relationships?.buildBetaDetail) {
+        buildBetaDetail = await getBetaAppBuildSubmissionDetails(project, build);
+    } else {
+        buildBetaDetail = build.relationships.buildBetaDetail.data;
+    }
+    if (!buildBetaDetail.attributes?.autoNotifyEnabled) {
+        buildBetaDetail.attributes.autoNotifyEnabled = true;
+    }
+    const payload: BuildBetaDetailsUpdateInstanceData = {
+        path: { id: buildBetaDetail.id },
+        body: {
+            data: {
+                id: buildBetaDetail.id,
+                type: 'buildBetaDetails',
+                attributes: {
+                    autoNotifyEnabled: buildBetaDetail.attributes.autoNotifyEnabled
+                }
+            }
+        }
+    };
+    const { data: response, error } = await appStoreConnectClient.api.BuildBetaDetailsService.buildBetaDetailsUpdateInstance(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error updating beta build details: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    log(responseJson);
+}
+
+async function getBetaAppBuildSubmissionDetails(project: XcodeProject, build: Build): Promise<BuildBetaDetail> {
+    const payload: BuildBetaDetailsGetCollectionData = {
+        query: {
+            "filter[build]": [build.id],
+            limit: 1
+        }
+    };
+    const { data: response, error } = await appStoreConnectClient.api.BuildBetaDetailsService.buildBetaDetailsGetCollection(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error fetching beta build details: ${JSON.stringify(error, null, 2)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data || response.data.length === 0) {
+        throw new Error(`No beta build details found!`);
+    }
+    log(responseJson);
+    return response.data[0];
 }
 
 function normalizeVersion(version: string): string {
     return version.split('.').map(part => parseInt(part, 10).toString()).join('.');
+}
+
+export async function AddBuildToTestGroups(project: XcodeProject, build: Build, testGroups: string[]): Promise<void> {
+    await getOrCreateClient(project);
+    const betaGroups = (await getBetaGroupsByName(project, testGroups)).map(group => ({
+        type: group.type,
+        id: group.id
+    }));
+    const payload: BuildsBetaGroupsCreateToManyRelationshipData = {
+        path: { id: build.id },
+        body: { data: betaGroups }
+    };
+    log(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
+    const { error } = await appStoreConnectClient.api.BuildsService.buildsBetaGroupsCreateToManyRelationship(payload);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error adding build to test group: ${JSON.stringify(error, null, 2)}`);
+    }
+}
+
+async function getBetaGroupsByName(project: XcodeProject, groupNames: string[]): Promise<BetaGroup[]> {
+    await getOrCreateClient(project);
+    const appId = project.appId || await GetAppId(project);
+    const request: BetaGroupsGetCollectionData = {
+        query: {
+            'filter[name]': groupNames,
+            'filter[app]': [appId],
+        }
+    }
+    log(`GET /betaGroups?${JSON.stringify(request.query)}`);
+    const { data: response, error } = await appStoreConnectClient.api.BetaGroupsService.betaGroupsGetCollection(request);
+    if (error) {
+        checkAuthError(error);
+        throw new Error(`Error fetching test groups: ${JSON.stringify(error)}`);
+    }
+    const responseJson = JSON.stringify(response, null, 2);
+    if (!response || !response.data || response.data.length === 0) {
+        throw new Error(`No test groups found!`);
+    }
+    log(responseJson);
+    return response.data;
 }

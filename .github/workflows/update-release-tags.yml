@@ -1,7 +1,7 @@
 name: Update Release Tags
 on:
   push:
-    tags: '*'
+    tags: ['*']
   workflow_dispatch:
 jobs:
   update-release-tags:
