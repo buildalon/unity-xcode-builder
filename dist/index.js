@@ -57931,35 +57931,34 @@ async function autoNotifyBetaUsers(project, build) {
     await getOrCreateClient(project);
     let buildBetaDetail = null;
     if (!((_a = build.relationships) === null || _a === void 0 ? void 0 : _a.buildBetaDetail)) {
-        buildBetaDetail = await getBetaAppBuildSubmissionDetails(project, build);
+        buildBetaDetail = await getBetaAppBuildSubmissionDetails(build);
     }
     else {
         buildBetaDetail = build.relationships.buildBetaDetail.data;
     }
     if (!((_b = buildBetaDetail.attributes) === null || _b === void 0 ? void 0 : _b.autoNotifyEnabled)) {
-        buildBetaDetail.attributes.autoNotifyEnabled = true;
-    }
-    const payload = {
-        path: { id: buildBetaDetail.id },
-        body: {
-            data: {
-                id: buildBetaDetail.id,
-                type: 'buildBetaDetails',
-                attributes: {
-                    autoNotifyEnabled: buildBetaDetail.attributes.autoNotifyEnabled
+        const payload = {
+            path: { id: buildBetaDetail.id },
+            body: {
+                data: {
+                    id: buildBetaDetail.id,
+                    type: 'buildBetaDetails',
+                    attributes: {
+                        autoNotifyEnabled: true
+                    }
                 }
             }
+        };
+        const { data: response, error } = await appStoreConnectClient.api.BuildBetaDetailsService.buildBetaDetailsUpdateInstance(payload);
+        if (error) {
+            checkAuthError(error);
+            throw new Error(`Error updating beta build details: ${JSON.stringify(error, null, 2)}`);
         }
-    };
-    const { data: response, error } = await appStoreConnectClient.api.BuildBetaDetailsService.buildBetaDetailsUpdateInstance(payload);
-    if (error) {
-        checkAuthError(error);
-        throw new Error(`Error updating beta build details: ${JSON.stringify(error, null, 2)}`);
+        const responseJson = JSON.stringify(response, null, 2);
+        (0, utilities_1.log)(responseJson);
     }
-    const responseJson = JSON.stringify(response, null, 2);
-    (0, utilities_1.log)(responseJson);
 }
-async function getBetaAppBuildSubmissionDetails(project, build) {
+async function getBetaAppBuildSubmissionDetails(build) {
     const payload = {
         query: {
             "filter[build]": [build.id],
