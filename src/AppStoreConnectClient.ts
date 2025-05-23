@@ -352,35 +352,34 @@ async function autoNotifyBetaUsers(project: XcodeProject, build: Build): Promise
     await getOrCreateClient(project);
     let buildBetaDetail: BuildBetaDetail = null;
     if (!build.relationships?.buildBetaDetail) {
-        buildBetaDetail = await getBetaAppBuildSubmissionDetails(project, build);
+        buildBetaDetail = await getBetaAppBuildSubmissionDetails(build);
     } else {
         buildBetaDetail = build.relationships.buildBetaDetail.data;
     }
     if (!buildBetaDetail.attributes?.autoNotifyEnabled) {
-        buildBetaDetail.attributes.autoNotifyEnabled = true;
-    }
-    const payload: BuildBetaDetailsUpdateInstanceData = {
-        path: { id: buildBetaDetail.id },
-        body: {
-            data: {
-                id: buildBetaDetail.id,
-                type: 'buildBetaDetails',
-                attributes: {
-                    autoNotifyEnabled: buildBetaDetail.attributes.autoNotifyEnabled
+        const payload: BuildBetaDetailsUpdateInstanceData = {
+            path: { id: buildBetaDetail.id },
+            body: {
+                data: {
+                    id: buildBetaDetail.id,
+                    type: 'buildBetaDetails',
+                    attributes: {
+                        autoNotifyEnabled: true
+                    }
                 }
             }
+        };
+        const { data: response, error } = await appStoreConnectClient.api.BuildBetaDetailsService.buildBetaDetailsUpdateInstance(payload);
+        if (error) {
+            checkAuthError(error);
+            throw new Error(`Error updating beta build details: ${JSON.stringify(error, null, 2)}`);
         }
-    };
-    const { data: response, error } = await appStoreConnectClient.api.BuildBetaDetailsService.buildBetaDetailsUpdateInstance(payload);
-    if (error) {
-        checkAuthError(error);
-        throw new Error(`Error updating beta build details: ${JSON.stringify(error, null, 2)}`);
+        const responseJson = JSON.stringify(response, null, 2);
+        log(responseJson);
     }
-    const responseJson = JSON.stringify(response, null, 2);
-    log(responseJson);
 }
 
-async function getBetaAppBuildSubmissionDetails(project: XcodeProject, build: Build): Promise<BuildBetaDetail> {
+async function getBetaAppBuildSubmissionDetails(build: Build): Promise<BuildBetaDetail> {
     const payload: BuildBetaDetailsGetCollectionData = {
         query: {
             "filter[build]": [build.id],
