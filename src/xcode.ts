@@ -741,7 +741,7 @@ async function notarizeArchive(projectRef: XcodeProject, archivePath: string, st
     }
 }
 
-async function getNotarizationLog(projectRef: XcodeProject, id: string) {
+async function getNotarizationLog(projectRef: XcodeProject, id: string): Promise<void> {
     let output = '';
     const notaryLogArgs = [
         'notarytool',
