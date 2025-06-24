@@ -59215,22 +59215,13 @@ async function getDefaultEntitlementsMacOS(projectRef) {
             };
             break;
         default:
-            if (projectRef.isSteamBuild) {
-                defaultEntitlements = {
-                    'com.apple.security.cs.disable-library-validation': true,
-                    'com.apple.security.cs.allow-dyld-environment-variables': true,
-                    'com.apple.security.cs.disable-executable-page-protection': true,
-                };
-            }
-            else {
-                defaultEntitlements = {
-                    'com.apple.security.cs.allow-jit': true,
-                    'com.apple.security.cs.allow-unsigned-executable-memory': true,
-                    'com.apple.security.cs.allow-dyld-environment-variables': true,
-                    'com.apple.security.cs.disable-library-validation': true,
-                    'com.apple.security.cs.disable-executable-page-protection': true,
-                };
-            }
+            defaultEntitlements = {
+                'com.apple.security.cs.allow-jit': true,
+                'com.apple.security.cs.allow-unsigned-executable-memory': true,
+                'com.apple.security.cs.allow-dyld-environment-variables': true,
+                'com.apple.security.cs.disable-library-validation': true,
+                'com.apple.security.cs.disable-executable-page-protection': true,
+            };
             break;
     }
     await fs.promises.writeFile(entitlementsPath, plist.build(defaultEntitlements));
