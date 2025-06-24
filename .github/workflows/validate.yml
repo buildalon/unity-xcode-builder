@@ -84,7 +84,7 @@ jobs:
             }
           }
         shell: pwsh
-      - uses: buildalon/activate-unity-license@development
+      - uses: buildalon/activate-unity-license@v1
         with:
           license: 'Personal'
           username: ${{ secrets.UNITY_USERNAME }}
