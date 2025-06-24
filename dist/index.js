@@ -20070,7 +20070,7 @@ function expand(str, isTop) {
   var isOptions = m.body.indexOf(',') >= 0;
   if (!isSequence && !isOptions) {
     // {a},b}
-    if (m.post.match(/,.*\}/)) {
+    if (m.post.match(/,(?!,).*\}/)) {
       str = m.pre + '{' + m.body + escClose + m.post;
       return expand(str);
     }
@@ -58739,7 +58739,7 @@ async function ArchiveXcodeProject(projectRef) {
         const entitlementsHandle = await fs.promises.open(projectRef.entitlementsPath, fs.constants.O_RDONLY);
         try {
             const entitlementsContent = await fs.promises.readFile(entitlementsHandle, 'utf8');
-            core.debug(`----- Entitlements content: -----\n${entitlementsContent}\n-----------------------------------`);
+            core.info(`----- Entitlements content: -----\n${entitlementsContent}\n-----------------------------------`);
         }
         finally {
             await entitlementsHandle.close();
@@ -59216,8 +59216,10 @@ async function getDefaultEntitlementsMacOS(projectRef) {
             break;
         default:
             defaultEntitlements = {
-                'com.apple.security.cs.disable-library-validation': true,
+                'com.apple.security.cs.allow-jit': true,
+                'com.apple.security.cs.allow-unsigned-executable-memory': true,
                 'com.apple.security.cs.allow-dyld-environment-variables': true,
+                'com.apple.security.cs.disable-library-validation': true,
                 'com.apple.security.cs.disable-executable-page-protection': true,
             };
             break;

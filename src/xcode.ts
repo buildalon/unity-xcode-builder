@@ -402,7 +402,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         const entitlementsHandle = await fs.promises.open(projectRef.entitlementsPath, fs.constants.O_RDONLY);
         try {
             const entitlementsContent = await fs.promises.readFile(entitlementsHandle, 'utf8');
-            core.debug(`----- Entitlements content: -----\n${entitlementsContent}\n-----------------------------------`);
+            core.info(`----- Entitlements content: -----\n${entitlementsContent}\n-----------------------------------`);
         } finally {
             await entitlementsHandle.close();
         }
@@ -741,7 +741,7 @@ async function notarizeArchive(projectRef: XcodeProject, archivePath: string, st
     }
 }
 
-async function getNotarizationLog(projectRef: XcodeProject, id: string) {
+async function getNotarizationLog(projectRef: XcodeProject, id: string): Promise<void> {
     let output = '';
     const notaryLogArgs = [
         'notarytool',
@@ -866,10 +866,12 @@ async function getDefaultEntitlementsMacOS(projectRef: XcodeProject): Promise<vo
             };
             break;
         default:
-            // steam: https://partner.steamgames.com/doc/store/application/platforms#3
+            // use default hardened runtime entitlements
             defaultEntitlements = {
-                'com.apple.security.cs.disable-library-validation': true,
+                'com.apple.security.cs.allow-jit': true,
+                'com.apple.security.cs.allow-unsigned-executable-memory': true,
                 'com.apple.security.cs.allow-dyld-environment-variables': true,
+                'com.apple.security.cs.disable-library-validation': true,
                 'com.apple.security.cs.disable-executable-page-protection': true,
             };
             break;
