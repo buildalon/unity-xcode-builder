@@ -613,7 +613,7 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     let entitlementsOutput = '';
     const entitlementsExitCode = await exec('codesign', [
         '--display',
-        '--entitlements', ':-',
+        '--entitlements', '/dev/stdout',
         appPath
     ], {
         listeners: {
@@ -627,7 +627,6 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
         log(entitlementsOutput, 'error');
         throw new Error('Failed to display signed entitlements!');
     }
-    core.info(`----- Signed entitlements: -----\n${entitlementsOutput}\n-----------------------------------`);
     const expectedEntitlementsContent = await fs.promises.readFile(projectRef.entitlementsPath, 'utf8');
     const expectedEntitlements = plist.parse(expectedEntitlementsContent);
     if (!entitlementsOutput.trim()) {
