@@ -58944,6 +58944,32 @@ async function signMacOSAppBundle(projectRef) {
     if (verifyExitCode !== 0) {
         throw new Error('App bundle codesign verification failed!');
     }
+    let entitlementsOutput = '';
+    const entitlementsExitCode = await (0, exec_1.exec)('codesign', [
+        '--display',
+        '--entitlements', 'xml:-',
+        appPath
+    ], {
+        listeners: {
+            stdout: (data) => {
+                entitlementsOutput += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
+    if (entitlementsExitCode !== 0) {
+        (0, utilities_1.log)(entitlementsOutput, 'error');
+        throw new Error('Failed to display signed entitlements!');
+    }
+    core.info(`----- Signed entitlements: -----\n${entitlementsOutput}\n-----------------------------------`);
+    if (projectRef.entitlementsPath) {
+        const expectedEntitlementsContent = await fs.promises.readFile(projectRef.entitlementsPath, 'utf8');
+        const expectedEntitlements = plist.parse(expectedEntitlementsContent);
+        const signedEntitlements = plist.parse(entitlementsOutput);
+        if (JSON.stringify(expectedEntitlements) !== JSON.stringify(signedEntitlements)) {
+            throw new Error('Signed entitlements do not match the expected entitlements!');
+        }
+    }
 }
 async function createMacOSInstallerPkg(projectRef) {
     core.info('Creating macOS installer pkg...');
