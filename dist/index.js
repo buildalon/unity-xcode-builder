@@ -58944,6 +58944,7 @@ async function signMacOSAppBundle(projectRef) {
         '--options', 'runtime',
         '--keychain', projectRef.credential.keychainPath,
         '--sign', developerIdApplicationSigningIdentity,
+        '--entitlements', projectRef.entitlementsPath,
     ];
     if (core.isDebug()) {
         codesignArgs.unshift('--verbose');
@@ -58996,6 +58997,9 @@ async function signMacOSAppBundle(projectRef) {
     if (projectRef.entitlementsPath) {
         const expectedEntitlementsContent = await fs.promises.readFile(projectRef.entitlementsPath, 'utf8');
         const expectedEntitlements = plist.parse(expectedEntitlementsContent);
+        if (!entitlementsOutput.trim()) {
+            throw new Error('Signed entitlements output is empty!');
+        }
         const signedEntitlements = plist.parse(entitlementsOutput);
         if (!(0, utilities_1.DeepEqual)(expectedEntitlements, signedEntitlements)) {
             throw new Error('Signed entitlements do not match the expected entitlements!');
