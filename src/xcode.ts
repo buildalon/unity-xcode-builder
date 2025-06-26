@@ -563,6 +563,14 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     if (!developerIdApplicationSigningIdentity) {
         throw new Error(`Failed to find the Developer ID Application signing identity!`);
     }
+    if (projectRef.entitlementsPath) {
+        if (projectRef.entitlementsPath.trim().length === 0) {
+            throw new Error(`Entitlements path is empty!`);
+        }
+        if (!fs.existsSync(projectRef.entitlementsPath)) {
+            throw new Error(`Entitlements file not found at: ${projectRef.entitlementsPath}`);
+        }
+    }
     const codesignArgs = [
         '--force',
         '--verify',
@@ -620,16 +628,14 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
         throw new Error('Failed to display signed entitlements!');
     }
     core.info(`----- Signed entitlements: -----\n${entitlementsOutput}\n-----------------------------------`);
-    if (projectRef.entitlementsPath) {
-        const expectedEntitlementsContent = await fs.promises.readFile(projectRef.entitlementsPath, 'utf8');
-        const expectedEntitlements = plist.parse(expectedEntitlementsContent);
-        if (!entitlementsOutput.trim()) {
-            throw new Error('Signed entitlements output is empty!');
-        }
-        const signedEntitlements = plist.parse(entitlementsOutput);
-        if (!DeepEqual(expectedEntitlements, signedEntitlements)) {
-            throw new Error('Signed entitlements do not match the expected entitlements!');
-        }
+    const expectedEntitlementsContent = await fs.promises.readFile(projectRef.entitlementsPath, 'utf8');
+    const expectedEntitlements = plist.parse(expectedEntitlementsContent);
+    if (!entitlementsOutput.trim()) {
+        throw new Error('Signed entitlements output is empty!');
+    }
+    const signedEntitlements = plist.parse(entitlementsOutput);
+    if (!DeepEqual(expectedEntitlements, signedEntitlements)) {
+        throw new Error('Signed entitlements do not match the expected entitlements!');
     }
 }
 
