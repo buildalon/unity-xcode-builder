@@ -7,7 +7,10 @@ import plist = require('plist');
 import path = require('path');
 import fs = require('fs');
 import semver = require('semver');
-import { log } from './utilities';
+import {
+    DeepEqual,
+    log
+} from './utilities';
 import { SemVer } from 'semver';
 import core = require('@actions/core');
 import {
@@ -560,6 +563,16 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     if (!developerIdApplicationSigningIdentity) {
         throw new Error(`Failed to find the Developer ID Application signing identity!`);
     }
+    if (projectRef.entitlementsPath) {
+        if (projectRef.entitlementsPath.trim().length === 0) {
+            throw new Error(`Entitlements path is empty!`);
+        }
+        if (!fs.existsSync(projectRef.entitlementsPath)) {
+            throw new Error(`Entitlements file not found at: ${projectRef.entitlementsPath}`);
+        }
+    } else {
+        throw new Error(`Entitlements path is not set! Please provide a valid entitlements plist file.`);
+    }
     const codesignArgs = [
         '--force',
         '--verify',
@@ -567,6 +580,7 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
         '--options', 'runtime',
         '--keychain', projectRef.credential.keychainPath,
         '--sign', developerIdApplicationSigningIdentity,
+        '--entitlements', projectRef.entitlementsPath,
     ];
     if (core.isDebug()) {
         codesignArgs.unshift('--verbose');
@@ -597,6 +611,32 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     ], { ignoreReturnCode: true });
     if (verifyExitCode !== 0) {
         throw new Error('App bundle codesign verification failed!');
+    }
+    let entitlementsOutput = '';
+    const entitlementsExitCode = await exec('codesign', [
+        '--display',
+        '--entitlements', '-', '--xml',
+        appPath
+    ], {
+        listeners: {
+            stdout: (data: Buffer) => {
+                entitlementsOutput += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
+    if (entitlementsExitCode !== 0) {
+        log(entitlementsOutput, 'error');
+        throw new Error('Failed to display signed entitlements!');
+    }
+    const expectedEntitlementsContent = await fs.promises.readFile(projectRef.entitlementsPath, 'utf8');
+    const expectedEntitlements = plist.parse(expectedEntitlementsContent);
+    if (!entitlementsOutput.trim()) {
+        throw new Error('Signed entitlements output is empty!');
+    }
+    const signedEntitlements = plist.parse(entitlementsOutput);
+    if (!DeepEqual(expectedEntitlements, signedEntitlements)) {
+        throw new Error('Signed entitlements do not match the expected entitlements!');
     }
 }
 

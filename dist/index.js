@@ -58316,6 +58316,7 @@ exports.XcodeProject = XcodeProject;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.log = log;
+exports.DeepEqual = DeepEqual;
 const core = __nccwpck_require__(2186);
 function log(message, type = 'info') {
     if (type == 'info' && !core.isDebug()) {
@@ -58344,6 +58345,36 @@ function log(message, type = 'info') {
             core.info(line);
         }
     }
+}
+function DeepEqual(a, b) {
+    if (a === b)
+        return true;
+    if (typeof a !== typeof b)
+        return false;
+    if (typeof a !== 'object' || a === null || b === null)
+        return false;
+    if (Array.isArray(a) !== Array.isArray(b))
+        return false;
+    if (Array.isArray(a)) {
+        if (a.length !== b.length)
+            return false;
+        for (let i = 0; i < a.length; i++) {
+            if (!DeepEqual(a[i], b[i]))
+                return false;
+        }
+        return true;
+    }
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length)
+        return false;
+    for (const key of keysA) {
+        if (!keysB.includes(key))
+            return false;
+        if (!DeepEqual(a[key], b[key]))
+            return false;
+    }
+    return true;
 }
 
 
@@ -58906,6 +58937,17 @@ async function signMacOSAppBundle(projectRef) {
     if (!developerIdApplicationSigningIdentity) {
         throw new Error(`Failed to find the Developer ID Application signing identity!`);
     }
+    if (projectRef.entitlementsPath) {
+        if (projectRef.entitlementsPath.trim().length === 0) {
+            throw new Error(`Entitlements path is empty!`);
+        }
+        if (!fs.existsSync(projectRef.entitlementsPath)) {
+            throw new Error(`Entitlements file not found at: ${projectRef.entitlementsPath}`);
+        }
+    }
+    else {
+        throw new Error(`Entitlements path is not set! Please provide a valid entitlements plist file.`);
+    }
     const codesignArgs = [
         '--force',
         '--verify',
@@ -58913,6 +58955,7 @@ async function signMacOSAppBundle(projectRef) {
         '--options', 'runtime',
         '--keychain', projectRef.credential.keychainPath,
         '--sign', developerIdApplicationSigningIdentity,
+        '--entitlements', projectRef.entitlementsPath,
     ];
     if (core.isDebug()) {
         codesignArgs.unshift('--verbose');
@@ -58943,6 +58986,32 @@ async function signMacOSAppBundle(projectRef) {
     ], { ignoreReturnCode: true });
     if (verifyExitCode !== 0) {
         throw new Error('App bundle codesign verification failed!');
+    }
+    let entitlementsOutput = '';
+    const entitlementsExitCode = await (0, exec_1.exec)('codesign', [
+        '--display',
+        '--entitlements', '-', '--xml',
+        appPath
+    ], {
+        listeners: {
+            stdout: (data) => {
+                entitlementsOutput += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
+    if (entitlementsExitCode !== 0) {
+        (0, utilities_1.log)(entitlementsOutput, 'error');
+        throw new Error('Failed to display signed entitlements!');
+    }
+    const expectedEntitlementsContent = await fs.promises.readFile(projectRef.entitlementsPath, 'utf8');
+    const expectedEntitlements = plist.parse(expectedEntitlementsContent);
+    if (!entitlementsOutput.trim()) {
+        throw new Error('Signed entitlements output is empty!');
+    }
+    const signedEntitlements = plist.parse(entitlementsOutput);
+    if (!(0, utilities_1.DeepEqual)(expectedEntitlements, signedEntitlements)) {
+        throw new Error('Signed entitlements do not match the expected entitlements!');
     }
 }
 async function createMacOSInstallerPkg(projectRef) {
