@@ -615,7 +615,7 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     let entitlementsOutput = '';
     const entitlementsExitCode = await exec('codesign', [
         '--display',
-        '--entitlements', '-', '--xml', '/dev/stdout',
+        '--entitlements', '-', '--xml',
         appPath
     ], {
         listeners: {
