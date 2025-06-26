@@ -7,7 +7,10 @@ import plist = require('plist');
 import path = require('path');
 import fs = require('fs');
 import semver = require('semver');
-import { log } from './utilities';
+import {
+    DeepEqual,
+    log
+} from './utilities';
 import { SemVer } from 'semver';
 import core = require('@actions/core');
 import {
@@ -620,7 +623,7 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
         const expectedEntitlementsContent = await fs.promises.readFile(projectRef.entitlementsPath, 'utf8');
         const expectedEntitlements = plist.parse(expectedEntitlementsContent);
         const signedEntitlements = plist.parse(entitlementsOutput);
-        if (JSON.stringify(expectedEntitlements) !== JSON.stringify(signedEntitlements)) {
+        if (!DeepEqual(expectedEntitlements, signedEntitlements)) {
             throw new Error('Signed entitlements do not match the expected entitlements!');
         }
     }
