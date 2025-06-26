@@ -570,6 +570,8 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
         if (!fs.existsSync(projectRef.entitlementsPath)) {
             throw new Error(`Entitlements file not found at: ${projectRef.entitlementsPath}`);
         }
+    } else {
+        throw new Error(`Entitlements path is not set! Please provide a valid entitlements plist file.`);
     }
     const codesignArgs = [
         '--force',

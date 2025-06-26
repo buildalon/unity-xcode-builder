@@ -58945,6 +58945,9 @@ async function signMacOSAppBundle(projectRef) {
             throw new Error(`Entitlements file not found at: ${projectRef.entitlementsPath}`);
         }
     }
+    else {
+        throw new Error(`Entitlements path is not set! Please provide a valid entitlements plist file.`);
+    }
     const codesignArgs = [
         '--force',
         '--verify',
