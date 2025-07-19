@@ -966,6 +966,10 @@ async function execWithXcBeautify(xcodeBuildArgs: string[]) {
                 errorOutput += data.toString();
             }
         },
+        env: {
+            CC: 'ccache clang',
+            CXX: 'ccache clang++'
+        },
         silent: true,
         ignoreReturnCode: true
     });
