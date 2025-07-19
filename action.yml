@@ -114,6 +114,9 @@ inputs:
   developer-id-installer-certificate-password:
     description: The password for the `Developer ID Installer` certificate. Required if `developer-id-installer-certificate` is provided.
     required: false
+  derived-data-path:
+    description: The path to use for Xcode DerivedData. Defaults to a sibling 'DerivedData' directory next to the .xcodeproj.
+    required: false
 outputs:
   executable:
     description: The path to the generated archive executable.

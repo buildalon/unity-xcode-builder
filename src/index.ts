@@ -12,6 +12,7 @@ import {
     RemoveCredentials
 } from './AppleCredential';
 import semver = require('semver');
+import { SetupCCache } from './utilities';
 
 const IS_POST = !!core.getState('isPost');
 
@@ -93,6 +94,7 @@ const main = async () => {
             if (xcodeVersionString !== selectedXcodeVersionString) {
                 throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
             }
+            await SetupCCache();
             let projectRef = await GetProjectDetails(credential, semver.coerce(xcodeVersionString));
             projectRef = await ArchiveXcodeProject(projectRef);
             projectRef = await ExportXcodeArchive(projectRef);

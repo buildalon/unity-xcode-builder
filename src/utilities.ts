@@ -1,5 +1,6 @@
 
 import core = require('@actions/core');
+import { exec } from '@actions/exec';
 
 export function log(message: string, type: 'info' | 'warning' | 'error' = 'info') {
     if (type == 'info' && !core.isDebug()) { return; }
@@ -49,4 +50,18 @@ export function DeepEqual(a: any, b: any): boolean {
         if (!DeepEqual(a[key], b[key])) return false;
     }
     return true;
+}
+
+export async function SetupCCache() {
+    try {
+        await exec('which', ['ccache'], {
+            failOnStdErr: true
+        });
+    } catch {
+        await exec('brew', ['install', 'ccache']);
+    }
+    // Set environment variables for ccache
+    process.env.CC = 'ccache clang';
+    process.env.CXX = 'ccache clang++';
+    core.info('ccache is enabled for Xcode builds.');
 }

@@ -4803,13 +4803,28 @@ var import_graphql = __nccwpck_require__(8467);
 var import_auth_token = __nccwpck_require__(334);
 
 // pkg/dist-src/version.js
-var VERSION = "5.2.1";
+var VERSION = "5.2.2";
 
 // pkg/dist-src/index.js
 var noop = () => {
 };
 var consoleWarn = console.warn.bind(console);
 var consoleError = console.error.bind(console);
+function createLogger(logger = {}) {
+  if (typeof logger.debug !== "function") {
+    logger.debug = noop;
+  }
+  if (typeof logger.info !== "function") {
+    logger.info = noop;
+  }
+  if (typeof logger.warn !== "function") {
+    logger.warn = consoleWarn;
+  }
+  if (typeof logger.error !== "function") {
+    logger.error = consoleError;
+  }
+  return logger;
+}
 var userAgentTrail = `octokit-core.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`;
 var Octokit = class {
   static {
@@ -4883,15 +4898,7 @@ var Octokit = class {
     }
     this.request = import_request.request.defaults(requestDefaults);
     this.graphql = (0, import_graphql.withCustomRequest)(this.request).defaults(requestDefaults);
-    this.log = Object.assign(
-      {
-        debug: noop,
-        info: noop,
-        warn: consoleWarn,
-        error: consoleError
-      },
-      options.log
-    );
+    this.log = createLogger(options.log);
     this.hook = hook;
     if (!options.authStrategy) {
       if (!options.auth) {
@@ -58286,7 +58293,7 @@ async function unlockTemporaryKeychain(keychainPath, tempCredential) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.XcodeProject = void 0;
 class XcodeProject {
-    constructor(projectPath, projectName, platform, destination, bundleId, projectDirectory, versionString, bundleVersion, scheme, credential, xcodeVersion) {
+    constructor(projectPath, projectName, platform, destination, bundleId, projectDirectory, versionString, bundleVersion, scheme, credential, xcodeVersion, derivedDataPath) {
         this.projectPath = projectPath;
         this.projectName = projectName;
         this.platform = platform;
@@ -58299,6 +58306,7 @@ class XcodeProject {
         this.credential = credential;
         this.xcodeVersion = xcodeVersion;
         this.isSteamBuild = false;
+        this.derivedDataPath = derivedDataPath;
     }
     isAppStoreUpload() {
         return this.exportOption === 'app-store' || this.exportOption === 'app-store-connect';
@@ -58317,7 +58325,9 @@ exports.XcodeProject = XcodeProject;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.log = log;
 exports.DeepEqual = DeepEqual;
+exports.SetupCCache = SetupCCache;
 const core = __nccwpck_require__(2186);
+const exec_1 = __nccwpck_require__(1514);
 function log(message, type = 'info') {
     if (type == 'info' && !core.isDebug()) {
         return;
@@ -58375,6 +58385,19 @@ function DeepEqual(a, b) {
             return false;
     }
     return true;
+}
+async function SetupCCache() {
+    try {
+        await (0, exec_1.exec)('which', ['ccache'], {
+            failOnStdErr: true
+        });
+    }
+    catch (_a) {
+        await (0, exec_1.exec)('brew', ['install', 'ccache']);
+    }
+    process.env.CC = 'ccache clang';
+    process.env.CXX = 'ccache clang++';
+    core.info('ccache is enabled for Xcode builds.');
 }
 
 
@@ -58490,7 +58513,9 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'];
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
-    const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, destination, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
+    const derivedDataPathInput = core.getInput('derived-data-path') || path.join(projectDirectory, 'DerivedData');
+    core.debug(`DerivedData path input: ${derivedDataPathInput}`);
+    const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, destination, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion, derivedDataPathInput);
     projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
     await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload()) {
@@ -58745,6 +58770,7 @@ async function ArchiveXcodeProject(projectRef) {
         '-destination', projectRef.destination,
         '-configuration', configuration,
         '-archivePath', archivePath,
+        `-derivedDataPath`, projectRef.derivedDataPath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
@@ -58809,6 +58835,7 @@ async function ExportXcodeArchive(projectRef) {
         '-archivePath', archivePath,
         '-exportPath', projectRef.exportPath,
         '-exportOptionsPlist', exportOptionsPath,
+        `-derivedDataPath`, projectRef.derivedDataPath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
@@ -61481,6 +61508,7 @@ const exec = __nccwpck_require__(1514);
 const xcode_1 = __nccwpck_require__(9157);
 const AppleCredential_1 = __nccwpck_require__(4199);
 const semver = __nccwpck_require__(1383);
+const utilities_1 = __nccwpck_require__(5739);
 const IS_POST = !!core.getState('isPost');
 const main = async () => {
     try {
@@ -61562,6 +61590,7 @@ const main = async () => {
             if (xcodeVersionString !== selectedXcodeVersionString) {
                 throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
             }
+            await (0, utilities_1.SetupCCache)();
             let projectRef = await (0, xcode_1.GetProjectDetails)(credential, semver.coerce(xcodeVersionString));
             projectRef = await (0, xcode_1.ArchiveXcodeProject)(projectRef);
             projectRef = await (0, xcode_1.ExportXcodeArchive)(projectRef);

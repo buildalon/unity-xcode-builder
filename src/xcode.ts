@@ -107,6 +107,8 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'] as string;
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
+    const derivedDataPathInput = core.getInput('derived-data-path') || path.join(projectDirectory, 'DerivedData');
+    core.debug(`DerivedData path input: ${derivedDataPathInput}`);
     const projectRef = new XcodeProject(
         projectPath,
         projectName,
@@ -118,7 +120,8 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         cFBundleVersion,
         scheme,
         credential,
-        xcodeVersion
+        xcodeVersion,
+        derivedDataPathInput
     );
     projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
     await getExportOptions(projectRef);
@@ -370,6 +373,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         '-destination', projectRef.destination,
         '-configuration', configuration,
         '-archivePath', archivePath,
+        `-derivedDataPath`, projectRef.derivedDataPath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
@@ -442,6 +446,7 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         '-archivePath', archivePath,
         '-exportPath', projectRef.exportPath,
         '-exportOptionsPlist', exportOptionsPath,
+        `-derivedDataPath`, projectRef.derivedDataPath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
