@@ -58327,6 +58327,7 @@ exports.DeepEqual = DeepEqual;
 exports.SetupCCache = SetupCCache;
 const core = __nccwpck_require__(2186);
 const exec_1 = __nccwpck_require__(1514);
+const fs = __nccwpck_require__(7147);
 function log(message, type = 'info') {
     if (type == 'info' && !core.isDebug()) {
         return;
@@ -58404,6 +58405,14 @@ async function SetupCCache() {
     }
     if (isFound) {
         await (0, exec_1.exec)('ccache', ['-s']);
+        const runnerTemp = process.env['RUNNER_TEMP'];
+        const ccacheBin = `${runnerTemp}/ccache_bin`;
+        if (!fs.existsSync(ccacheBin)) {
+            fs.mkdirSync(ccacheBin, { recursive: true });
+        }
+        process.env['CCACHE_BIN'] = ccacheBin;
+        await (0, exec_1.exec)(`ln -sf $(which ccache) ${ccacheBin}/clang`);
+        await (0, exec_1.exec)(`ln -sf $(which ccache) ${ccacheBin}/clang++`);
         core.info('ccache is enabled for Xcode builds.');
     }
     else {
@@ -59341,8 +59350,11 @@ async function execXcodeBuild(xcodeBuildArgs) {
             }
         },
         env: {
+            ...process.env,
             CC: 'ccache clang',
-            CXX: 'ccache clang++'
+            CXX: 'ccache clang++',
+            PATH: `${process.env.CCACHE_BIN}:${process.env.PATH}`,
+            CCACHE_LOGFILE: path.join(process.cwd(), 'ccache.log')
         },
         ignoreReturnCode: true
     });
@@ -59350,7 +59362,14 @@ async function execXcodeBuild(xcodeBuildArgs) {
     if (exitCode !== 0) {
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
     }
-    await (0, exec_1.exec)('ccache', ['-s']);
+    core.startGroup('CCache');
+    try {
+        await (0, exec_1.exec)('ccache', ['-s']);
+        await (0, exec_1.exec)('cat', [path.join(process.cwd(), 'ccache.log')]);
+    }
+    finally {
+        core.endGroup();
+    }
 }
 async function execWithXcBeautify(xcodeBuildArgs) {
     try {

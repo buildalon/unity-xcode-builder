@@ -931,8 +931,11 @@ async function execXcodeBuild(xcodeBuildArgs: string[]) {
             }
         },
         env: {
+            ...process.env,
             CC: 'ccache clang',
-            CXX: 'ccache clang++'
+            CXX: 'ccache clang++',
+            PATH: `${process.env.CCACHE_BIN}:${process.env.PATH}`,
+            CCACHE_LOGFILE: path.join(process.cwd(), 'ccache.log')
         },
         ignoreReturnCode: true
     });
@@ -940,7 +943,13 @@ async function execXcodeBuild(xcodeBuildArgs: string[]) {
     if (exitCode !== 0) {
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
     }
-    await exec('ccache', ['-s']);
+    core.startGroup('CCache');
+    try {
+        await exec('ccache', ['-s']);
+        await exec('cat', [path.join(process.cwd(), 'ccache.log')]);
+    } finally {
+        core.endGroup();
+    }
 }
 
 async function execWithXcBeautify(xcodeBuildArgs: string[]) {

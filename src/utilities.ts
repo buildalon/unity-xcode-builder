@@ -1,6 +1,7 @@
 
 import core = require('@actions/core');
 import { exec } from '@actions/exec';
+import fs = require('fs');
 
 export function log(message: string, type: 'info' | 'warning' | 'error' = 'info') {
     if (type == 'info' && !core.isDebug()) { return; }
@@ -69,6 +70,14 @@ export async function SetupCCache() {
     }
     if (isFound) {
         await exec('ccache', ['-s']);
+        const runnerTemp = process.env['RUNNER_TEMP'];
+        const ccacheBin = `${runnerTemp}/ccache_bin`;
+        if (!fs.existsSync(ccacheBin)) {
+            fs.mkdirSync(ccacheBin, { recursive: true });
+        }
+        process.env['CCACHE_BIN'] = ccacheBin;
+        await exec(`ln -sf $(which ccache) ${ccacheBin}/clang`);
+        await exec(`ln -sf $(which ccache) ${ccacheBin}/clang++`);
         core.info('ccache is enabled for Xcode builds.');
     } else {
         throw new Error('ccache is not available. Please install ccache to enable caching for Xcode builds.');
