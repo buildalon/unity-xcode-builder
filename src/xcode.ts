@@ -107,8 +107,6 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'] as string;
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
-    const derivedDataPathInput = core.getInput('derived-data-path') || path.join(projectDirectory, 'DerivedData');
-    core.debug(`DerivedData path input: ${derivedDataPathInput}`);
     const projectRef = new XcodeProject(
         projectPath,
         projectName,

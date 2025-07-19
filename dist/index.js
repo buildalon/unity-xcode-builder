@@ -58524,8 +58524,6 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'];
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
-    const derivedDataPathInput = core.getInput('derived-data-path') || path.join(projectDirectory, 'DerivedData');
-    core.debug(`DerivedData path input: ${derivedDataPathInput}`);
     const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, destination, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
     projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
     await getExportOptions(projectRef);
