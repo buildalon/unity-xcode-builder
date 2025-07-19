@@ -120,8 +120,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         cFBundleVersion,
         scheme,
         credential,
-        xcodeVersion,
-        derivedDataPathInput
+        xcodeVersion
     );
     projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
     await getExportOptions(projectRef);
@@ -373,7 +372,6 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         '-destination', projectRef.destination,
         '-configuration', configuration,
         '-archivePath', archivePath,
-        `-derivedDataPath`, projectRef.derivedDataPath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
@@ -446,7 +444,6 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         '-archivePath', archivePath,
         '-exportPath', projectRef.exportPath,
         '-exportOptionsPlist', exportOptionsPath,
-        `-derivedDataPath`, projectRef.derivedDataPath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
@@ -935,6 +932,10 @@ async function execXcodeBuild(xcodeBuildArgs: string[]) {
                 output += data.toString();
             }
         },
+        env: {
+            CC: 'ccache clang',
+            CXX: 'ccache clang++'
+        },
         ignoreReturnCode: true
     });
     await parseBundleLog(output);
@@ -965,10 +966,6 @@ async function execWithXcBeautify(xcodeBuildArgs: string[]) {
                 xcBeautifyProcess.stdin.write(data);
                 errorOutput += data.toString();
             }
-        },
-        env: {
-            CC: 'ccache clang',
-            CXX: 'ccache clang++'
         },
         silent: true,
         ignoreReturnCode: true

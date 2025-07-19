@@ -58293,7 +58293,7 @@ async function unlockTemporaryKeychain(keychainPath, tempCredential) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.XcodeProject = void 0;
 class XcodeProject {
-    constructor(projectPath, projectName, platform, destination, bundleId, projectDirectory, versionString, bundleVersion, scheme, credential, xcodeVersion, derivedDataPath) {
+    constructor(projectPath, projectName, platform, destination, bundleId, projectDirectory, versionString, bundleVersion, scheme, credential, xcodeVersion) {
         this.projectPath = projectPath;
         this.projectName = projectName;
         this.platform = platform;
@@ -58306,7 +58306,6 @@ class XcodeProject {
         this.credential = credential;
         this.xcodeVersion = xcodeVersion;
         this.isSteamBuild = false;
-        this.derivedDataPath = derivedDataPath;
     }
     isAppStoreUpload() {
         return this.exportOption === 'app-store' || this.exportOption === 'app-store-connect';
@@ -58528,7 +58527,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
     const derivedDataPathInput = core.getInput('derived-data-path') || path.join(projectDirectory, 'DerivedData');
     core.debug(`DerivedData path input: ${derivedDataPathInput}`);
-    const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, destination, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion, derivedDataPathInput);
+    const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, destination, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
     projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
     await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload()) {
@@ -58783,7 +58782,6 @@ async function ArchiveXcodeProject(projectRef) {
         '-destination', projectRef.destination,
         '-configuration', configuration,
         '-archivePath', archivePath,
-        `-derivedDataPath`, projectRef.derivedDataPath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
@@ -58848,7 +58846,6 @@ async function ExportXcodeArchive(projectRef) {
         '-archivePath', archivePath,
         '-exportPath', projectRef.exportPath,
         '-exportOptionsPlist', exportOptionsPath,
-        `-derivedDataPath`, projectRef.derivedDataPath,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
@@ -59346,6 +59343,10 @@ async function execXcodeBuild(xcodeBuildArgs) {
                 output += data.toString();
             }
         },
+        env: {
+            CC: 'ccache clang',
+            CXX: 'ccache clang++'
+        },
         ignoreReturnCode: true
     });
     await parseBundleLog(output);
@@ -59376,10 +59377,6 @@ async function execWithXcBeautify(xcodeBuildArgs) {
                 xcBeautifyProcess.stdin.write(data);
                 errorOutput += data.toString();
             }
-        },
-        env: {
-            CC: 'ccache clang',
-            CXX: 'ccache clang++'
         },
         silent: true,
         ignoreReturnCode: true

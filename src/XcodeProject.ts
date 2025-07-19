@@ -14,7 +14,6 @@ export class XcodeProject {
         scheme: string,
         credential: AppleCredential,
         xcodeVersion: SemVer,
-        derivedDataPath: string,
     ) {
         this.projectPath = projectPath;
         this.projectName = projectName;
@@ -28,7 +27,6 @@ export class XcodeProject {
         this.credential = credential
         this.xcodeVersion = xcodeVersion;
         this.isSteamBuild = false;
-        this.derivedDataPath = derivedDataPath;
     }
     projectPath: string;
     projectName: string;
@@ -52,7 +50,6 @@ export class XcodeProject {
     isSteamBuild: boolean;
     archiveType: string;
     notarize: boolean;
-    derivedDataPath: string;
     isAppStoreUpload(): boolean {
         return this.exportOption === 'app-store' || this.exportOption === 'app-store-connect';
     }
