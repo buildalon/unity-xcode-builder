@@ -68,8 +68,7 @@ export async function SetupCCache() {
         }
     }
     if (isFound) {
-        process.env.CC = 'ccache clang';
-        process.env.CXX = 'ccache clang++';
+        await exec('ccache', ['-s']);
         core.info('ccache is enabled for Xcode builds.');
     } else {
         throw new Error('ccache is not available. Please install ccache to enable caching for Xcode builds.');

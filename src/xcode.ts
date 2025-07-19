@@ -942,6 +942,7 @@ async function execXcodeBuild(xcodeBuildArgs: string[]) {
     if (exitCode !== 0) {
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
     }
+    await exec('ccache', ['-s']);
 }
 
 async function execWithXcBeautify(xcodeBuildArgs: string[]) {

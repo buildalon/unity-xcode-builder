@@ -58403,8 +58403,7 @@ async function SetupCCache() {
         }
     }
     if (isFound) {
-        process.env.CC = 'ccache clang';
-        process.env.CXX = 'ccache clang++';
+        await (0, exec_1.exec)('ccache', ['-s']);
         core.info('ccache is enabled for Xcode builds.');
     }
     else {
@@ -59353,6 +59352,7 @@ async function execXcodeBuild(xcodeBuildArgs) {
     if (exitCode !== 0) {
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
     }
+    await (0, exec_1.exec)('ccache', ['-s']);
 }
 async function execWithXcBeautify(xcodeBuildArgs) {
     try {
