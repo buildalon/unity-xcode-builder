@@ -53,15 +53,25 @@ export function DeepEqual(a: any, b: any): boolean {
 }
 
 export async function SetupCCache() {
+    let isFound = false;
     try {
         await exec('which', ['ccache'], {
-            failOnStdErr: true
+            silent: true
         });
+        isFound = true;
     } catch {
-        await exec('brew', ['install', 'ccache']);
+        try {
+            await exec('brew', ['install', 'ccache']);
+            isFound = true;
+        } catch {
+            core.warning('ccache could not be installed. Proceeding without ccache.');
+        }
     }
-    // Set environment variables for ccache
-    process.env.CC = 'ccache clang';
-    process.env.CXX = 'ccache clang++';
-    core.info('ccache is enabled for Xcode builds.');
+    if (isFound) {
+        process.env.CC = 'ccache clang';
+        process.env.CXX = 'ccache clang++';
+        core.info('ccache is enabled for Xcode builds.');
+    } else {
+        throw new Error('ccache is not available. Please install ccache to enable caching for Xcode builds.');
+    }
 }
