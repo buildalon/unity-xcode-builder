@@ -180,11 +180,10 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         if (projectRef.platform === 'macOS') {
             const notarizeInput = core.getInput('notarize') || 'true';
             core.debug(`Notarize input: ${notarizeInput}`);
-            projectRef.notarize =
-                notarizeInput === 'true' ||
-                projectRef.isSteamBuild ||
-                projectRef.archiveType === 'pkg' ||
-                projectRef.archiveType === 'dmg';
+            projectRef.notarize = notarizeInput === 'true' &&
+                (projectRef.isSteamBuild ||
+                    projectRef.archiveType === 'pkg' ||
+                    projectRef.archiveType === 'dmg');
             let output = '';
             await exec('security', [
                 'find-identity',
