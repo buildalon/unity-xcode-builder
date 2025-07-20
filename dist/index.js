@@ -58625,11 +58625,10 @@ async function GetProjectDetails(credential, xcodeVersion) {
         if (projectRef.platform === 'macOS') {
             const notarizeInput = core.getInput('notarize') || 'true';
             core.debug(`Notarize input: ${notarizeInput}`);
-            projectRef.notarize =
-                notarizeInput === 'true' ||
-                    projectRef.isSteamBuild ||
+            projectRef.notarize = notarizeInput === 'true' &&
+                (projectRef.isSteamBuild ||
                     projectRef.archiveType === 'pkg' ||
-                    projectRef.archiveType === 'dmg';
+                    projectRef.archiveType === 'dmg');
             let output = '';
             await (0, exec_1.exec)('security', [
                 'find-identity',
