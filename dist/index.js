@@ -58293,23 +58293,23 @@ async function unlockTemporaryKeychain(keychainPath, tempCredential) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.XcodeProject = void 0;
 class XcodeProject {
-    constructor(projectPath, projectName, platform, destination, configuration, bundleId, projectDirectory, versionString, bundleVersion, scheme, credential, xcodeVersion) {
+    constructor(projectPath, projectName, projectDirectory, platform, destination, configuration, bundleId, versionString, bundleVersion, scheme, credential, xcodeVersion) {
         this.entitlementsPath = null;
         this.projectPath = projectPath;
         this.projectName = projectName;
+        this.projectDirectory = projectDirectory;
         this.platform = platform;
         this.destination = destination;
         this.configuration = configuration;
-        this.archivePath = `${this.projectDirectory}/${this.projectName}.xcarchive`;
-        this.exportPath = `${this.projectDirectory}/${this.projectName}`;
         this.bundleId = bundleId;
-        this.projectDirectory = projectDirectory;
         this.versionString = versionString;
         this.bundleVersion = bundleVersion;
         this.scheme = scheme;
         this.credential = credential;
         this.xcodeVersion = xcodeVersion;
         this.isSteamBuild = false;
+        this.archivePath = `${projectDirectory}/${projectName}.xcarchive`;
+        this.exportPath = `${projectDirectory}/${projectName}`;
     }
     isAppStoreUpload() {
         return this.exportOption === 'app-store' || this.exportOption === 'app-store-connect';
@@ -58568,7 +58568,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
     const configuration = core.getInput('configuration') || 'Release';
     core.debug(`Configuration: ${configuration}`);
-    const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, platform, destination, configuration, bundleId, projectDirectory, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
+    const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, projectDirectory, platform, destination, configuration, bundleId, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
     projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
     let entitlementsPath = core.getInput('entitlements-plist');
     if (!entitlementsPath) {

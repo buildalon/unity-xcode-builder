@@ -115,11 +115,11 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     const projectRef = new XcodeProject(
         projectPath,
         projectName,
+        projectDirectory,
         platform,
         destination,
         configuration,
         bundleId,
-        projectDirectory,
         cFBundleShortVersionString,
         cFBundleVersion,
         scheme,
