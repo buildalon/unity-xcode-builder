@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest]
-        unity-version: [2021.x, 2022.x, 6000.0.x, 6000.1.x]
+        unity-version: [2021.x, 2022.x, 6000.0.41f1, 6000.1.x]
         build-target:
           - iOS
           - StandaloneOSX
