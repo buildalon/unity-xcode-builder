@@ -58504,6 +58504,8 @@ async function GetProjectDetails(credential, xcodeVersion) {
     await fs.promises.access(projectPath, fs.constants.R_OK);
     const projectDirectory = path.dirname(projectPath);
     core.info(`Project directory: ${projectDirectory}`);
+    const projectFiles = await fs.promises.readdir(projectDirectory);
+    projectFiles.forEach(file => core.info(`  > ${file}`));
     await patchGameAssemblyRunScriptOutput(projectDirectory);
     const projectName = path.basename(projectPath, '.xcodeproj');
     const scheme = await getProjectScheme(projectPath);
