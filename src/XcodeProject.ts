@@ -13,7 +13,7 @@ export class XcodeProject {
         bundleVersion: string,
         scheme: string,
         credential: AppleCredential,
-        xcodeVersion: SemVer,
+        xcodeVersion: SemVer
     ) {
         this.projectPath = projectPath;
         this.projectName = projectName;

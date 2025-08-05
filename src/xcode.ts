@@ -963,25 +963,12 @@ async function execXcodeBuild(xcodeBuildArgs: string[]) {
                 output += data.toString();
             }
         },
-        env: {
-            ...process.env,
-            CC: 'ccache clang',
-            CXX: 'ccache clang++',
-            PATH: `${process.env.CCACHE_BIN}:${process.env.PATH}`,
-            CCACHE_LOGFILE: path.join(process.cwd(), 'ccache.log')
-        },
+        env: { ...process.env },
         ignoreReturnCode: true
     });
     await parseBundleLog(output);
     if (exitCode !== 0) {
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
-    }
-    core.startGroup('CCache');
-    try {
-        await exec('ccache', ['-s']);
-        await exec('cat', [path.join(process.cwd(), 'ccache.log')]);
-    } finally {
-        core.endGroup();
     }
 }
 

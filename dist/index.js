@@ -59402,26 +59402,12 @@ async function execXcodeBuild(xcodeBuildArgs) {
                 output += data.toString();
             }
         },
-        env: {
-            ...process.env,
-            CC: 'ccache clang',
-            CXX: 'ccache clang++',
-            PATH: `${process.env.CCACHE_BIN}:${process.env.PATH}`,
-            CCACHE_LOGFILE: path.join(process.cwd(), 'ccache.log')
-        },
+        env: { ...process.env },
         ignoreReturnCode: true
     });
     await parseBundleLog(output);
     if (exitCode !== 0) {
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
-    }
-    core.startGroup('CCache');
-    try {
-        await (0, exec_1.exec)('ccache', ['-s']);
-        await (0, exec_1.exec)('cat', [path.join(process.cwd(), 'ccache.log')]);
-    }
-    finally {
-        core.endGroup();
     }
 }
 async function execWithXcBeautify(xcodeBuildArgs) {
@@ -61592,7 +61578,6 @@ const exec = __nccwpck_require__(1514);
 const xcode_1 = __nccwpck_require__(9157);
 const AppleCredential_1 = __nccwpck_require__(4199);
 const semver = __nccwpck_require__(1383);
-const utilities_1 = __nccwpck_require__(5739);
 const IS_POST = !!core.getState('isPost');
 const main = async () => {
     try {
@@ -61674,7 +61659,6 @@ const main = async () => {
             if (xcodeVersionString !== selectedXcodeVersionString) {
                 throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
             }
-            await (0, utilities_1.SetupCCache)();
             let projectRef = await (0, xcode_1.GetProjectDetails)(credential, semver.coerce(xcodeVersionString));
             projectRef = await (0, xcode_1.ArchiveXcodeProject)(projectRef);
             projectRef = await (0, xcode_1.ExportXcodeArchive)(projectRef);
