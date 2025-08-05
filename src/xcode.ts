@@ -110,11 +110,14 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'] as string;
     core.info(`CFBundleVersion: ${cFBundleVersion}`);
+    const configuration = core.getInput('configuration') || 'Release';
+    core.debug(`Configuration: ${configuration}`);
     const projectRef = new XcodeProject(
         projectPath,
         projectName,
         platform,
         destination,
+        configuration,
         bundleId,
         projectDirectory,
         cFBundleShortVersionString,
@@ -124,6 +127,14 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         xcodeVersion
     );
     projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
+    let entitlementsPath = core.getInput('entitlements-plist');
+    if (!entitlementsPath) {
+        if (projectRef.platform === 'macOS') {
+            projectRef.entitlementsPath = await getDefaultEntitlementsMacOS(projectRef);
+        }
+    } else {
+        projectRef.entitlementsPath = entitlementsPath;
+    }
     await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload()) {
         projectRef.appId = await GetAppId(projectRef);
@@ -392,30 +403,53 @@ async function downloadPlatformSdkIfMissing(platform: string, version: string | 
     }
 }
 
-export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<XcodeProject> {
-    const { projectPath, projectName, projectDirectory } = projectRef;
-    const archivePath = `${projectDirectory}/${projectName}.xcarchive`;
-    core.debug(`Archive path: ${archivePath}`);
+export async function BuildXcodeProject(projectRef: XcodeProject): Promise<XcodeProject> {
+    const { projectPath, scheme, destination, platform, projectDirectory } = projectRef;
     const configuration = core.getInput('configuration') || 'Release';
-    core.debug(`Configuration: ${configuration}`);
-    let entitlementsPath = core.getInput('entitlements-plist');
-    if (!entitlementsPath && projectRef.platform === 'macOS') {
-        await getDefaultEntitlementsMacOS(projectRef);
-    } else {
-        projectRef.entitlementsPath = entitlementsPath;
+    const buildArgs = [
+        'build',
+        '-project', projectPath,
+        '-scheme', scheme,
+        '-destination', destination,
+        '-configuration', configuration,
+        '-derivedDataPath', `${projectDirectory}/DerivedData`,
+        'CODE_SIGN_IDENTITY=-',
+        'CODE_SIGNING_REQUIRED=NO',
+        'CODE_SIGNING_ALLOWED=NO'
+    ];
+    if (platform === 'iOS') {
+        buildArgs.push('COPY_PHASE_STRIP=NO');
     }
-    const { teamId, manualSigningIdentity, manualProvisioningProfileUUID, keychainPath } = projectRef.credential;
+    if (platform === 'macOS' && !projectRef.isAppStoreUpload()) {
+        buildArgs.push('ENABLE_HARDENED_RUNTIME=YES');
+    }
+    if (!core.isDebug()) {
+        buildArgs.push('-quiet');
+    } else {
+        buildArgs.push('-verbose');
+    }
+    if (core.isDebug()) {
+        await execXcodeBuild(buildArgs);
+    } else {
+        await execWithXcBeautify(buildArgs);
+    }
+    return projectRef;
+}
+
+export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<XcodeProject> {
+    const { projectPath, scheme, platform, destination, configuration, archivePath, entitlementsPath, projectDirectory, credential } = projectRef;
+    const { teamId, manualSigningIdentity, manualProvisioningProfileUUID, keychainPath } = credential;
     const archiveArgs = [
         'archive',
         '-project', projectPath,
-        '-scheme', projectRef.scheme,
-        '-destination', projectRef.destination,
+        '-scheme', scheme,
+        '-destination', destination,
         '-configuration', configuration,
         '-archivePath', archivePath,
         '-derivedDataPath', `${projectDirectory}/DerivedData`,
-        `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
-        `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
-        `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
+        `-authenticationKeyID`, credential.appStoreConnectKeyId,
+        `-authenticationKeyPath`, credential.appStoreConnectKeyPath,
+        `-authenticationKeyIssuerID`, credential.appStoreConnectIssuerId
     ];
     if (teamId) {
         archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
@@ -443,21 +477,21 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
             `-allowProvisioningUpdates`
         );
     }
-    if (projectRef.entitlementsPath) {
-        core.debug(`Entitlements path: ${projectRef.entitlementsPath}`);
-        const entitlementsHandle = await fs.promises.open(projectRef.entitlementsPath, fs.constants.O_RDONLY);
+    if (entitlementsPath) {
+        core.debug(`Entitlements path: ${entitlementsPath}`);
+        const entitlementsHandle = await fs.promises.open(entitlementsPath, fs.constants.O_RDONLY);
         try {
             const entitlementsContent = await fs.promises.readFile(entitlementsHandle, 'utf8');
             core.info(`----- Entitlements content: -----\n${entitlementsContent}\n-----------------------------------`);
         } finally {
             await entitlementsHandle.close();
         }
-        archiveArgs.push(`CODE_SIGN_ENTITLEMENTS=${projectRef.entitlementsPath}`);
+        archiveArgs.push(`CODE_SIGN_ENTITLEMENTS=${entitlementsPath}`);
     }
-    if (projectRef.platform === 'iOS') {
+    if (platform === 'iOS') {
         archiveArgs.push('COPY_PHASE_STRIP=NO');
     }
-    if (projectRef.platform === 'macOS' && !projectRef.isAppStoreUpload()) {
+    if (platform === 'macOS' && !projectRef.isAppStoreUpload()) {
         archiveArgs.push('ENABLE_HARDENED_RUNTIME=YES');
     }
     if (!core.isDebug()) {
@@ -470,26 +504,23 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     } else {
         await execWithXcBeautify(archiveArgs);
     }
-    projectRef.archivePath = archivePath
     return projectRef;
 }
 
 export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<XcodeProject> {
-    const { projectName, projectDirectory, archivePath, exportOptionsPath } = projectRef;
-    projectRef.exportPath = `${projectDirectory}/${projectName}`;
-    core.debug(`Export path: ${projectRef.exportPath}`);
-    core.setOutput('output-directory', projectRef.exportPath);
-    const { manualProvisioningProfileUUID } = projectRef.credential;
+    const { platform, archivePath, exportPath, exportOptionsPath, credential } = projectRef;
+    core.debug(`Export path: ${exportPath}`);
+    core.setOutput('output-directory', exportPath);
     const exportArgs = [
         '-exportArchive',
         '-archivePath', archivePath,
-        '-exportPath', projectRef.exportPath,
+        '-exportPath', exportPath,
         '-exportOptionsPlist', exportOptionsPath,
-        `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
-        `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
-        `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
+        `-authenticationKeyID`, credential.appStoreConnectKeyId,
+        `-authenticationKeyPath`, credential.appStoreConnectKeyPath,
+        `-authenticationKeyIssuerID`, credential.appStoreConnectIssuerId
     ];
-    if (!manualProvisioningProfileUUID) {
+    if (!credential.manualProvisioningProfileUUID) {
         exportArgs.push(`-allowProvisioningUpdates`);
     }
     if (!core.isDebug()) {
@@ -502,15 +533,15 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
     } else {
         await execWithXcBeautify(exportArgs);
     }
-    if (projectRef.platform === 'macOS') {
+    if (platform === 'macOS') {
         if (!projectRef.isAppStoreUpload()) {
-            projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
+            projectRef.executablePath = await getFirstPathWithGlob(`${exportPath}/**/*.app`);
             if (projectRef.notarize) {
                 await signMacOSAppBundle(projectRef);
                 if (projectRef.isSteamBuild) {
                     const isNotarized = await isAppBundleNotarized(projectRef.executablePath);
                     if (!isNotarized) {
-                        const zipPath = path.join(projectRef.exportPath, projectRef.executablePath.replace('.app', '.zip'));
+                        const zipPath = path.join(exportPath, projectRef.executablePath.replace('.app', '.zip'));
                         await exec('ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', projectRef.executablePath, zipPath]);
                         await notarizeArchive(projectRef, zipPath, projectRef.executablePath);
                     }
@@ -524,10 +555,10 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
             }
         }
         else {
-            projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.pkg`);
+            projectRef.executablePath = await getFirstPathWithGlob(`${exportPath}/**/*.pkg`);
         }
     } else {
-        projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.ipa`);
+        projectRef.executablePath = await getFirstPathWithGlob(`${exportPath}/**/*.ipa`);
     }
     try {
         await fs.promises.access(projectRef.executablePath, fs.constants.R_OK);
@@ -928,13 +959,12 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
     projectRef.exportOptionsPath = exportOptionsPath;
 }
 
-async function getDefaultEntitlementsMacOS(projectRef: XcodeProject): Promise<void> {
+async function getDefaultEntitlementsMacOS(projectRef: XcodeProject): Promise<string> {
     const entitlementsPath = `${projectRef.projectPath}/Entitlements.plist`;
-    projectRef.entitlementsPath = entitlementsPath;
     try {
         await fs.promises.access(entitlementsPath, fs.constants.R_OK);
         core.debug(`Existing Entitlements.plist found at: ${entitlementsPath}`);
-        return;
+        return entitlementsPath;
     } catch (error) {
         core.warning('Entitlements.plist not found, creating default Entitlements.plist...');
     }
@@ -960,6 +990,7 @@ async function getDefaultEntitlementsMacOS(projectRef: XcodeProject): Promise<vo
             break;
     }
     await fs.promises.writeFile(entitlementsPath, plist.build(defaultEntitlements));
+    return entitlementsPath;
 }
 
 async function execXcodeBuild(xcodeBuildArgs: string[]) {

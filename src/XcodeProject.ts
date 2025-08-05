@@ -7,6 +7,7 @@ export class XcodeProject {
         projectName: string,
         platform: string,
         destination: string,
+        configuration: string,
         bundleId: string,
         projectDirectory: string,
         versionString: string,
@@ -19,6 +20,9 @@ export class XcodeProject {
         this.projectName = projectName;
         this.platform = platform;
         this.destination = destination;
+        this.configuration = configuration;
+        this.archivePath = `${this.projectDirectory}/${this.projectName}.xcarchive`;
+        this.exportPath = `${this.projectDirectory}/${this.projectName}`;
         this.bundleId = bundleId;
         this.projectDirectory = projectDirectory;
         this.versionString = versionString;
@@ -36,12 +40,13 @@ export class XcodeProject {
     credential: AppleCredential;
     platform: string;
     destination: string;
+    configuration: string;
     archivePath: string;
     exportPath: string;
     executablePath: string;
     exportOption: string;
     exportOptionsPath: string;
-    entitlementsPath: string;
+    entitlementsPath: string | null = null;
     versionString: string;
     bundleVersion: string;
     scheme: string;

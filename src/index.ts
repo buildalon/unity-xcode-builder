@@ -2,11 +2,13 @@ import core = require('@actions/core');
 import exec = require('@actions/exec');
 import {
     GetProjectDetails,
+    BuildXcodeProject,
     ArchiveXcodeProject,
     ExportXcodeArchive,
     ValidateApp,
     UploadApp
 } from './xcode';
+
 import {
     ImportCredentials,
     RemoveCredentials
@@ -94,6 +96,8 @@ const main = async () => {
                 throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
             }
             let projectRef = await GetProjectDetails(credential, semver.coerce(xcodeVersionString));
+            // Run a build step before archiving to catch errors early and generate intermediate artifacts
+            projectRef = await BuildXcodeProject(projectRef);
             projectRef = await ArchiveXcodeProject(projectRef);
             projectRef = await ExportXcodeArchive(projectRef);
             const uploadInput = core.getInput('upload') || projectRef.isAppStoreUpload().toString();
