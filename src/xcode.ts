@@ -225,7 +225,8 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 async function patchGameAssemblyRunScriptOutput(projectDirectory: string): Promise<void> {
     const pbxprojPath = `${projectDirectory}/GameAssembly.xcodeproj/project.pbxproj`;
     if (!fs.existsSync(pbxprojPath)) {
-        throw new Error(`Failed to find pbxproj file at: ${pbxprojPath}. Please ensure the GameAssembly.xcodeproj exists.`);
+        core.info(`No GameAssembly.xcodeproj found to patch ${pbxprojPath}`);
+        return;
     }
     let pbxprojContent = await fs.promises.readFile(pbxprojPath, 'utf8');
     // Regex to find the Run Script phase for GameAssembly and patch outputPaths
