@@ -58853,18 +58853,7 @@ async function ArchiveXcodeProject(projectRef) {
     if (platform === 'macOS' && !projectRef.isAppStoreUpload()) {
         archiveArgs.push('ENABLE_HARDENED_RUNTIME=YES');
     }
-    if (!core.isDebug()) {
-        archiveArgs.push('-quiet');
-    }
-    else {
-        archiveArgs.push('-verbose');
-    }
-    if (core.isDebug()) {
-        await execXcodeBuild(archiveArgs);
-    }
-    else {
-        await execWithXcBeautify(archiveArgs);
-    }
+    await execXcodeBuild(archiveArgs);
     return projectRef;
 }
 async function ExportXcodeArchive(projectRef) {
@@ -59364,7 +59353,8 @@ async function getDefaultEntitlementsMacOS(projectRef) {
 }
 async function execXcodeBuild(xcodeBuildArgs) {
     let output = '';
-    core.startGroup(`xcodebuild ${xcodeBuildArgs.join(' ')}`);
+    core.startGroup(`run xcodebuild`);
+    xcodeBuildArgs.forEach(arg => core.info(`  ${arg}`));
     try {
         const exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
             listeners: {
