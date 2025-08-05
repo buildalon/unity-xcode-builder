@@ -54,9 +54,9 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     }
     core.debug(`Resolved Project path: ${projectPath}`);
     await fs.promises.access(projectPath, fs.constants.R_OK);
-    await patchGameAssemblyRunScriptOutput(projectPath);
     const projectDirectory = path.dirname(projectPath);
     core.info(`Project directory: ${projectDirectory}`);
+    await patchGameAssemblyRunScriptOutput(projectDirectory);
     const projectName = path.basename(projectPath, '.xcodeproj');
     const scheme = await getProjectScheme(projectPath);
     const platform = await getSupportedPlatform(projectPath);
@@ -220,8 +220,8 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 /**
  * Patch the Run Script build phase for GameAssembly to add output paths.
  */
-async function patchGameAssemblyRunScriptOutput(projectPath: string): Promise<void> {
-    const pbxprojPath = `${projectPath}/GameAssembly.xcodeproj/project.pbxproj`;
+async function patchGameAssemblyRunScriptOutput(projectDirectory: string): Promise<void> {
+    const pbxprojPath = `${projectDirectory}/GameAssembly.xcodeproj/project.pbxproj`;
     if (!fs.existsSync(pbxprojPath)) {
         throw new Error(`Failed to find pbxproj file at: ${pbxprojPath}. Please ensure the GameAssembly.xcodeproj exists.`);
     }
