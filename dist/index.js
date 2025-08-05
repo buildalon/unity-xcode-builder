@@ -58398,7 +58398,6 @@ function DeepEqual(a, b) {
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetProjectDetails = GetProjectDetails;
-exports.BuildXcodeProject = BuildXcodeProject;
 exports.ArchiveXcodeProject = ArchiveXcodeProject;
 exports.ExportXcodeArchive = ExportXcodeArchive;
 exports.isAppBundleNotarized = isAppBundleNotarized;
@@ -58450,7 +58449,6 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`Project directory: ${projectDirectory}`);
     const projectFiles = await fs.promises.readdir(projectDirectory);
     projectFiles.forEach(file => core.info(`  > ${file}`));
-    await patchGameAssemblyRunScriptOutput(projectDirectory);
     const projectName = path.basename(projectPath, '.xcodeproj');
     const scheme = await getProjectScheme(projectPath);
     const platform = await getSupportedPlatform(projectPath);
@@ -58780,29 +58778,6 @@ async function downloadPlatformSdkIfMissing(platform, version) {
     if (version) {
         await (0, exec_1.exec)('xcodes', ['runtimes', 'install', `${platform} ${version}`]);
     }
-}
-async function BuildXcodeProject(projectRef) {
-    const { projectPath, scheme, destination, platform, projectDirectory } = projectRef;
-    const configuration = core.getInput('configuration') || 'Release';
-    const buildArgs = [
-        'build',
-        '-project', projectPath,
-        '-scheme', scheme,
-        '-destination', destination,
-        '-configuration', configuration,
-        '-derivedDataPath', `${projectDirectory}/DerivedData`,
-        'CODE_SIGN_IDENTITY=-',
-        'CODE_SIGNING_REQUIRED=NO',
-        'CODE_SIGNING_ALLOWED=NO'
-    ];
-    if (platform === 'iOS') {
-        buildArgs.push('COPY_PHASE_STRIP=NO');
-    }
-    if (platform === 'macOS' && !projectRef.isAppStoreUpload()) {
-        buildArgs.push('ENABLE_HARDENED_RUNTIME=YES');
-    }
-    await execXcodeBuild(buildArgs);
-    return projectRef;
 }
 async function ArchiveXcodeProject(projectRef) {
     const { projectPath, scheme, platform, destination, configuration, archivePath, entitlementsPath, projectDirectory, credential } = projectRef;
@@ -61627,7 +61602,6 @@ const main = async () => {
                 throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
             }
             let projectRef = await (0, xcode_1.GetProjectDetails)(credential, semver.coerce(xcodeVersionString));
-            projectRef = await (0, xcode_1.BuildXcodeProject)(projectRef);
             projectRef = await (0, xcode_1.ArchiveXcodeProject)(projectRef);
             projectRef = await (0, xcode_1.ExportXcodeArchive)(projectRef);
             const uploadInput = core.getInput('upload') || projectRef.isAppStoreUpload().toString();

@@ -58,7 +58,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     core.info(`Project directory: ${projectDirectory}`);
     const projectFiles = await fs.promises.readdir(projectDirectory);
     projectFiles.forEach(file => core.info(`  > ${file}`));
-    await patchGameAssemblyRunScriptOutput(projectDirectory);
+    //await patchGameAssemblyRunScriptOutput(projectDirectory);
     const projectName = path.basename(projectPath, '.xcodeproj');
     const scheme = await getProjectScheme(projectPath);
     const platform = await getSupportedPlatform(projectPath);
@@ -403,38 +403,38 @@ async function downloadPlatformSdkIfMissing(platform: string, version: string | 
     }
 }
 
-export async function BuildXcodeProject(projectRef: XcodeProject): Promise<XcodeProject> {
-    const { projectPath, scheme, destination, platform, projectDirectory } = projectRef;
-    const configuration = core.getInput('configuration') || 'Release';
-    const buildArgs = [
-        'build',
-        '-project', projectPath,
-        '-scheme', scheme,
-        '-destination', destination,
-        '-configuration', configuration,
-        '-derivedDataPath', `${projectDirectory}/DerivedData`,
-        'CODE_SIGN_IDENTITY=-',
-        'CODE_SIGNING_REQUIRED=NO',
-        'CODE_SIGNING_ALLOWED=NO'
-    ];
-    if (platform === 'iOS') {
-        buildArgs.push('COPY_PHASE_STRIP=NO');
-    }
-    if (platform === 'macOS' && !projectRef.isAppStoreUpload()) {
-        buildArgs.push('ENABLE_HARDENED_RUNTIME=YES');
-    }
-    // if (!core.isDebug()) {
-    //     buildArgs.push('-quiet');
-    // } else {
-    //     buildArgs.push('-verbose');
-    // }
-    // if (core.isDebug()) {
-    await execXcodeBuild(buildArgs);
-    // } else {
-    //     await execWithXcBeautify(buildArgs);
-    // }
-    return projectRef;
-}
+// export async function BuildXcodeProject(projectRef: XcodeProject): Promise<XcodeProject> {
+//     const { projectPath, scheme, destination, platform, projectDirectory } = projectRef;
+//     const configuration = core.getInput('configuration') || 'Release';
+//     const buildArgs = [
+//         'build',
+//         '-project', projectPath,
+//         '-scheme', scheme,
+//         '-destination', destination,
+//         '-configuration', configuration,
+//         '-derivedDataPath', `${projectDirectory}/DerivedData`,
+//         'CODE_SIGN_IDENTITY=-',
+//         'CODE_SIGNING_REQUIRED=NO',
+//         'CODE_SIGNING_ALLOWED=NO'
+//     ];
+//     if (platform === 'iOS') {
+//         buildArgs.push('COPY_PHASE_STRIP=NO');
+//     }
+//     if (platform === 'macOS' && !projectRef.isAppStoreUpload()) {
+//         buildArgs.push('ENABLE_HARDENED_RUNTIME=YES');
+//     }
+//     // if (!core.isDebug()) {
+//     //     buildArgs.push('-quiet');
+//     // } else {
+//     //     buildArgs.push('-verbose');
+//     // }
+//     // if (core.isDebug()) {
+//     await execXcodeBuild(buildArgs);
+//     // } else {
+//     //     await execWithXcBeautify(buildArgs);
+//     // }
+//     return projectRef;
+// }
 
 export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<XcodeProject> {
     const { projectPath, scheme, platform, destination, configuration, archivePath, entitlementsPath, projectDirectory, credential } = projectRef;

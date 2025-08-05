@@ -2,7 +2,7 @@ import core = require('@actions/core');
 import exec = require('@actions/exec');
 import {
     GetProjectDetails,
-    BuildXcodeProject,
+    // BuildXcodeProject,
     ArchiveXcodeProject,
     ExportXcodeArchive,
     ValidateApp,
@@ -97,7 +97,7 @@ const main = async () => {
             }
             let projectRef = await GetProjectDetails(credential, semver.coerce(xcodeVersionString));
             // Run a build step before archiving to catch errors early and generate intermediate artifacts
-            projectRef = await BuildXcodeProject(projectRef);
+            // projectRef = await BuildXcodeProject(projectRef);
             projectRef = await ArchiveXcodeProject(projectRef);
             projectRef = await ExportXcodeArchive(projectRef);
             const uploadInput = core.getInput('upload') || projectRef.isAppStoreUpload().toString();
