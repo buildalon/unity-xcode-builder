@@ -8,6 +8,8 @@ import xcode = require('xcode');
 import path = require('path');
 import fs = require('fs');
 import semver = require('semver');
+// Explicit require to ensure ncc bundles bplist-creator (used by xcode)
+require('bplist-creator');
 import {
     DeepEqual,
     log
@@ -240,16 +242,21 @@ async function patchGameAssemblyRunScriptOutput(projectPath: string): Promise<vo
         // phase can be an object or a wrapper with 'isa' property
         const obj = (phase as any);
         if (obj && obj.name === 'Run Script' && obj.shellScript && obj.shellScript.includes('GameAssembly')) {
-            // Set outputPaths to ["${DERIVED_FILE_DIR}/il2cpp_outputs"]
-            obj.outputPaths = ["${DERIVED_FILE_DIR}/il2cpp_outputs"];
+            const desiredOutput = "${DERIVED_FILE_DIR}/il2cpp_outputs";
+            if (Array.isArray(obj.outputPaths) &&
+                obj.outputPaths.length === 1 &&
+                obj.outputPaths[0] === desiredOutput) {
+                continue;
+            }
+            obj.outputPaths = [desiredOutput];
             modified = true;
         }
     }
     if (modified) {
         await fs.promises.writeFile(pbxprojPath, project.writeSync(), 'utf8');
-        core.info(`Patched GameAssembly Run Script output path in ${pbxprojPath} to [36m${'${DERIVED_FILE_DIR}/il2cpp_outputs'}[0m`);
+        core.info(`Patched GameAssembly Run Script output path in ${pbxprojPath} to ${'${DERIVED_FILE_DIR}/il2cpp_outputs'}`);
     } else {
-        core.info('No GameAssembly Run Script phase found to patch.');
+        core.info('No GameAssembly Run Script phase found to patch or already set.');
     }
 }
 

@@ -19963,6 +19963,474 @@ function removeHook(state, name, method) {
 
 /***/ }),
 
+/***/ 4067:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+
+// adapted from http://code.google.com/p/plist/source/browse/trunk/src/main/java/com/dd/plist/BinaryPropertyListWriter.java
+
+var streamBuffers = __nccwpck_require__(8168);
+
+var debug = false;
+
+function Real(value) {
+  this.value = value;
+}
+
+module.exports = function(dicts) {
+  var buffer = new streamBuffers.WritableStreamBuffer();
+  buffer.write(Buffer.from("bplist00"));
+
+  if (debug) {
+    console.log('create', (__nccwpck_require__(3837).inspect)(dicts, false, 10));
+  }
+
+  if (dicts instanceof Array && dicts.length === 1) {
+    dicts = dicts[0];
+  }
+
+  var entries = toEntries(dicts);
+  if (debug) {
+    console.log('entries', entries);
+  }
+  var idSizeInBytes = computeIdSizeInBytes(entries.length);
+  var offsets = [];
+  var offsetSizeInBytes;
+  var offsetTableOffset;
+
+  updateEntryIds();
+
+  entries.forEach(function(entry, entryIdx) {
+    offsets[entryIdx] = buffer.size();
+    if (!entry) {
+      buffer.write(0x00);
+    } else {
+      write(entry);
+    }
+  });
+
+  writeOffsetTable();
+  writeTrailer();
+  return buffer.getContents();
+
+  function updateEntryIds() {
+    var strings = {};
+    var entryId = 0;
+    entries.forEach(function(entry) {
+      if (entry.id) {
+        return;
+      }
+      if (entry.type === 'string') {
+        if (!entry.bplistOverride && strings.hasOwnProperty(entry.value)) {
+          entry.type = 'stringref';
+          entry.id = strings[entry.value];
+        } else {
+          strings[entry.value] = entry.id = entryId++;
+        }
+      } else {
+        entry.id = entryId++;
+      }
+    });
+
+    entries = entries.filter(function(entry) {
+      return (entry.type !== 'stringref');
+    });
+  }
+
+  function writeTrailer() {
+    if (debug) {
+      console.log('0x' + buffer.size().toString(16), 'writeTrailer');
+    }
+    // 6 null bytes
+    buffer.write(Buffer.from([0, 0, 0, 0, 0, 0]));
+
+    // size of an offset
+    if (debug) {
+      console.log('0x' + buffer.size().toString(16), 'writeTrailer(offsetSizeInBytes):', offsetSizeInBytes);
+    }
+    writeByte(offsetSizeInBytes);
+
+    // size of a ref
+    if (debug) {
+      console.log('0x' + buffer.size().toString(16), 'writeTrailer(offsetSizeInBytes):', idSizeInBytes);
+    }
+    writeByte(idSizeInBytes);
+
+    // number of objects
+    if (debug) {
+      console.log('0x' + buffer.size().toString(16), 'writeTrailer(number of objects):', entries.length);
+    }
+    writeLong(entries.length);
+
+    // top object
+    if (debug) {
+      console.log('0x' + buffer.size().toString(16), 'writeTrailer(top object)');
+    }
+    writeLong(0);
+
+    // offset table offset
+    if (debug) {
+      console.log('0x' + buffer.size().toString(16), 'writeTrailer(offset table offset):', offsetTableOffset);
+    }
+    writeLong(offsetTableOffset);
+  }
+
+  function writeOffsetTable() {
+    if (debug) {
+      console.log('0x' + buffer.size().toString(16), 'writeOffsetTable');
+    }
+    offsetTableOffset = buffer.size();
+    offsetSizeInBytes = computeOffsetSizeInBytes(offsetTableOffset);
+    offsets.forEach(function(offset) {
+      writeBytes(offset, offsetSizeInBytes);
+    });
+  }
+
+  function write(entry) {
+    switch (entry.type) {
+    case 'dict':
+      writeDict(entry);
+      break;
+    case 'number':
+    case 'double':
+      writeNumber(entry);
+      break;
+    case 'UID':
+      writeUID(entry);
+      break;
+    case 'array':
+      writeArray(entry);
+      break;
+    case 'boolean':
+      writeBoolean(entry);
+      break;
+    case 'string':
+    case 'string-utf16':
+      writeString(entry);
+      break;
+    case 'date':
+      writeDate(entry);
+      break;
+    case 'data':
+      writeData(entry);
+      break;
+    default:
+      throw new Error("unhandled entry type: " + entry.type);
+    }
+  }
+
+  function writeDate(entry) {
+    writeByte(0x33);
+    var date = (Date.parse(entry.value)/1000) - 978307200
+    writeDouble(date)
+  }
+
+  function writeDict(entry) {
+    if (debug) {
+      var keysStr = entry.entryKeys.map(function(k) {return k.id;});
+      var valsStr = entry.entryValues.map(function(k) {return k.id;});
+      console.log('0x' + buffer.size().toString(16), 'writeDict', '(id: ' + entry.id + ')', '(keys: ' + keysStr + ')', '(values: ' + valsStr + ')');
+    }
+    writeIntHeader(0xD, entry.entryKeys.length);
+    entry.entryKeys.forEach(function(entry) {
+      writeID(entry.id);
+    });
+    entry.entryValues.forEach(function(entry) {
+      writeID(entry.id);
+    });
+  }
+
+  function writeNumber(entry) {
+    if (debug) {
+      console.log('0x' + buffer.size().toString(16), 'writeNumber', entry.value, ' (type: ' + entry.type + ')', '(id: ' + entry.id + ')');
+    }
+
+    if (typeof entry.value === 'bigint') {
+      var width = 16;
+      var hex = entry.value.toString(width);
+      var buf = Buffer.from(hex.padStart(width * 2, '0').slice(0, width * 2), 'hex');
+      writeByte(0x14);
+      buffer.write(buf);
+    } else if (entry.type !== 'double' && parseFloat(entry.value).toFixed() == entry.value) {
+      if (entry.value < 0) {
+        writeByte(0x13);
+        writeBytes(entry.value, 8, true);
+      } else if (entry.value <= 0xff) {
+        writeByte(0x10);
+        writeBytes(entry.value, 1);
+      } else if (entry.value <= 0xffff) {
+        writeByte(0x11);
+        writeBytes(entry.value, 2);
+      } else if (entry.value <= 0xffffffff) {
+        writeByte(0x12);
+        writeBytes(entry.value, 4);
+      } else {
+        writeByte(0x13);
+        writeBytes(entry.value, 8);
+      }
+    } else {
+      writeByte(0x23);
+      writeDouble(entry.value);
+    }
+  }
+
+  function writeUID(entry) {
+    if (debug) {
+      console.log('0x' + buffer.size().toString(16), 'writeUID', entry.value, ' (type: ' + entry.type + ')', '(id: ' + entry.id + ')');
+    }
+
+    writeIntHeader(0x8, 0x0);
+    writeID(entry.value);
+  }
+
+  function writeArray(entry) {
+    if (debug) {
+      console.log('0x' + buffer.size().toString(16), 'writeArray (length: ' + entry.entries.length + ')', '(id: ' + entry.id + ')');
+    }
+    writeIntHeader(0xA, entry.entries.length);
+    entry.entries.forEach(function(e) {
+      writeID(e.id);
+    });
+  }
+
+  function writeBoolean(entry) {
+    if (debug) {
+      console.log('0x' + buffer.size().toString(16), 'writeBoolean', entry.value, '(id: ' + entry.id + ')');
+    }
+    writeByte(entry.value ? 0x09 : 0x08);
+  }
+
+  function writeString(entry) {
+    if (debug) {
+      console.log('0x' + buffer.size().toString(16), 'writeString', entry.value, '(id: ' + entry.id + ')');
+    }
+    if (entry.type === 'string-utf16' || mustBeUtf16(entry.value)) {
+      var utf16 = Buffer.from(entry.value, 'ucs2');
+      writeIntHeader(0x6, utf16.length / 2);
+      // needs to be big endian so swap the bytes
+      for (var i = 0; i < utf16.length; i += 2) {
+        var t = utf16[i + 0];
+        utf16[i + 0] = utf16[i + 1];
+        utf16[i + 1] = t;
+      }
+      buffer.write(utf16);
+    } else {
+      var utf8 = Buffer.from(entry.value, 'ascii');
+      writeIntHeader(0x5, utf8.length);
+      buffer.write(utf8);
+    }
+  }
+
+  function writeData(entry) {
+    if (debug) {
+      console.log('0x' + buffer.size().toString(16), 'writeData', entry.value, '(id: ' + entry.id + ')');
+    }
+    writeIntHeader(0x4, entry.value.length);
+    buffer.write(entry.value);
+  }
+
+  function writeLong(l) {
+    writeBytes(l, 8);
+  }
+
+  function writeByte(b) {
+    buffer.write(Buffer.from([b]));
+  }
+
+  function writeDouble(v) {
+    var buf = Buffer.alloc(8);
+    buf.writeDoubleBE(v, 0);
+    buffer.write(buf);
+  }
+
+  function writeIntHeader(kind, value) {
+    if (value < 15) {
+      writeByte((kind << 4) + value);
+    } else if (value < 256) {
+      writeByte((kind << 4) + 15);
+      writeByte(0x10);
+      writeBytes(value, 1);
+    } else if (value < 65536) {
+      writeByte((kind << 4) + 15);
+      writeByte(0x11);
+      writeBytes(value, 2);
+    } else {
+      writeByte((kind << 4) + 15);
+      writeByte(0x12);
+      writeBytes(value, 4);
+    }
+  }
+
+  function writeID(id) {
+    writeBytes(id, idSizeInBytes);
+  }
+
+  function writeBytes(value, bytes, is_signedint) {
+    // write low-order bytes big-endian style
+    var buf = Buffer.alloc(bytes);
+    var z = 0;
+
+    // javascript doesn't handle large numbers
+    while (bytes > 4) {
+      buf[z++] = is_signedint ? 0xff : 0;
+      bytes--;
+    }
+
+    for (var i = bytes - 1; i >= 0; i--) {
+      buf[z++] = value >> (8 * i);
+    }
+    buffer.write(buf);
+  }
+
+  function mustBeUtf16(string) {
+    return Buffer.byteLength(string, 'utf8') != string.length;
+  }
+};
+
+function toEntries(dicts) {
+  if (dicts.bplistOverride) {
+    return [dicts];
+  }
+
+  if (dicts instanceof Array) {
+    return toEntriesArray(dicts);
+  } else if (dicts instanceof Buffer) {
+    return [
+      {
+        type: 'data',
+        value: dicts
+      }
+    ];
+  } else if (dicts instanceof Real) {
+    return [
+      {
+        type: 'double',
+        value: dicts.value
+      }
+    ];
+  } else if (typeof(dicts) === 'object') {
+    if (dicts instanceof Date) {
+      return [
+        {
+          type: 'date',
+          value: dicts
+        }
+      ]
+    } else if (Object.keys(dicts).length == 1 && typeof(dicts.UID) === 'number') {
+      return [
+        {
+          type: 'UID',
+          value: dicts.UID
+        }
+      ]
+    } else {
+      return toEntriesObject(dicts);
+    }
+  } else if (typeof(dicts) === 'string') {
+    return [
+      {
+        type: 'string',
+        value: dicts
+      }
+    ];
+  } else if (typeof(dicts) === 'number') {
+    return [
+      {
+        type: 'number',
+        value: dicts
+      }
+    ];
+  } else if (typeof(dicts) === 'boolean') {
+    return [
+      {
+        type: 'boolean',
+        value: dicts
+      }
+    ];
+  } else if (typeof(dicts) === 'bigint') {
+    return [
+      {
+        type: 'number',
+        value: dicts
+      }
+    ];
+  } else {
+    throw new Error('unhandled entry: ' + dicts);
+  }
+}
+
+function toEntriesArray(arr) {
+  if (debug) {
+    console.log('toEntriesArray');
+  }
+  var results = [
+    {
+      type: 'array',
+      entries: []
+    }
+  ];
+  arr.forEach(function(v) {
+    var entry = toEntries(v);
+    results[0].entries.push(entry[0]);
+    results = results.concat(entry);
+  });
+  return results;
+}
+
+function toEntriesObject(dict) {
+  if (debug) {
+    console.log('toEntriesObject');
+  }
+  var results = [
+    {
+      type: 'dict',
+      entryKeys: [],
+      entryValues: []
+    }
+  ];
+  Object.keys(dict).forEach(function(key) {
+    var entryKey = toEntries(key);
+    results[0].entryKeys.push(entryKey[0]);
+    results = results.concat(entryKey[0]);
+  });
+  Object.keys(dict).forEach(function(key) {
+    var entryValue = toEntries(dict[key]);
+    results[0].entryValues.push(entryValue[0]);
+    results = results.concat(entryValue);
+  });
+  return results;
+}
+
+function computeOffsetSizeInBytes(maxOffset) {
+  if (maxOffset < 256) {
+    return 1;
+  }
+  if (maxOffset < 65536) {
+    return 2;
+  }
+  if (maxOffset < 4294967296) {
+    return 4;
+  }
+  return 8;
+}
+
+function computeIdSizeInBytes(numberOfIds) {
+  if (numberOfIds < 256) {
+    return 1;
+  }
+  if (numberOfIds < 65536) {
+    return 2;
+  }
+  return 4;
+}
+
+module.exports.Real = Real;
+
+
+/***/ }),
+
 /***/ 3717:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -29006,6 +29474,276 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     // preserve backwards compatibility
     module.exports = SimplePlist;
 });
+
+
+/***/ }),
+
+/***/ 2619:
+/***/ ((module) => {
+
+module.exports = {
+	DEFAULT_INITIAL_SIZE: (8 * 1024),
+	DEFAULT_INCREMENT_AMOUNT: (8 * 1024),
+	DEFAULT_FREQUENCY: 1,
+	DEFAULT_CHUNK_SIZE: 1024
+};
+
+
+/***/ }),
+
+/***/ 8838:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+var stream = __nccwpck_require__(2781),
+	constants = __nccwpck_require__(2619),
+	util = __nccwpck_require__(3837);
+
+var ReadableStreamBuffer = module.exports = function(opts) {
+	var that = this;
+
+	stream.Stream.call(this);
+
+	opts = opts || {};
+	var frequency = opts.hasOwnProperty("frequency") ? opts.frequency : constants.DEFAULT_FREQUENCY;
+	var chunkSize = opts.chunkSize || constants.DEFAULT_CHUNK_SIZE;
+	var initialSize = opts.initialSize || constants.DEFAULT_INITIAL_SIZE;
+	var incrementAmount = opts.incrementAmount || constants.DEFAULT_INCREMENT_AMOUNT;
+
+	var size = 0;
+	var buffer = new Buffer(initialSize);
+	var encoding = null;
+
+	this.readable = true;
+	this.writable = false;
+
+	var sendData = function() {
+		var amount = Math.min(chunkSize, size);
+
+		if (amount > 0) {
+			var chunk = null;
+			if(encoding) {
+				chunk = buffer.toString(encoding, 0, amount);
+			}
+			else {
+				chunk = new Buffer(amount);
+				buffer.copy(chunk, 0, 0, amount);
+			}
+
+			that.emit("data", chunk);
+
+			if(amount < buffer.length)
+				buffer.copy(buffer, 0, amount, size);
+			size -= amount;
+		}
+
+		if(size === 0 && !that.readable) {
+			that.emit("end");
+			that.emit("close");
+			if (sendData && sendData.interval) {
+				clearInterval(sendData.interval);
+				sendData.interval = null;
+			}
+		}
+	};
+
+	this.size = function() {
+		return size;
+	};
+
+	this.maxSize = function() {
+		return buffer.length;
+	};
+
+	var increaseBufferIfNecessary = function(incomingDataSize) {
+		if((buffer.length - size) < incomingDataSize) {
+			var factor = Math.ceil((incomingDataSize - (buffer.length - size)) / incrementAmount);
+
+			var newBuffer = new Buffer(buffer.length + (incrementAmount * factor));
+			buffer.copy(newBuffer, 0, 0, size);
+			buffer = newBuffer;
+		}
+	};
+
+	this.put = function(data, encoding) {
+		if(!that.readable) return;
+
+		var wasEmpty = size === 0;
+		if(Buffer.isBuffer(data)) {
+			increaseBufferIfNecessary(data.length);
+			data.copy(buffer, size, 0);
+			size += data.length;
+		}
+		else {
+			data = data + "";
+			var dataSizeInBytes = Buffer.byteLength(data);
+			increaseBufferIfNecessary(dataSizeInBytes);
+			buffer.write(data, size, encoding || "utf8");
+			size += dataSizeInBytes;
+		}
+
+		if (wasEmpty && size > 0) {
+			this.emit('readable')
+		}
+
+		if (!this.isPaused && !frequency) {
+			while (size > 0) {
+				sendData();
+			}
+		}
+	};
+
+	this.pause = function() {
+		this.isPaused = true;
+		if(sendData && sendData.interval) {
+			clearInterval(sendData.interval);
+			delete sendData.interval;
+		}
+	};
+
+	this.resume = function() {
+		this.isPaused = false;
+		if(sendData && !sendData.interval && frequency > 0) {
+			sendData.interval = setInterval(sendData, frequency);
+		}
+	};
+
+	this.destroy = function() {
+		that.emit("end");
+		if(sendData.interval) clearInterval(sendData.interval);
+		sendData = null;
+		that.readable = false;
+		that.emit("close");
+	};
+
+	this.destroySoon = function() {
+		that.readable = false;
+		if (!sendData.interval) {
+			that.emit("end");
+			that.emit("close");
+		}
+	};
+
+	this.setEncoding = function(_encoding) {
+		encoding = _encoding;
+	};
+
+	this.resume();
+};
+util.inherits(ReadableStreamBuffer, stream.Stream);
+
+
+/***/ }),
+
+/***/ 8168:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+module.exports = __nccwpck_require__(2619);
+module.exports.ReadableStreamBuffer = __nccwpck_require__(8838);
+module.exports.WritableStreamBuffer = __nccwpck_require__(9485);
+
+
+/***/ }),
+
+/***/ 9485:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+var util = __nccwpck_require__(3837),
+	stream = __nccwpck_require__(2781),
+	constants = __nccwpck_require__(2619);
+
+// TODO: clear up specs on returning false from a write and emitting a drain event.
+// Does this mean if I return false from a write, I should ignore any write requests between that false return and the drain event?
+var WritableStreamBuffer = module.exports = function(opts) {
+	var that = this;
+
+	stream.Stream.call(this);
+
+	opts = opts || {};
+	var initialSize = opts.initialSize || constants.DEFAULT_INITIAL_SIZE;
+	var incrementAmount = opts.incrementAmount || constants.DEFAULT_INCREMENT_AMOUNT;
+
+	var buffer = new Buffer(initialSize);
+	var size = 0;
+
+	this.writable = true;
+	this.readable = false;
+
+	this.size = function() {
+		return size;
+	};
+
+	this.maxSize = function() {
+		return buffer.length;
+	};
+
+	this.getContents = function(length) {
+		if(!size) return false;
+
+		var data = new Buffer(Math.min(length || size, size));
+		buffer.copy(data, 0, 0, data.length);
+
+		if(data.length < size)
+			buffer.copy(buffer, 0, data.length);
+
+		size -= data.length;
+
+		return data;
+	};
+
+	this.getContentsAsString = function(encoding, length) {
+		if(!size) return false;
+
+		var data = buffer.toString(encoding || "utf8", 0, Math.min(length || size, size));
+		var dataLength = Buffer.byteLength(data);
+
+		if(dataLength < size)
+			buffer.copy(buffer, 0, dataLength);
+
+		size -= dataLength;
+		return data;
+	};
+
+	var increaseBufferIfNecessary = function(incomingDataSize) {
+		if((buffer.length - size) < incomingDataSize) {
+			var factor = Math.ceil((incomingDataSize - (buffer.length - size)) / incrementAmount);
+
+			var newBuffer = new Buffer(buffer.length + (incrementAmount * factor));
+			buffer.copy(newBuffer, 0, 0, size);
+			buffer = newBuffer;
+		}
+	};
+
+	this.write = function(data, encoding, callback) {
+		if(!that.writable) return;
+
+		if(Buffer.isBuffer(data)) {
+			increaseBufferIfNecessary(data.length);
+			data.copy(buffer, size, 0);
+			size += data.length;
+		}
+		else {
+			data = data + "";
+			increaseBufferIfNecessary(Buffer.byteLength(data));
+			buffer.write(data, size, encoding || "utf8");
+			size += Buffer.byteLength(data);
+		}
+		
+		if(typeof callback === "function") { callback() ;}
+	};
+
+	this.end = function() {
+		var args = Array.prototype.slice.apply(arguments);
+		if(args.length) that.write.apply(that, args);
+		that.emit('finish');
+		that.destroy();
+	};
+
+	this.destroySoon = this.destroy = function() {
+		that.writable = false;
+		that.emit("close");
+	};
+};
+util.inherits(WritableStreamBuffer, stream.Stream);
 
 
 /***/ }),
@@ -63671,6 +64409,7 @@ const xcode = __nccwpck_require__(1390);
 const path = __nccwpck_require__(1017);
 const fs = __nccwpck_require__(7147);
 const semver = __nccwpck_require__(1383);
+__nccwpck_require__(4067);
 const utilities_1 = __nccwpck_require__(5739);
 const core = __nccwpck_require__(2186);
 const AppStoreConnectClient_1 = __nccwpck_require__(7486);
@@ -63883,16 +64622,22 @@ async function patchGameAssemblyRunScriptOutput(projectPath) {
     for (const phase of runScriptPhases) {
         const obj = phase;
         if (obj && obj.name === 'Run Script' && obj.shellScript && obj.shellScript.includes('GameAssembly')) {
-            obj.outputPaths = ["${DERIVED_FILE_DIR}/il2cpp_outputs"];
+            const desiredOutput = "${DERIVED_FILE_DIR}/il2cpp_outputs";
+            if (Array.isArray(obj.outputPaths) &&
+                obj.outputPaths.length === 1 &&
+                obj.outputPaths[0] === desiredOutput) {
+                continue;
+            }
+            obj.outputPaths = [desiredOutput];
             modified = true;
         }
     }
     if (modified) {
         await fs.promises.writeFile(pbxprojPath, project.writeSync(), 'utf8');
-        core.info(`Patched GameAssembly Run Script output path in ${pbxprojPath} to [36m${'${DERIVED_FILE_DIR}/il2cpp_outputs'}[0m`);
+        core.info(`Patched GameAssembly Run Script output path in ${pbxprojPath} to ${'${DERIVED_FILE_DIR}/il2cpp_outputs'}`);
     }
     else {
-        core.info('No GameAssembly Run Script phase found to patch.');
+        core.info('No GameAssembly Run Script phase found to patch or already set.');
     }
 }
 async function checkSimulatorsAvailable(platform) {
