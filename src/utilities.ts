@@ -1,8 +1,5 @@
 
 import core = require('@actions/core');
-import { exec } from '@actions/exec';
-import fs = require('fs');
-import path = require('path');
 
 export function log(message: string, type: 'info' | 'warning' | 'error' = 'info') {
     if (type == 'info' && !core.isDebug()) { return; }
@@ -52,53 +49,4 @@ export function DeepEqual(a: any, b: any): boolean {
         if (!DeepEqual(a[key], b[key])) return false;
     }
     return true;
-}
-
-export async function SetupCCache() {
-    let isFound = false;
-    let ccachePath = '';
-    try {
-        let output = '';
-        await exec('which', ['ccache'], {
-            silent: true,
-            listeners: {
-                stdout: (data: Buffer) => { output += data.toString(); }
-            }
-        });
-        ccachePath = output.trim();
-        isFound = !!ccachePath;
-    } catch {
-        try {
-            await exec('brew', ['install', 'ccache']);
-            let output = '';
-            await exec('which', ['ccache'], {
-                silent: true,
-                listeners: {
-                    stdout: (data: Buffer) => { output += data.toString(); }
-                }
-            });
-            ccachePath = output.trim();
-            isFound = !!ccachePath;
-        } catch {
-            core.warning('ccache could not be installed. Proceeding without ccache.');
-        }
-    }
-    if (isFound) {
-        await exec('ccache', ['-s']);
-        const runnerTemp = process.env['RUNNER_TEMP'];
-        const ccacheBin = `${runnerTemp}/ccache_bin`;
-        if (!fs.existsSync(ccacheBin)) {
-            fs.mkdirSync(ccacheBin, { recursive: true });
-        }
-        process.env['CCACHE_BIN'] = ccacheBin;
-        const clangPath = path.join(ccacheBin, 'clang');
-        const clang_ppPath = path.join(ccacheBin, 'clang++');
-        try { fs.unlinkSync(clangPath); } catch { }
-        try { fs.unlinkSync(clang_ppPath); } catch { }
-        fs.symlinkSync(ccachePath, clangPath);
-        fs.symlinkSync(ccachePath, clang_ppPath);
-        core.info('ccache is enabled for Xcode builds.');
-    } else {
-        throw new Error('ccache is not available. Please install ccache to enable caching for Xcode builds.');
-    }
 }

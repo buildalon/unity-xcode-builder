@@ -58328,11 +58328,7 @@ exports.XcodeProject = XcodeProject;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.log = log;
 exports.DeepEqual = DeepEqual;
-exports.SetupCCache = SetupCCache;
 const core = __nccwpck_require__(2186);
-const exec_1 = __nccwpck_require__(1514);
-const fs = __nccwpck_require__(7147);
-const path = __nccwpck_require__(1017);
 function log(message, type = 'info') {
     if (type == 'info' && !core.isDebug()) {
         return;
@@ -58390,63 +58386,6 @@ function DeepEqual(a, b) {
             return false;
     }
     return true;
-}
-async function SetupCCache() {
-    let isFound = false;
-    let ccachePath = '';
-    try {
-        let output = '';
-        await (0, exec_1.exec)('which', ['ccache'], {
-            silent: true,
-            listeners: {
-                stdout: (data) => { output += data.toString(); }
-            }
-        });
-        ccachePath = output.trim();
-        isFound = !!ccachePath;
-    }
-    catch (_a) {
-        try {
-            await (0, exec_1.exec)('brew', ['install', 'ccache']);
-            let output = '';
-            await (0, exec_1.exec)('which', ['ccache'], {
-                silent: true,
-                listeners: {
-                    stdout: (data) => { output += data.toString(); }
-                }
-            });
-            ccachePath = output.trim();
-            isFound = !!ccachePath;
-        }
-        catch (_b) {
-            core.warning('ccache could not be installed. Proceeding without ccache.');
-        }
-    }
-    if (isFound) {
-        await (0, exec_1.exec)('ccache', ['-s']);
-        const runnerTemp = process.env['RUNNER_TEMP'];
-        const ccacheBin = `${runnerTemp}/ccache_bin`;
-        if (!fs.existsSync(ccacheBin)) {
-            fs.mkdirSync(ccacheBin, { recursive: true });
-        }
-        process.env['CCACHE_BIN'] = ccacheBin;
-        const clangPath = path.join(ccacheBin, 'clang');
-        const clang_ppPath = path.join(ccacheBin, 'clang++');
-        try {
-            fs.unlinkSync(clangPath);
-        }
-        catch (_c) { }
-        try {
-            fs.unlinkSync(clang_ppPath);
-        }
-        catch (_d) { }
-        fs.symlinkSync(ccachePath, clangPath);
-        fs.symlinkSync(ccachePath, clang_ppPath);
-        core.info('ccache is enabled for Xcode builds.');
-    }
-    else {
-        throw new Error('ccache is not available. Please install ccache to enable caching for Xcode builds.');
-    }
 }
 
 
