@@ -58839,7 +58839,7 @@ async function ArchiveXcodeProject(projectRef) {
         '-destination', projectRef.destination,
         '-configuration', configuration,
         '-archivePath', archivePath,
-        '-derivedDataPath', 'DerivedData',
+        '-derivedDataPath', `${projectDirectory}/DerivedData`,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
@@ -58904,7 +58904,7 @@ async function ExportXcodeArchive(projectRef) {
         '-archivePath', archivePath,
         '-exportPath', projectRef.exportPath,
         '-exportOptionsPlist', exportOptionsPath,
-        '-derivedDataPath', 'DerivedData',
+        '-derivedDataPath', `${projectDirectory}/DerivedData`,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
