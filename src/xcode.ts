@@ -413,6 +413,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         '-destination', projectRef.destination,
         '-configuration', configuration,
         '-archivePath', archivePath,
+        '-derivedDataPath', 'DerivedData',
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
@@ -485,6 +486,7 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         '-archivePath', archivePath,
         '-exportPath', projectRef.exportPath,
         '-exportOptionsPlist', exportOptionsPath,
+        '-derivedDataPath', 'DerivedData',
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
