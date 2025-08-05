@@ -58862,18 +58862,7 @@ async function BuildXcodeProject(projectRef) {
     if (platform === 'macOS' && !projectRef.isAppStoreUpload()) {
         buildArgs.push('ENABLE_HARDENED_RUNTIME=YES');
     }
-    if (!core.isDebug()) {
-        buildArgs.push('-quiet');
-    }
-    else {
-        buildArgs.push('-verbose');
-    }
-    if (core.isDebug()) {
-        await execXcodeBuild(buildArgs);
-    }
-    else {
-        await execWithXcBeautify(buildArgs);
-    }
+    await execXcodeBuild(buildArgs);
     return projectRef;
 }
 async function ArchiveXcodeProject(projectRef) {
@@ -59436,21 +59425,27 @@ async function getDefaultEntitlementsMacOS(projectRef) {
 }
 async function execXcodeBuild(xcodeBuildArgs) {
     let output = '';
-    const exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
-        listeners: {
-            stdout: (data) => {
-                output += data.toString();
+    core.startGroup(`xcodebuild ${xcodeBuildArgs.join(' ')}`);
+    try {
+        const exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
+            listeners: {
+                stdout: (data) => {
+                    output += data.toString();
+                },
+                stderr: (data) => {
+                    output += data.toString();
+                }
             },
-            stderr: (data) => {
-                output += data.toString();
-            }
-        },
-        env: { ...process.env },
-        ignoreReturnCode: true
-    });
-    await parseBundleLog(output);
-    if (exitCode !== 0) {
-        throw new Error(`xcodebuild exited with code: ${exitCode}`);
+            env: { ...process.env },
+            ignoreReturnCode: true
+        });
+        await parseBundleLog(output);
+        if (exitCode !== 0) {
+            throw new Error(`xcodebuild exited with code: ${exitCode}`);
+        }
+    }
+    finally {
+        core.endGroup();
     }
 }
 async function execWithXcBeautify(xcodeBuildArgs) {

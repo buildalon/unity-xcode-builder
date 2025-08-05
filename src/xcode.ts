@@ -423,16 +423,16 @@ export async function BuildXcodeProject(projectRef: XcodeProject): Promise<Xcode
     if (platform === 'macOS' && !projectRef.isAppStoreUpload()) {
         buildArgs.push('ENABLE_HARDENED_RUNTIME=YES');
     }
-    if (!core.isDebug()) {
-        buildArgs.push('-quiet');
-    } else {
-        buildArgs.push('-verbose');
-    }
-    if (core.isDebug()) {
-        await execXcodeBuild(buildArgs);
-    } else {
-        await execWithXcBeautify(buildArgs);
-    }
+    // if (!core.isDebug()) {
+    //     buildArgs.push('-quiet');
+    // } else {
+    //     buildArgs.push('-verbose');
+    // }
+    // if (core.isDebug()) {
+    await execXcodeBuild(buildArgs);
+    // } else {
+    //     await execWithXcBeautify(buildArgs);
+    // }
     return projectRef;
 }
 
@@ -995,21 +995,26 @@ async function getDefaultEntitlementsMacOS(projectRef: XcodeProject): Promise<st
 
 async function execXcodeBuild(xcodeBuildArgs: string[]) {
     let output = '';
-    const exitCode = await exec(xcodebuild, xcodeBuildArgs, {
-        listeners: {
-            stdout: (data: Buffer) => {
-                output += data.toString();
+    core.startGroup(`xcodebuild ${xcodeBuildArgs.join(' ')}`);
+    try {
+        const exitCode = await exec(xcodebuild, xcodeBuildArgs, {
+            listeners: {
+                stdout: (data: Buffer) => {
+                    output += data.toString();
+                },
+                stderr: (data: Buffer) => {
+                    output += data.toString();
+                }
             },
-            stderr: (data: Buffer) => {
-                output += data.toString();
-            }
-        },
-        env: { ...process.env },
-        ignoreReturnCode: true
-    });
-    await parseBundleLog(output);
-    if (exitCode !== 0) {
-        throw new Error(`xcodebuild exited with code: ${exitCode}`);
+            env: { ...process.env },
+            ignoreReturnCode: true
+        });
+        await parseBundleLog(output);
+        if (exitCode !== 0) {
+            throw new Error(`xcodebuild exited with code: ${exitCode}`);
+        }
+    } finally {
+        core.endGroup();
     }
 }
 
