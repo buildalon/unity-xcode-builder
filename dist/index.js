@@ -58502,6 +58502,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     }
     core.debug(`Resolved Project path: ${projectPath}`);
     await fs.promises.access(projectPath, fs.constants.R_OK);
+    await patchGameAssemblyRunScriptOutput(projectPath);
     const projectDirectory = path.dirname(projectPath);
     core.info(`Project directory: ${projectDirectory}`);
     const projectName = path.basename(projectPath, '.xcodeproj');
@@ -58660,6 +58661,21 @@ async function GetProjectDetails(credential, xcodeVersion) {
     }
     core.info(`------- Info.plist content: -------\n${infoPlistContent}\n-----------------------------------`);
     return projectRef;
+}
+async function patchGameAssemblyRunScriptOutput(projectPath) {
+    const pbxprojPath = `${projectPath}/project.pbxproj`;
+    let pbxprojContent = await fs.promises.readFile(pbxprojPath, 'utf8');
+    pbxprojContent = pbxprojContent.replace(/\/\* Run Script \*\/ = \{\n([\s\S]*?)isa = PBXShellScriptBuildPhase;([\s\S]*?)name = "Run Script";([\s\S]*?)outputPaths = \(([\s\S]*?)\);/g, (match) => {
+        return match.replace(/outputPaths = \(([\s\S]*?)\);/, 'outputPaths = (\n                    "${DERIVED_FILE_DIR}/il2cpp_outputs",\n                );');
+    });
+    pbxprojContent = pbxprojContent.replace(/\/\* Run Script \*\/ = \{\n([\s\S]*?)isa = PBXShellScriptBuildPhase;([\s\S]*?)name = "Run Script";([\s\S]*?)(?=shellScript = )/g, (match) => {
+        if (!/outputPaths = \(/.test(match)) {
+            return match + '    outputPaths = (\n        "${DERIVED_FILE_DIR}/il2cpp_outputs",\n    );\n';
+        }
+        return match;
+    });
+    await fs.promises.writeFile(pbxprojPath, pbxprojContent, 'utf8');
+    core.info('Patched GameAssembly Run Script output path to ${DERIVED_FILE_DIR}/il2cpp_outputs');
 }
 async function checkSimulatorsAvailable(platform) {
     const destinationArgs = ['simctl', 'list', 'devices', '--json'];

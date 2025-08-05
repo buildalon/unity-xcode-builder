@@ -54,6 +54,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     }
     core.debug(`Resolved Project path: ${projectPath}`);
     await fs.promises.access(projectPath, fs.constants.R_OK);
+    await patchGameAssemblyRunScriptOutput(projectPath);
     const projectDirectory = path.dirname(projectPath);
     core.info(`Project directory: ${projectDirectory}`);
     const projectName = path.basename(projectPath, '.xcodeproj');
@@ -214,6 +215,41 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     }
     core.info(`------- Info.plist content: -------\n${infoPlistContent}\n-----------------------------------`);
     return projectRef;
+}
+
+/**
+ * Patch the Run Script build phase for GameAssembly to add output paths.
+ */
+async function patchGameAssemblyRunScriptOutput(projectPath: string): Promise<void> {
+    const pbxprojPath = `${projectPath}/project.pbxproj`;
+    let pbxprojContent = await fs.promises.readFile(pbxprojPath, 'utf8');
+
+    // Regex to find the Run Script phase for GameAssembly
+    // This is a simple regex and may need adjustment for edge cases
+    pbxprojContent = pbxprojContent.replace(
+        /\/\* Run Script \*\/ = \{\n([\s\S]*?)isa = PBXShellScriptBuildPhase;([\s\S]*?)name = "Run Script";([\s\S]*?)outputPaths = \(([\s\S]*?)\);/g,
+        (match) => {
+            // Already has outputPaths, replace with our value
+            return match.replace(
+                /outputPaths = \(([\s\S]*?)\);/,
+                'outputPaths = (\n                    "${DERIVED_FILE_DIR}/il2cpp_outputs",\n                );'
+            );
+        }
+    );
+
+    // If outputPaths is missing, add it
+    pbxprojContent = pbxprojContent.replace(
+        /\/\* Run Script \*\/ = \{\n([\s\S]*?)isa = PBXShellScriptBuildPhase;([\s\S]*?)name = "Run Script";([\s\S]*?)(?=shellScript = )/g,
+        (match) => {
+            if (!/outputPaths = \(/.test(match)) {
+                return match + '    outputPaths = (\n        "${DERIVED_FILE_DIR}/il2cpp_outputs",\n    );\n';
+            }
+            return match;
+        }
+    );
+
+    await fs.promises.writeFile(pbxprojPath, pbxprojContent, 'utf8');
+    core.info('Patched GameAssembly Run Script output path to ${DERIVED_FILE_DIR}/il2cpp_outputs');
 }
 
 async function checkSimulatorsAvailable(platform: string): Promise<void> {
