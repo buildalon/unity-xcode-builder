@@ -58570,6 +58570,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.debug(`Configuration: ${configuration}`);
     const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, projectDirectory, platform, destination, configuration, bundleId, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
     projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
+    await getExportOptions(projectRef);
     let entitlementsPath = core.getInput('entitlements-plist');
     if (!entitlementsPath) {
         if (projectRef.platform === 'macOS') {
@@ -58579,7 +58580,6 @@ async function GetProjectDetails(credential, xcodeVersion) {
     else {
         projectRef.entitlementsPath = entitlementsPath;
     }
-    await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload()) {
         projectRef.appId = await (0, AppStoreConnectClient_1.GetAppId)(projectRef);
         if (projectRef.autoIncrementBuildNumber) {

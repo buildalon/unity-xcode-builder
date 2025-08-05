@@ -127,6 +127,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         xcodeVersion
     );
     projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
+    await getExportOptions(projectRef);
     let entitlementsPath = core.getInput('entitlements-plist');
     if (!entitlementsPath) {
         if (projectRef.platform === 'macOS') {
@@ -135,7 +136,6 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     } else {
         projectRef.entitlementsPath = entitlementsPath;
     }
-    await getExportOptions(projectRef);
     if (projectRef.isAppStoreUpload()) {
         projectRef.appId = await GetAppId(projectRef);
         if (projectRef.autoIncrementBuildNumber) {
