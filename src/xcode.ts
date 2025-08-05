@@ -4,6 +4,7 @@ import { exec } from '@actions/exec';
 import glob = require('@actions/glob');
 import github = require('@actions/github');
 import plist = require('plist');
+import xcode = require('xcode');
 import path = require('path');
 import fs = require('fs');
 import semver = require('semver');
@@ -221,35 +222,35 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
  * Patch the Run Script build phase for GameAssembly to add output paths.
  */
 async function patchGameAssemblyRunScriptOutput(projectPath: string): Promise<void> {
-    const pbxprojPath = `${projectPath}/project.pbxproj`;
-    let pbxprojContent = await fs.promises.readFile(pbxprojPath, 'utf8');
+    let pbxprojPath = `${projectPath}/GameAssembly.xcodeproj/project.pbxproj`;
+    if (!fs.existsSync(pbxprojPath)) {
+        throw new Error(`Failed to find pbxproj file at: ${pbxprojPath}. Please ensure the GameAssembly.xcodeproj exists.`);
+    }
+    const project = xcode.project(pbxprojPath);
+    await new Promise<void>((resolve, reject) => {
+        project.parse((error: Error) => {
+            if (error) { return reject(error); }
+            resolve();
+        });
+    });
 
-    // Regex to find the Run Script phase for GameAssembly
-    // This is a simple regex and may need adjustment for edge cases
-    pbxprojContent = pbxprojContent.replace(
-        /\/\* Run Script \*\/ = \{\n([\s\S]*?)isa = PBXShellScriptBuildPhase;([\s\S]*?)name = "Run Script";([\s\S]*?)outputPaths = \(([\s\S]*?)\);/g,
-        (match) => {
-            // Already has outputPaths, replace with our value
-            return match.replace(
-                /outputPaths = \(([\s\S]*?)\);/,
-                'outputPaths = (\n                    "${DERIVED_FILE_DIR}/il2cpp_outputs",\n                );'
-            );
+    let modified = false;
+    const runScriptPhases = Object.values(project.hash.objects.PBXShellScriptBuildPhase || {});
+    for (const phase of runScriptPhases) {
+        // phase can be an object or a wrapper with 'isa' property
+        const obj = (phase as any);
+        if (obj && obj.name === 'Run Script' && obj.shellScript && obj.shellScript.includes('GameAssembly')) {
+            // Set outputPaths to ["${DERIVED_FILE_DIR}/il2cpp_outputs"]
+            obj.outputPaths = ["${DERIVED_FILE_DIR}/il2cpp_outputs"];
+            modified = true;
         }
-    );
-
-    // If outputPaths is missing, add it
-    pbxprojContent = pbxprojContent.replace(
-        /\/\* Run Script \*\/ = \{\n([\s\S]*?)isa = PBXShellScriptBuildPhase;([\s\S]*?)name = "Run Script";([\s\S]*?)(?=shellScript = )/g,
-        (match) => {
-            if (!/outputPaths = \(/.test(match)) {
-                return match + '    outputPaths = (\n        "${DERIVED_FILE_DIR}/il2cpp_outputs",\n    );\n';
-            }
-            return match;
-        }
-    );
-
-    await fs.promises.writeFile(pbxprojPath, pbxprojContent, 'utf8');
-    core.info('Patched GameAssembly Run Script output path to ${DERIVED_FILE_DIR}/il2cpp_outputs');
+    }
+    if (modified) {
+        await fs.promises.writeFile(pbxprojPath, project.writeSync(), 'utf8');
+        core.info(`Patched GameAssembly Run Script output path in ${pbxprojPath} to [36m${'${DERIVED_FILE_DIR}/il2cpp_outputs'}[0m`);
+    } else {
+        core.info('No GameAssembly Run Script phase found to patch.');
+    }
 }
 
 async function checkSimulatorsAvailable(platform: string): Promise<void> {
