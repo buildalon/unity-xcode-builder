@@ -58906,6 +58906,7 @@ async function ExportXcodeArchive(projectRef) {
         '-exportPath', projectRef.exportPath,
         '-exportOptionsPlist', exportOptionsPath,
         '-derivedDataPath', `${projectDirectory}/DerivedData`,
+        '-scheme', projectRef.scheme,
         `-authenticationKeyID`, projectRef.credential.appStoreConnectKeyId,
         `-authenticationKeyPath`, projectRef.credential.appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, projectRef.credential.appStoreConnectIssuerId
