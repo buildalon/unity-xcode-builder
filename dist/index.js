@@ -58671,22 +58671,29 @@ async function patchGameAssemblyRunScriptOutput(projectDirectory) {
         return;
     }
     let pbxprojContent = await fs.promises.readFile(pbxprojPath, 'utf8');
-    const runScriptRegex = /(\/\* Run Script \/\*\n[\s\S]*?shellScript = ")(.*GameAssembly[\s\S]*?)(";[\s\S]*?outputPaths = )(\([\s\S]*?\);)/g;
     const desiredOutput = '"${DERIVED_FILE_DIR}/il2cpp_outputs",';
     let modified = false;
-    pbxprojContent = pbxprojContent.replace(runScriptRegex, (match, p1, p2, p3, p4) => {
-        if (p4.includes('${DERIVED_FILE_DIR}/il2cpp_outputs')) {
-            return match;
+    pbxprojContent = pbxprojContent.replace(/(\/\* Run Script \/\*[\s\S]*?shellScript = ")(.*GameAssembly[\s\S]*?)(";[\s\S]*?)(?=\/\*|\n\s*\w+ =|$)/g, (match, p1, p2, p3) => {
+        if (/outputPaths\s*=\s*\([\s\S]*?\);/.test(match)) {
+            return match.replace(/(outputPaths\s*=\s*\()(.*?)(\);)/s, (m, op1, op2, op3) => {
+                if (op2.includes('${DERIVED_FILE_DIR}/il2cpp_outputs')) {
+                    return m;
+                }
+                modified = true;
+                return `${op1}\n\t\t\t\t${desiredOutput}\n${op2.trim() ? '\t\t\t\t' + op2.trim() + '\n' : ''}\t\t\t${op3}`;
+            });
         }
-        modified = true;
-        return `${p1}${p2}${p3}(\n\t\t\t\t${desiredOutput}\n\t\t\t);`;
+        else {
+            modified = true;
+            return match.replace(/(";)/, `$1\n\t\t\toutputPaths = (\n\t\t\t\t${desiredOutput}\n\t\t\t);`);
+        }
     });
     if (modified) {
         await fs.promises.writeFile(pbxprojPath, pbxprojContent, 'utf8');
         core.info(`Patched GameAssembly Run Script output path in ${pbxprojPath} to \\${'${DERIVED_FILE_DIR}/il2cpp_outputs'}`);
     }
     else {
-        core.info('No GameAssembly Run Script phase found to patch or already set.');
+        core.info('GameAssembly Run Script phase already patched.');
     }
 }
 async function checkSimulatorsAvailable(platform) {

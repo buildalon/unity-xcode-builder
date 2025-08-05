@@ -229,23 +229,33 @@ async function patchGameAssemblyRunScriptOutput(projectDirectory: string): Promi
         return;
     }
     let pbxprojContent = await fs.promises.readFile(pbxprojPath, 'utf8');
-    // Regex to find the Run Script phase for GameAssembly and patch outputPaths
-    const runScriptRegex = /(\/\* Run Script \/\*\n[\s\S]*?shellScript = ")(.*GameAssembly[\s\S]*?)(";[\s\S]*?outputPaths = )(\([\s\S]*?\);)/g;
     const desiredOutput = '"${DERIVED_FILE_DIR}/il2cpp_outputs",';
     let modified = false;
-    pbxprojContent = pbxprojContent.replace(runScriptRegex, (match, p1, p2, p3, p4) => {
-        // Only patch if not already set
-        if (p4.includes('${DERIVED_FILE_DIR}/il2cpp_outputs')) {
-            return match;
+    // Find all Run Script build phases
+    pbxprojContent = pbxprojContent.replace(/(\/\* Run Script \/\*[\s\S]*?shellScript = ")(.*GameAssembly[\s\S]*?)(";[\s\S]*?)(?=\/\*|\n\s*\w+ =|$)/g, (match, p1, p2, p3) => {
+        // Check if outputPaths already present
+        if (/outputPaths\s*=\s*\([\s\S]*?\);/.test(match)) {
+            // Patch outputPaths if missing our output
+            return match.replace(/(outputPaths\s*=\s*\()(.*?)(\);)/s, (m, op1, op2, op3) => {
+                if (op2.includes('${DERIVED_FILE_DIR}/il2cpp_outputs')) {
+                    return m; // already present
+                }
+                modified = true;
+                // Insert our output at the top
+                return `${op1}\n\t\t\t\t${desiredOutput}\n${op2.trim() ? '\t\t\t\t' + op2.trim() + '\n' : ''}\t\t\t${op3}`;
+            });
+        } else {
+            // Insert outputPaths after shellScript
+            modified = true;
+            // Find the end of shellScript line
+            return match.replace(/(";)/, `$1\n\t\t\toutputPaths = (\n\t\t\t\t${desiredOutput}\n\t\t\t);`);
         }
-        modified = true;
-        return `${p1}${p2}${p3}(\n\t\t\t\t${desiredOutput}\n\t\t\t);`;
     });
     if (modified) {
         await fs.promises.writeFile(pbxprojPath, pbxprojContent, 'utf8');
         core.info(`Patched GameAssembly Run Script output path in ${pbxprojPath} to \\${'${DERIVED_FILE_DIR}/il2cpp_outputs'}`);
     } else {
-        core.info('No GameAssembly Run Script phase found to patch or already set.');
+        core.info('GameAssembly Run Script phase already patched.');
     }
 }
 
