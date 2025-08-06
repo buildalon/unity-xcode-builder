@@ -58457,7 +58457,6 @@ async function GetProjectDetails(credential, xcodeVersion) {
     if (!destination) {
         let destinationOutput = '';
         const destinationArgs = [
-            'xcodebuild',
             '-project', projectPath,
             '-scheme', scheme,
             '-showDestinations',

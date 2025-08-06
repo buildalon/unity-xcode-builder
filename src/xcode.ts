@@ -71,7 +71,6 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     if (!destination) {
         let destinationOutput = '';
         const destinationArgs = [
-            'xcodebuild',
             '-project', projectPath,
             '-scheme', scheme,
             '-showDestinations',
