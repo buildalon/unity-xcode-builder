@@ -97,31 +97,37 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             },
             silent: !core.isDebug()
         });
-        // strip any previous string before json, bc xcodebuild outputs some text before the json:
+        // Example output:
         // Available destinations for the "Unity-VisionOS" scheme:
         //         { platform:visionOS Simulator, id:dvtdevice-DVTiOSDeviceSimulatorPlaceholder-xrsimulator:placeholder, name:Any visionOS Simulator Device }
         //         { platform:visionOS Simulator, arch:arm64, id:F1C1B167-8C5B-4737-B6A7-CF51DB6D5B70, OS:2.4, name:Apple Vision Pro }
         destinationOutput = destinationOutput.replace(/Available destinations for the ".*" scheme:\n/, '');
-        const destinations = JSON.parse(destinationOutput);
-        core.info(`Available destinations: ${JSON.stringify(destinations, null, 2)}`);
+        let lines = destinationOutput.split('\n').filter(line => line.trim() !== '');
+
+        if (lines.length === 0) {
+            throw new Error(`No available destinations found for the project! Output: ${destinationOutput}`);
+        }
+
+        const destinations: any[] = [];
+
+        for (const line of lines) {
+            try {
+                const destination = JSON.parse(line);
+                destinations.push(destination);
+            } catch (error) {
+                core.warning(`Failed to parse destination line: ${line}`);
+            }
+        }
 
         if (destinations.length === 0) {
             throw new Error(`No available destinations found for the project!\n${destinationOutput}`);
-        }
-
-        const nameMatch = 'Any visionOS Simulator Device';
-        const matchedDestinations = destinations.filter((d: any) => d.name.includes(nameMatch));
-
-        if (matchedDestinations.length > 0) {
-            core.info(`Using destination: ${matchedDestinations[0].name}`);
-            destination = `platform=${matchedDestinations[0].platform},id=${matchedDestinations[0].id},name=${matchedDestinations[0].name}`;
         }
 
         if (!destination) {
             core.info('No specific destination set, using the first available destination.');
             for (const dest of destinations) {
                 if (dest.platform === platform) {
-                    destination = `platform=${dest.platform},id=${dest.id},name=${dest.name}`;
+                    destination = Object.entries(dest).map(([key, value]) => `${key}=${value}`).join(',');
                     break;
                 }
             }
@@ -131,30 +137,39 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     core.debug(`Using destination: ${destination}`);
     const bundleId = await getBuildSettings(projectPath, scheme, platform, destination);
     core.info(`Bundle ID: ${bundleId}`);
+
     if (!bundleId) {
         throw new Error('Unable to determine the bundle ID');
     }
+
     let infoPlistPath = `${projectDirectory}/${projectName}/Info.plist`;
+
     if (!fs.existsSync(infoPlistPath)) {
         infoPlistPath = `${projectDirectory}/Info.plist`;
     }
+
     core.info(`Info.plist path: ${infoPlistPath}`);
     const infoPlistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
     let infoPlistContent: string;
+
     try {
         infoPlistContent = await fs.promises.readFile(infoPlistHandle, 'utf8');
     } finally {
         await infoPlistHandle.close();
     }
+
     const infoPlist = plist.parse(infoPlistContent) as any;
     let cFBundleShortVersionString: string = infoPlist['CFBundleShortVersionString'];
+
     if (cFBundleShortVersionString) {
         const semverRegex = /^(?<major>\d+)\.(?<minor>\d+)\.(?<revision>\d+)/;
         const match = cFBundleShortVersionString.match(semverRegex);
+
         if (match) {
             const { major, minor, revision } = match.groups as { [key: string]: string };
             cFBundleShortVersionString = `${major}.${minor}.${revision}`;
             infoPlist['CFBundleShortVersionString'] = cFBundleShortVersionString.toString();
+
             try {
                 core.info(`Updating Info.plist with CFBundleShortVersionString: ${cFBundleShortVersionString}`);
                 await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
@@ -165,6 +180,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             throw new Error(`Invalid CFBundleShortVersionString format: ${cFBundleShortVersionString}`);
         }
     }
+
     core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'] as string;
     core.info(`CFBundleVersion: ${cFBundleVersion}`);

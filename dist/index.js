@@ -58474,22 +58474,28 @@ async function GetProjectDetails(credential, xcodeVersion) {
             silent: !core.isDebug()
         });
         destinationOutput = destinationOutput.replace(/Available destinations for the ".*" scheme:\n/, '');
-        const destinations = JSON.parse(destinationOutput);
-        core.info(`Available destinations: ${JSON.stringify(destinations, null, 2)}`);
+        let lines = destinationOutput.split('\n').filter(line => line.trim() !== '');
+        if (lines.length === 0) {
+            throw new Error(`No available destinations found for the project! Output: ${destinationOutput}`);
+        }
+        const destinations = [];
+        for (const line of lines) {
+            try {
+                const destination = JSON.parse(line);
+                destinations.push(destination);
+            }
+            catch (error) {
+                core.warning(`Failed to parse destination line: ${line}`);
+            }
+        }
         if (destinations.length === 0) {
             throw new Error(`No available destinations found for the project!\n${destinationOutput}`);
-        }
-        const nameMatch = 'Any visionOS Simulator Device';
-        const matchedDestinations = destinations.filter((d) => d.name.includes(nameMatch));
-        if (matchedDestinations.length > 0) {
-            core.info(`Using destination: ${matchedDestinations[0].name}`);
-            destination = `platform=${matchedDestinations[0].platform},id=${matchedDestinations[0].id},name=${matchedDestinations[0].name}`;
         }
         if (!destination) {
             core.info('No specific destination set, using the first available destination.');
             for (const dest of destinations) {
                 if (dest.platform === platform) {
-                    destination = `platform=${dest.platform},id=${dest.id},name=${dest.name}`;
+                    destination = Object.entries(dest).map(([key, value]) => `${key}=${value}`).join(',');
                     break;
                 }
             }
