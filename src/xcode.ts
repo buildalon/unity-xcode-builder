@@ -33,11 +33,14 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     let projectPath = undefined;
     const globber = await glob.create(projectPathInput);
     const files = await globber.glob();
+
     if (!files || files.length === 0) {
         throw new Error(`No project found at: ${projectPathInput}`);
     }
+
     core.debug(`Files found during search: ${files.join(', ')}`);
     const excludedProjects = ['GameAssembly', 'UnityFramework', 'Pods'];
+
     for (const file of files) {
         if (file.endsWith('.xcodeproj')) {
             const projectBaseName = path.basename(file, '.xcodeproj');
@@ -49,9 +52,11 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             break;
         }
     }
+
     if (!projectPath) {
         throw new Error(`Invalid project-path! Unable to find .xcodeproj in ${projectPathInput}. ${files.length} files were found but none matched.\n${files.join(', ')}`);
     }
+
     core.debug(`Resolved Project path: ${projectPath}`);
     await fs.promises.access(projectPath, fs.constants.R_OK);
     const projectDirectory = path.dirname(projectPath);
@@ -59,13 +64,16 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     const projectName = path.basename(projectPath, '.xcodeproj');
     const scheme = await getProjectScheme(projectPath);
     const platform = await getSupportedPlatform(projectPath);
+
     core.info(`Platform: ${platform}`);
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
     }
+
     if (platform !== 'macOS') {
         await checkSimulatorsAvailable(platform);
     }
+
     let destination: string = core.getInput('destination');
 
     if (!destination) {
@@ -76,9 +84,11 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             '-showDestinations',
             '-json'
         ];
+
         if (!core.isDebug()) {
             core.info(`[command]${xcodebuild} ${destinationArgs.join(' ')}`);
         }
+
         await exec(xcodebuild, destinationArgs, {
             listeners: {
                 stdout: (data: Buffer) => {
@@ -87,10 +97,12 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             },
             silent: !core.isDebug()
         });
+
         const destinations = JSON.parse(destinationOutput);
-        core.debug(`Available destinations: ${JSON.stringify(destinations, null, 2)}`);
+        core.info(`Available destinations: ${JSON.stringify(destinations, null, 2)}`);
+
         if (destinations.length === 0) {
-            throw new Error('No available destinations found for the project!');
+            throw new Error(`No available destinations found for the project!\n${destinationOutput}`);
         }
 
         const nameMatch = 'Any visionOS Simulator Device';

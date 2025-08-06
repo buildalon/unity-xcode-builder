@@ -58474,9 +58474,9 @@ async function GetProjectDetails(credential, xcodeVersion) {
             silent: !core.isDebug()
         });
         const destinations = JSON.parse(destinationOutput);
-        core.debug(`Available destinations: ${JSON.stringify(destinations, null, 2)}`);
+        core.info(`Available destinations: ${JSON.stringify(destinations, null, 2)}`);
         if (destinations.length === 0) {
-            throw new Error('No available destinations found for the project!');
+            throw new Error(`No available destinations found for the project!\n${destinationOutput}`);
         }
         const nameMatch = 'Any visionOS Simulator Device';
         const matchedDestinations = destinations.filter((d) => d.name.includes(nameMatch));
