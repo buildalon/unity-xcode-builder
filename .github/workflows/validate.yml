@@ -153,6 +153,18 @@ jobs:
       - name: print outputs
         if: always()
         run: |
-          echo "Executable: ${{ steps.xcode-build.outputs.executable }}"
-          echo "Output Directory: ${{ steps.xcode-build.outputs.output-directory }}"
-          ls -R "${{ steps.xcode-build.outputs.output-directory }}"
+          set -e
+          EXECUTABLE="${{ steps.xcode-build.outputs.executable }}"
+          if [ -z "${EXECUTABLE}" ]; then
+            echo "No executable found in outputs"
+            exit 1
+          fi
+          echo "Executable: ${EXECUTABLE}"
+          OUTPUT_DIRECTORY="${{ steps.xcode-build.outputs.output-directory }}"
+          if [ -z "${OUTPUT_DIRECTORY}" ]; then
+            echo "No output directory found in outputs"
+            exit 1
+          fi
+          echo "::group::Output Directory: ${OUTPUT_DIRECTORY}"
+          ls -R "${OUTPUT_DIRECTORY}"
+          echo "::endgroup::"

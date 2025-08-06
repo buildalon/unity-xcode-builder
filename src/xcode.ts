@@ -97,7 +97,11 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             },
             silent: !core.isDebug()
         });
-
+        // strip any previous string before json, bc xcodebuild outputs some text before the json:
+        // Available destinations for the "Unity-VisionOS" scheme:
+        //         { platform:visionOS Simulator, id:dvtdevice-DVTiOSDeviceSimulatorPlaceholder-xrsimulator:placeholder, name:Any visionOS Simulator Device }
+        //         { platform:visionOS Simulator, arch:arm64, id:F1C1B167-8C5B-4737-B6A7-CF51DB6D5B70, OS:2.4, name:Apple Vision Pro }
+        destinationOutput = destinationOutput.replace(/Available destinations for the ".*" scheme:\n/, '');
         const destinations = JSON.parse(destinationOutput);
         core.info(`Available destinations: ${JSON.stringify(destinations, null, 2)}`);
 

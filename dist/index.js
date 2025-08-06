@@ -58473,6 +58473,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
             },
             silent: !core.isDebug()
         });
+        destinationOutput = destinationOutput.replace(/Available destinations for the ".*" scheme:\n/, '');
         const destinations = JSON.parse(destinationOutput);
         core.info(`Available destinations: ${JSON.stringify(destinations, null, 2)}`);
         if (destinations.length === 0) {
