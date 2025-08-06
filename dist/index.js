@@ -58459,7 +58459,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
         const destinationArgs = [
             '-project', projectPath,
             '-scheme', scheme,
-            '-showDestinations',
+            '-showdestinations',
             '-json'
         ];
         if (!core.isDebug()) {

@@ -81,7 +81,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         const destinationArgs = [
             '-project', projectPath,
             '-scheme', scheme,
-            '-showDestinations',
+            '-showdestinations',
             '-json'
         ];
 
