@@ -4803,13 +4803,28 @@ var import_graphql = __nccwpck_require__(8467);
 var import_auth_token = __nccwpck_require__(334);
 
 // pkg/dist-src/version.js
-var VERSION = "5.2.1";
+var VERSION = "5.2.2";
 
 // pkg/dist-src/index.js
 var noop = () => {
 };
 var consoleWarn = console.warn.bind(console);
 var consoleError = console.error.bind(console);
+function createLogger(logger = {}) {
+  if (typeof logger.debug !== "function") {
+    logger.debug = noop;
+  }
+  if (typeof logger.info !== "function") {
+    logger.info = noop;
+  }
+  if (typeof logger.warn !== "function") {
+    logger.warn = consoleWarn;
+  }
+  if (typeof logger.error !== "function") {
+    logger.error = consoleError;
+  }
+  return logger;
+}
 var userAgentTrail = `octokit-core.js/${VERSION} ${(0, import_universal_user_agent.getUserAgent)()}`;
 var Octokit = class {
   static {
@@ -4883,15 +4898,7 @@ var Octokit = class {
     }
     this.request = import_request.request.defaults(requestDefaults);
     this.graphql = (0, import_graphql.withCustomRequest)(this.request).defaults(requestDefaults);
-    this.log = Object.assign(
-      {
-        debug: noop,
-        info: noop,
-        warn: consoleWarn,
-        error: consoleError
-      },
-      options.log
-    );
+    this.log = createLogger(options.log);
     this.hook = hook;
     if (!options.authStrategy) {
       if (!options.auth) {
@@ -58446,7 +58453,48 @@ async function GetProjectDetails(credential, xcodeVersion) {
     if (platform !== 'macOS') {
         await checkSimulatorsAvailable(platform);
     }
-    const destination = core.getInput('destination') || `generic/platform=${platform}`;
+    let destination = core.getInput('destination');
+    if (!destination) {
+        let destinationOutput = '';
+        const destinationArgs = [
+            'xcodebuild',
+            '-project', projectPath,
+            '-scheme', scheme,
+            '-showDestinations',
+            '-json'
+        ];
+        if (!core.isDebug()) {
+            core.info(`[command]${xcodebuild} ${destinationArgs.join(' ')}`);
+        }
+        await (0, exec_1.exec)(xcodebuild, destinationArgs, {
+            listeners: {
+                stdout: (data) => {
+                    destinationOutput += data.toString();
+                }
+            },
+            silent: !core.isDebug()
+        });
+        const destinations = JSON.parse(destinationOutput);
+        core.debug(`Available destinations: ${JSON.stringify(destinations, null, 2)}`);
+        if (destinations.length === 0) {
+            throw new Error('No available destinations found for the project!');
+        }
+        const nameMatch = 'Any visionOS Simulator Device';
+        const matchedDestinations = destinations.filter((d) => d.name.includes(nameMatch));
+        if (matchedDestinations.length > 0) {
+            core.info(`Using destination: ${matchedDestinations[0].name}`);
+            destination = `platform=${matchedDestinations[0].platform},id=${matchedDestinations[0].id},name=${matchedDestinations[0].name}`;
+        }
+        if (!destination) {
+            core.info('No specific destination set, using the first available destination.');
+            for (const dest of destinations) {
+                if (dest.platform === platform) {
+                    destination = `platform=${dest.platform},id=${dest.id},name=${dest.name}`;
+                    break;
+                }
+            }
+        }
+    }
     core.debug(`Using destination: ${destination}`);
     const bundleId = await getBuildSettings(projectPath, scheme, platform, destination);
     core.info(`Bundle ID: ${bundleId}`);

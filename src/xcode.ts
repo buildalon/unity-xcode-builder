@@ -66,7 +66,53 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     if (platform !== 'macOS') {
         await checkSimulatorsAvailable(platform);
     }
-    const destination = core.getInput('destination') || `generic/platform=${platform}`;
+    let destination: string = core.getInput('destination');
+
+    if (!destination) {
+        let destinationOutput = '';
+        const destinationArgs = [
+            'xcodebuild',
+            '-project', projectPath,
+            '-scheme', scheme,
+            '-showDestinations',
+            '-json'
+        ];
+        if (!core.isDebug()) {
+            core.info(`[command]${xcodebuild} ${destinationArgs.join(' ')}`);
+        }
+        await exec(xcodebuild, destinationArgs, {
+            listeners: {
+                stdout: (data: Buffer) => {
+                    destinationOutput += data.toString();
+                }
+            },
+            silent: !core.isDebug()
+        });
+        const destinations = JSON.parse(destinationOutput);
+        core.debug(`Available destinations: ${JSON.stringify(destinations, null, 2)}`);
+        if (destinations.length === 0) {
+            throw new Error('No available destinations found for the project!');
+        }
+
+        const nameMatch = 'Any visionOS Simulator Device';
+        const matchedDestinations = destinations.filter((d: any) => d.name.includes(nameMatch));
+
+        if (matchedDestinations.length > 0) {
+            core.info(`Using destination: ${matchedDestinations[0].name}`);
+            destination = `platform=${matchedDestinations[0].platform},id=${matchedDestinations[0].id},name=${matchedDestinations[0].name}`;
+        }
+
+        if (!destination) {
+            core.info('No specific destination set, using the first available destination.');
+            for (const dest of destinations) {
+                if (dest.platform === platform) {
+                    destination = `platform=${dest.platform},id=${dest.id},name=${dest.name}`;
+                    break;
+                }
+            }
+        }
+    }
+
     core.debug(`Using destination: ${destination}`);
     const bundleId = await getBuildSettings(projectPath, scheme, platform, destination);
     core.info(`Bundle ID: ${bundleId}`);
