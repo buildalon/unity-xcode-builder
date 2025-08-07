@@ -77,7 +77,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         await checkSimulatorsAvailable(platform);
     }
 
-    const destination = core.getInput('destination') || `generic/platform=${platform}`;
+    const destination = core.getInput('destination');
     core.debug(`Using destination: ${destination}`);
     const bundleId = await getBuildSettings(projectPath, scheme, platform, destination);
     core.info(`Bundle ID: ${bundleId}`);
@@ -303,16 +303,20 @@ async function getSupportedPlatform(projectPath: string): Promise<string> {
     return platformMap[platformName];
 }
 
-async function getBuildSettings(projectPath: string, scheme: string, platform: string, destination: string): Promise<string> {
+async function getBuildSettings(projectPath: string, scheme: string, platform: string, destination: string | undefined): Promise<string> {
     let buildSettingsOutput = '';
 
     const projectSettingsArgs = [
         'build',
         '-project', projectPath,
-        '-scheme', scheme,
-        '-destination', destination,
-        '-showBuildSettings'
+        '-scheme', scheme
     ];
+
+    if (destination) {
+        projectSettingsArgs.push('-destination', destination);
+    }
+
+    projectSettingsArgs.push('-showBuildSettings');
 
     if (!core.isDebug()) {
         core.info(`[command]${xcodebuild} ${projectSettingsArgs.join(' ')}`);

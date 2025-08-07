@@ -41,23 +41,9 @@ const main = async () => {
                 }).filter(Boolean) as string[];
                 core.debug(`Installed Xcode versions:\n  ${installedXcodeVersions.join('\n')}`);
                 if (installedXcodeVersions.length === 0 || !xcodeVersionString.includes('latest')) {
-                    if (installedXcodeVersions.length === 0 ||
-                        !installedXcodeVersions.includes(xcodeVersionString)) {
-                        const xcodesUsername = process.env.XCODES_USERNAME;
-                        const xcodesPassword = process.env.XCODES_PASSWORD;
-
-                        if (!xcodesUsername || !xcodesPassword) {
-                            throw new Error(`Xcode version ${xcodeVersionString} is not installed! Please set XCODES_USERNAME and XCODES_PASSWORD to download it.`);
-                        }
-
+                    if (installedXcodeVersions.length === 0 || !installedXcodeVersions.includes(xcodeVersionString)) {
                         core.info(`Downloading missing Xcode version ${xcodeVersionString}...`);
-
-                        const installExitCode = await exec.exec('xcodes', ['install', xcodeVersionString, '--select'], {
-                            env: {
-                                XCODES_USERNAME: xcodesUsername,
-                                XCODES_PASSWORD: xcodesPassword
-                            }
-                        });
+                        const installExitCode = await exec.exec('xcodes', ['install', xcodeVersionString, '--select']);
 
                         if (installExitCode !== 0) {
                             throw new Error(`Failed to install Xcode version ${xcodeVersionString}!`);
