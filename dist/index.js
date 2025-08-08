@@ -58698,7 +58698,38 @@ async function getDestination(projectPath, scheme, platform) {
             }
         }
     });
-    core.info(destinationOutput);
+    destinationOutput = destinationOutput.replace(/Available destinations for the ".*" scheme:\n/g, '');
+    destinationOutput = destinationOutput.replace(/^\s+|\s+$/g, '');
+    const destinationLines = destinationOutput.split('\n').filter(line => line.trim() !== '');
+    if (destinationLines.length === 0) {
+        core.error('No valid destinations found');
+        return `generic/platform=${platform}`;
+    }
+    const destinationJson = destinationLines.map(line => {
+        const match = line.match(/^\s*{([^}]+)}\s*$/);
+        if (!match) {
+            throw new Error(`line: ${line}`);
+        }
+        const json = {};
+        match[1].split(',').forEach(pair => {
+            const idx = pair.indexOf(':');
+            if (idx === -1) {
+                throw new Error(`Invalid "key:value": ${pair}`);
+            }
+            const key = pair.slice(0, idx).trim();
+            const value = pair.slice(idx + 1).trim();
+            json[key] = value;
+        });
+        return json;
+    });
+    for (const destination of destinationJson) {
+        if (!destination.platform) {
+            continue;
+        }
+        const destinationArgs = Object.entries(destination).map(([key, value]) => `${key}=${value}`);
+        const destinationString = destinationArgs.join(',');
+        return destinationString;
+    }
     return `generic/platform=${platform}`;
 }
 async function getBuildSettings(projectPath, scheme, platform, destination) {

@@ -342,9 +342,61 @@ async function getDestination(projectPath: string, scheme: string, platform: str
             }
         }
     });
-    core.info(destinationOutput);
+    // /usr/bin/xcodebuild -project /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/VisionOS/com.test.buildalon.xcode/Unity-VisionOS.xcodeproj -scheme Unity-VisionOS -showdestinations -json
     // example output:
+    // ```string
+    // Available destinations for the "Unity-VisionOS" scheme:
+    // { platform:visionOS, id:dvtdevice-DVTiOSDevicePlaceholder-xros:placeholder, name:Any visionOS Device }
+    // ```
     // TODO: parse the output to get the destination
+    // Use regex to remove "Available destinations for the ".*" scheme:
+    destinationOutput = destinationOutput.replace(/Available destinations for the ".*" scheme:\n/g, '');
+    // trim the whitespace on each line
+    destinationOutput = destinationOutput.replace(/^\s+|\s+$/g, '');
+    // split the lines
+    const destinationLines = destinationOutput.split('\n').filter(line => line.trim() !== '');
+
+    if (destinationLines.length === 0) {
+        core.error('No valid destinations found');
+        return `generic/platform=${platform}`;
+    }
+
+    // convert the destination lines into json, since the format they give isn't actually in json form.
+    // keep in mind that there can be any key:value pair in the destination lines
+    const destinationJson = destinationLines.map(line => {
+        const match = line.match(/^\s*{([^}]+)}\s*$/);
+        if (!match) {
+            throw new Error(`line: ${line}`);
+        }
+        const json: Record<string, string> = {};
+        match[1].split(',').forEach(pair => {
+            const idx = pair.indexOf(':');
+            if (idx === -1) {
+                throw new Error(`Invalid "key:value": ${pair}`);
+            }
+            const key = pair.slice(0, idx).trim();
+            const value = pair.slice(idx + 1).trim();
+            json[key] = value;
+        });
+        return json;
+    });
+
+    // find the first destination that has a platform that matches the input platform
+
+    for (const destination of destinationJson) {
+        // at least match platform key value
+        if (!destination.platform) {
+            continue;
+        }
+
+        // we don't know ahead of time which keys can values will be there, so we convert it to the format that xcodebuild will expect for destination argument
+        const destinationArgs = Object.entries(destination).map(([key, value]) => `${key}=${value}`);
+        // join the arguments with ,
+        const destinationString = destinationArgs.join(',');
+        return destinationString;
+    }
+
+    // fallback:
     return `generic/platform=${platform}`;
 }
 
