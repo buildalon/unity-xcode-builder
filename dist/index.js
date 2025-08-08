@@ -58714,7 +58714,10 @@ async function getDestination(projectPath, scheme, platform) {
         match[1].split(',').forEach(pair => {
             const valueParts = pair.split(':');
             const key = valueParts[0].trim();
-            const value = valueParts[1].trim();
+            let value = valueParts[1].trim();
+            if (/\s/.test(value)) {
+                value = `"${value}"`;
+            }
             json[key] = value;
         });
         return json;
@@ -58738,17 +58741,12 @@ async function getBuildSettings(projectPath, scheme, platform, destination) {
         '-destination', destination,
         '-showBuildSettings'
     ];
-    projectSettingsArgs.push('-showBuildSettings');
-    if (!core.isDebug()) {
-        core.info(`[command]${xcodebuild} ${projectSettingsArgs.join(' ')}`);
-    }
     await (0, exec_1.exec)(xcodebuild, projectSettingsArgs, {
         listeners: {
             stdout: (data) => {
                 buildSettingsOutput += data.toString();
             }
         },
-        silent: !core.isDebug()
     });
     let platformSdkVersion = core.getInput('platform-sdk-version') || null;
     if (!platformSdkVersion) {

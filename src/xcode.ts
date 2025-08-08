@@ -374,7 +374,11 @@ async function getDestination(projectPath: string, scheme: string, platform: str
             // split the pair value by `:` then only use the first two parts
             const valueParts = pair.split(':');
             const key = valueParts[0].trim();
-            const value = valueParts[1].trim();
+            let value = valueParts[1].trim();
+            // if there is whitespace in the value, give it quotes
+            if (/\s/.test(value)) {
+                value = `"${value}"`;
+            }
             json[key] = value;
         });
         return json;
@@ -410,11 +414,9 @@ async function getBuildSettings(projectPath: string, scheme: string, platform: s
         '-showBuildSettings'
     ];
 
-    projectSettingsArgs.push('-showBuildSettings');
-
-    if (!core.isDebug()) {
-        core.info(`[command]${xcodebuild} ${projectSettingsArgs.join(' ')}`);
-    }
+    // if (!core.isDebug()) {
+    //     core.info(`[command]${xcodebuild} ${projectSettingsArgs.join(' ')}`);
+    // }
 
     await exec(xcodebuild, projectSettingsArgs, {
         listeners: {
@@ -422,7 +424,7 @@ async function getBuildSettings(projectPath: string, scheme: string, platform: s
                 buildSettingsOutput += data.toString();
             }
         },
-        silent: !core.isDebug()
+        // silent: !core.isDebug()
     });
 
     let platformSdkVersion = core.getInput('platform-sdk-version') || null;
