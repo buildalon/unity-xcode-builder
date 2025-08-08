@@ -58672,18 +58672,14 @@ async function getDestination(projectPath, scheme, platform) {
     const destinationArgs = [
         '-project', projectPath,
         '-scheme', scheme,
-        '-showdestinations',
-        '-json'
+        '-showdestinations'
     ];
-    if (!core.isDebug()) {
-        core.info(`[command]${xcodebuild} ${destinationArgs.join(' ')}`);
-    }
     await (0, exec_1.exec)(xcodebuild, destinationArgs, {
         listeners: {
             stdout: (data) => {
                 destinationOutput += data.toString();
             }
-        },
+        }
     });
     core.info(destinationOutput);
     return `generic/platform=${platform}`;

@@ -331,20 +331,15 @@ async function getDestination(projectPath: string, scheme: string, platform: str
     const destinationArgs = [
         '-project', projectPath,
         '-scheme', scheme,
-        '-showdestinations',
-        '-json'
+        '-showdestinations'
     ];
-
-    if (!core.isDebug()) {
-        core.info(`[command]${xcodebuild} ${destinationArgs.join(' ')}`);
-    }
 
     await exec(xcodebuild, destinationArgs, {
         listeners: {
             stdout: (data: Buffer) => {
                 destinationOutput += data.toString();
             }
-        },
+        }
     });
     core.info(destinationOutput);
     // example output:
