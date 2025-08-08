@@ -398,8 +398,8 @@ async function getDestination(projectPath: string, scheme: string, platform: str
             return destinationString;
         }
     }
-    // fallback: use the platform as the destination
-    return `platform=${platform}`;
+
+    return `generic/platform=${platform}`;
 }
 
 async function getBuildSettings(projectPath: string, scheme: string, platform: string, destination: string | undefined): Promise<string> {

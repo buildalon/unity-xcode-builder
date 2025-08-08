@@ -58731,7 +58731,7 @@ async function getDestination(projectPath, scheme, platform) {
             return destinationString;
         }
     }
-    return `platform=${platform}`;
+    return `generic/platform=${platform}`;
 }
 async function getBuildSettings(projectPath, scheme, platform, destination) {
     let buildSettingsOutput = '';
