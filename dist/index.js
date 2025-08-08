@@ -58461,7 +58461,14 @@ async function GetProjectDetails(credential, xcodeVersion) {
     if (platform !== 'macOS') {
         await checkSimulatorsAvailable(platform);
     }
-    const destination = core.getInput('destination');
+    const destinationInput = core.getInput('destination');
+    let destination;
+    if (destinationInput) {
+        destination = destinationInput;
+    }
+    else {
+        destination = `generic/platform=${platform}`;
+    }
     core.debug(`Using destination: ${destination}`);
     const bundleId = await getBuildSettings(projectPath, scheme, platform, destination);
     core.info(`Bundle ID: ${bundleId}`);
@@ -58660,16 +58667,36 @@ async function getSupportedPlatform(projectPath) {
     };
     return platformMap[platformName];
 }
+async function getDestination(projectPath, scheme, platform) {
+    let destinationOutput = '';
+    const destinationArgs = [
+        '-project', projectPath,
+        '-scheme', scheme,
+        '-showdestinations',
+        '-json'
+    ];
+    if (!core.isDebug()) {
+        core.info(`[command]${xcodebuild} ${destinationArgs.join(' ')}`);
+    }
+    await (0, exec_1.exec)(xcodebuild, destinationArgs, {
+        listeners: {
+            stdout: (data) => {
+                destinationOutput += data.toString();
+            }
+        },
+    });
+    core.info(destinationOutput);
+    return `generic/platform=${platform}`;
+}
 async function getBuildSettings(projectPath, scheme, platform, destination) {
     let buildSettingsOutput = '';
     const projectSettingsArgs = [
         'build',
         '-project', projectPath,
-        '-scheme', scheme
+        '-scheme', scheme,
+        '-destination', destination,
+        '-showBuildSettings'
     ];
-    if (destination) {
-        projectSettingsArgs.push('-destination', destination);
-    }
     projectSettingsArgs.push('-showBuildSettings');
     if (!core.isDebug()) {
         core.info(`[command]${xcodebuild} ${projectSettingsArgs.join(' ')}`);

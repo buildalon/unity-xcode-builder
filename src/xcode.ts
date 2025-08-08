@@ -77,7 +77,15 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         await checkSimulatorsAvailable(platform);
     }
 
-    const destination = core.getInput('destination');
+    const destinationInput = core.getInput('destination');
+    let destination: string;
+
+    if (destinationInput) {
+        destination = destinationInput;
+    } else {
+        destination = `generic/platform=${platform}`;
+    }
+
     core.debug(`Using destination: ${destination}`);
     const bundleId = await getBuildSettings(projectPath, scheme, platform, destination);
     core.info(`Bundle ID: ${bundleId}`);
@@ -161,6 +169,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         if (projectRef.autoIncrementBuildNumber) {
             let projectBundleVersionPrefix = '';
             let projectBundleVersionNumber: number;
+
             if (!cFBundleVersion || cFBundleVersion.length === 0) {
                 projectBundleVersionNumber = 0;
             } else if (cFBundleVersion.includes('.')) {
@@ -170,9 +179,11 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             } else {
                 projectBundleVersionNumber = parseInt(cFBundleVersion);
             }
+
             let lastVersionNumber: number;
             let versionPrefix = '';
             let lastBundleVersion: string = null;
+
             try {
                 lastBundleVersion = await GetLatestBundleVersion(projectRef);
             } catch (error) {
@@ -180,16 +191,17 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
                     throw error;
                 }
             }
+
             if (!lastBundleVersion || lastBundleVersion.length === 0) {
                 lastVersionNumber = -1;
-            }
-            else if (lastBundleVersion.includes('.')) {
+            } else if (lastBundleVersion.includes('.')) {
                 const versionParts = lastBundleVersion.split('.');
                 lastVersionNumber = parseInt(versionParts[versionParts.length - 1]);
                 versionPrefix = versionParts.slice(0, -1).join('.') + '.';
             } else {
                 lastVersionNumber = parseInt(lastBundleVersion);
             }
+
             if (projectBundleVersionPrefix.length > 0 && projectBundleVersionPrefix !== versionPrefix) {
                 core.debug(`Project version prefix: ${projectBundleVersionPrefix}`);
                 core.debug(`Last bundle version prefix: ${versionPrefix}`);
@@ -198,12 +210,15 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
                     core.info(`Updated project version prefix to: ${projectBundleVersionPrefix}`);
                 }
             }
+
             if (projectBundleVersionNumber <= lastVersionNumber) {
                 projectBundleVersionNumber = lastVersionNumber + 1;
                 core.info(`Auto Incremented bundle version ==> ${versionPrefix}${projectBundleVersionNumber}`);
             }
+
             infoPlist['CFBundleVersion'] = projectBundleVersionPrefix + projectBundleVersionNumber.toString();
             projectRef.bundleVersion = projectBundleVersionPrefix + projectBundleVersionNumber.toString();
+
             try {
                 await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
             } catch (error) {
@@ -213,6 +228,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     } else {
         if (projectRef.platform === 'macOS') {
             const notarizeInput = core.getInput('notarize') || 'true';
+
             core.debug(`Notarize input: ${notarizeInput}`);
             projectRef.notarize =
                 notarizeInput === 'true' ||
@@ -220,6 +236,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
                 projectRef.archiveType === 'pkg' ||
                 projectRef.archiveType === 'dmg';
             let output = '';
+
             await exec('security', [
                 'find-identity',
                 '-v', projectRef.credential.keychainPath
@@ -231,9 +248,11 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
                 },
                 silent: true
             });
+
             if (!output.includes('Developer ID Application')) {
                 throw new Error('Developer ID Application not found! developer-id-application-certificate input is required for notarization.');
             }
+
             if (projectRef.archiveType === 'pkg' || projectRef.archiveType === 'dmg') {
                 if (!output.includes('Developer ID Installer')) {
                     throw new Error('Developer ID Installer not found! developer-id-installer-certificate input is required for notarization.');
@@ -241,12 +260,15 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             }
         }
     }
+
     const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
+
     try {
         infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
     } finally {
         await plistHandle.close();
     }
+
     core.info(`------- Info.plist content: -------\n${infoPlistContent}\n-----------------------------------`);
     return projectRef;
 }
@@ -303,18 +325,43 @@ async function getSupportedPlatform(projectPath: string): Promise<string> {
     return platformMap[platformName];
 }
 
+async function getDestination(projectPath: string, scheme: string, platform: string): Promise<string> {
+    let destinationOutput = '';
+
+    const destinationArgs = [
+        '-project', projectPath,
+        '-scheme', scheme,
+        '-showdestinations',
+        '-json'
+    ];
+
+    if (!core.isDebug()) {
+        core.info(`[command]${xcodebuild} ${destinationArgs.join(' ')}`);
+    }
+
+    await exec(xcodebuild, destinationArgs, {
+        listeners: {
+            stdout: (data: Buffer) => {
+                destinationOutput += data.toString();
+            }
+        },
+    });
+    core.info(destinationOutput);
+    // example output:
+    // TODO: parse the output to get the destination
+    return `generic/platform=${platform}`;
+}
+
 async function getBuildSettings(projectPath: string, scheme: string, platform: string, destination: string | undefined): Promise<string> {
     let buildSettingsOutput = '';
 
     const projectSettingsArgs = [
         'build',
         '-project', projectPath,
-        '-scheme', scheme
+        '-scheme', scheme,
+        '-destination', destination,
+        '-showBuildSettings'
     ];
-
-    if (destination) {
-        projectSettingsArgs.push('-destination', destination);
-    }
 
     projectSettingsArgs.push('-showBuildSettings');
 
