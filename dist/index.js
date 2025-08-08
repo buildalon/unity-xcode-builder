@@ -58723,7 +58723,7 @@ async function getDestination(projectPath, scheme, platform) {
             if (!destination.platform) {
                 continue;
             }
-            if (destination.id && destination.id.includes('placeholder')) {
+            if (destination.id && destination.id.toLowerCase().includes('placeholder')) {
                 continue;
             }
             const destinationArgs = Object.entries(destination).map(([key, value]) => `${key}=${value}`);

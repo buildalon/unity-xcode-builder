@@ -387,7 +387,7 @@ async function getDestination(projectPath: string, scheme: string, platform: str
                 continue;
             }
             // skip placeholder destinations
-            if (destination.id && destination.id.includes('placeholder')) {
+            if (destination.id && destination.id.toLowerCase().includes('placeholder')) {
                 continue;
             }
 
