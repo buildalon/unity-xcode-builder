@@ -58712,12 +58712,9 @@ async function getDestination(projectPath, scheme, platform) {
         }
         const json = {};
         match[1].split(',').forEach(pair => {
-            const idx = pair.indexOf(':');
-            if (idx === -1) {
-                throw new Error(`Invalid "key:value": ${pair}`);
-            }
-            const key = pair.slice(0, idx).trim();
-            const value = pair.slice(idx + 1).trim();
+            const valueParts = pair.split(':');
+            const key = valueParts[0].trim();
+            const value = valueParts[1].trim();
             json[key] = value;
         });
         return json;

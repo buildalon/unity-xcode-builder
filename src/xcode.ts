@@ -362,7 +362,8 @@ async function getDestination(projectPath: string, scheme: string, platform: str
     }
 
     // convert the destination lines into json, since the format they give isn't actually in json form.
-    // keep in mind that there can be any key:value pair in the destination lines
+    // keep in mind that there can be any key:value pair in the destination lines.
+    // if there are multiple `:` then strip the second one and the text following it.
     const destinationJson = destinationLines.map(line => {
         const match = line.match(/^\s*{([^}]+)}\s*$/);
         if (!match) {
@@ -370,12 +371,10 @@ async function getDestination(projectPath: string, scheme: string, platform: str
         }
         const json: Record<string, string> = {};
         match[1].split(',').forEach(pair => {
-            const idx = pair.indexOf(':');
-            if (idx === -1) {
-                throw new Error(`Invalid "key:value": ${pair}`);
-            }
-            const key = pair.slice(0, idx).trim();
-            const value = pair.slice(idx + 1).trim();
+            // split the pair value by `:` then only use the first two parts
+            const valueParts = pair.split(':');
+            const key = valueParts[0].trim();
+            const value = valueParts[1].trim();
             json[key] = value;
         });
         return json;
