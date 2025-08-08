@@ -9,7 +9,9 @@ import fs = require('fs');
 import semver = require('semver');
 import {
     DeepEqual,
-    log
+    log,
+    matchRegexPattern,
+    getFirstPathWithGlob
 } from './utilities';
 import { SemVer } from 'semver';
 import core = require('@actions/core');
@@ -329,7 +331,8 @@ async function getDestination(projectPath: string, scheme: string, platform: str
     const destinationArgs = [
         '-project', projectPath,
         '-scheme', scheme,
-        '-showdestinations'
+        '-showdestinations',
+        '-json'
     ];
 
     await exec(xcodebuild, destinationArgs, {
@@ -390,12 +393,11 @@ async function getBuildSettings(projectPath: string, scheme: string, platform: s
     return bundleId;
 }
 
-function matchRegexPattern(string: string, pattern: RegExp, group: string | null): string {
-    const match = string.match(pattern);
-    if (!match) {
-        throw new Error(`Failed to resolve: ${pattern}`);
+async function downloadPlatformSdkIfMissing(platform: string, version: string | null) {
+    await exec('xcodes', ['runtimes']);
+    if (version) {
+        await exec('xcodes', ['runtimes', 'install', `${platform} ${version}`]);
     }
-    return group ? match.groups?.[group] : match[1];
 }
 
 async function getProjectScheme(projectPath: string): Promise<string> {
@@ -436,11 +438,115 @@ async function getProjectScheme(projectPath: string): Promise<string> {
     return scheme;
 }
 
-async function downloadPlatformSdkIfMissing(platform: string, version: string | null) {
-    await exec('xcodes', ['runtimes']);
-    if (version) {
-        await exec('xcodes', ['runtimes', 'install', `${platform} ${version}`]);
+async function getExportOptions(projectRef: XcodeProject): Promise<void> {
+    const exportOptionPlistInput = core.getInput('export-option-plist');
+    let exportOptionsPath = undefined;
+    if (!exportOptionPlistInput) {
+        const exportOption = core.getInput('export-option') || 'development';
+        let method: string;
+        if (projectRef.platform === 'macOS') {
+            const archiveType = core.getInput('archive-type') || 'app';
+            projectRef.archiveType = archiveType;
+            switch (exportOption) {
+                case 'steam':
+                    method = 'developer-id';
+                    projectRef.isSteamBuild = true;
+                    projectRef.archiveType = 'app';
+                    break;
+                case 'ad-hoc':
+                    method = 'development';
+                    break;
+                default:
+                    method = exportOption;
+                    break;
+            }
+            core.info(`Export Archive type: ${archiveType}`);
+        } else {
+            // revert back to development just in case user passes in steam for non-macos platforms
+            if (exportOption === 'steam') {
+                method = 'development';
+            } else {
+                method = exportOption;
+            }
+        }
+        // As of Xcode 15.4, the old export methods 'app-store', 'ad-hoc', and 'development' are now deprecated.
+        // The new equivalents are 'app-store-connect', 'release-testing', and 'debugging'.
+        const xcodeMinVersion = semver.coerce('15.4');
+        if (semver.gte(projectRef.xcodeVersion, xcodeMinVersion)) {
+            switch (method) {
+                case 'app-store':
+                    method = 'app-store-connect';
+                    break;
+                case 'ad-hoc':
+                    method = 'release-testing';
+                    break;
+                case 'development':
+                    method = 'debugging';
+                    break;
+            }
+        }
+        const exportOptions = {
+            method: method,
+            signingStyle: projectRef.credential.manualSigningIdentity ? 'manual' : 'automatic',
+            teamID: `${projectRef.credential.teamId}`
+        };
+        if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {
+            exportOptions['manageAppVersionAndBuildNumber'] = true;
+        }
+        projectRef.exportOption = method;
+        exportOptionsPath = `${projectRef.projectPath}/exportOptions.plist`;
+        await fs.promises.writeFile(exportOptionsPath, plist.build(exportOptions));
+    } else {
+        exportOptionsPath = exportOptionPlistInput;
     }
+    core.info(`Export options path: ${exportOptionsPath}`);
+    if (!exportOptionsPath) {
+        throw new Error(`Invalid path for export-option-plist: ${exportOptionsPath}`);
+    }
+    const exportOptionsHandle = await fs.promises.open(exportOptionsPath, fs.constants.O_RDONLY);
+    try {
+        const exportOptionContent = await fs.promises.readFile(exportOptionsHandle, 'utf8');
+        core.info(`----- Export options content: -----\n${exportOptionContent}\n-----------------------------------`);
+        const exportOptions = plist.parse(exportOptionContent);
+        projectRef.exportOption = exportOptions['method'];
+    } finally {
+        await exportOptionsHandle.close();
+    }
+    projectRef.exportOptionsPath = exportOptionsPath;
+}
+
+async function getDefaultEntitlementsMacOS(projectRef: XcodeProject): Promise<string> {
+    const entitlementsPath = `${projectRef.projectPath}/Entitlements.plist`;
+    try {
+        await fs.promises.access(entitlementsPath, fs.constants.R_OK);
+        core.info(`Existing Entitlements.plist found at: ${entitlementsPath}`);
+        return entitlementsPath;
+    } catch (error) {
+        core.info(`Creating default entitlements at ${entitlementsPath}...`);
+    }
+    const exportOption = projectRef.exportOption;
+    let defaultEntitlements = undefined;
+    switch (exportOption) {
+        case 'app-store':
+        case 'app-store-connect':
+            defaultEntitlements = {
+                'com.apple.security.app-sandbox': true,
+                'com.apple.security.files.user-selected.read-only': true,
+            };
+            break;
+        default:
+            // use default hardened runtime entitlements
+            defaultEntitlements = {
+                'com.apple.security.cs.allow-jit': true,
+                'com.apple.security.cs.allow-unsigned-executable-memory': true,
+                'com.apple.security.cs.allow-dyld-environment-variables': true,
+                'com.apple.security.cs.disable-library-validation': true,
+                'com.apple.security.cs.disable-executable-page-protection': true,
+            };
+            break;
+    }
+    await fs.promises.writeFile(entitlementsPath, plist.build(defaultEntitlements));
+    return entitlementsPath;
 }
 
 export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<XcodeProject> {
@@ -630,15 +736,6 @@ export async function isAppBundleNotarized(appPath: string): Promise<boolean> {
         return false;
     }
     throw new Error(`Failed to validate the notarization ticket!\n${output}`);
-}
-
-async function getFirstPathWithGlob(globPattern: string): Promise<string> {
-    const globber = await glob.create(globPattern);
-    const files = await globber.glob();
-    if (files.length === 0) {
-        throw new Error(`No file found at: ${globPattern}`);
-    }
-    return files[0];
 }
 
 async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
@@ -921,117 +1018,6 @@ async function getNotarizationLog(projectRef: XcodeProject, id: string): Promise
     if (logExitCode !== 0) {
         throw new Error(`Failed to get notarization log!`);
     }
-}
-
-async function getExportOptions(projectRef: XcodeProject): Promise<void> {
-    const exportOptionPlistInput = core.getInput('export-option-plist');
-    let exportOptionsPath = undefined;
-    if (!exportOptionPlistInput) {
-        const exportOption = core.getInput('export-option') || 'development';
-        let method: string;
-        if (projectRef.platform === 'macOS') {
-            const archiveType = core.getInput('archive-type') || 'app';
-            projectRef.archiveType = archiveType;
-            switch (exportOption) {
-                case 'steam':
-                    method = 'developer-id';
-                    projectRef.isSteamBuild = true;
-                    projectRef.archiveType = 'app';
-                    break;
-                case 'ad-hoc':
-                    method = 'development';
-                    break;
-                default:
-                    method = exportOption;
-                    break;
-            }
-            core.info(`Export Archive type: ${archiveType}`);
-        } else {
-            // revert back to development just in case user passes in steam for non-macos platforms
-            if (exportOption === 'steam') {
-                method = 'development';
-            } else {
-                method = exportOption;
-            }
-        }
-        // As of Xcode 15.4, the old export methods 'app-store', 'ad-hoc', and 'development' are now deprecated.
-        // The new equivalents are 'app-store-connect', 'release-testing', and 'debugging'.
-        const xcodeMinVersion = semver.coerce('15.4');
-        if (semver.gte(projectRef.xcodeVersion, xcodeMinVersion)) {
-            switch (method) {
-                case 'app-store':
-                    method = 'app-store-connect';
-                    break;
-                case 'ad-hoc':
-                    method = 'release-testing';
-                    break;
-                case 'development':
-                    method = 'debugging';
-                    break;
-            }
-        }
-        const exportOptions = {
-            method: method,
-            signingStyle: projectRef.credential.manualSigningIdentity ? 'manual' : 'automatic',
-            teamID: `${projectRef.credential.teamId}`
-        };
-        if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {
-            exportOptions['manageAppVersionAndBuildNumber'] = true;
-        }
-        projectRef.exportOption = method;
-        exportOptionsPath = `${projectRef.projectPath}/exportOptions.plist`;
-        await fs.promises.writeFile(exportOptionsPath, plist.build(exportOptions));
-    } else {
-        exportOptionsPath = exportOptionPlistInput;
-    }
-    core.info(`Export options path: ${exportOptionsPath}`);
-    if (!exportOptionsPath) {
-        throw new Error(`Invalid path for export-option-plist: ${exportOptionsPath}`);
-    }
-    const exportOptionsHandle = await fs.promises.open(exportOptionsPath, fs.constants.O_RDONLY);
-    try {
-        const exportOptionContent = await fs.promises.readFile(exportOptionsHandle, 'utf8');
-        core.info(`----- Export options content: -----\n${exportOptionContent}\n-----------------------------------`);
-        const exportOptions = plist.parse(exportOptionContent);
-        projectRef.exportOption = exportOptions['method'];
-    } finally {
-        await exportOptionsHandle.close();
-    }
-    projectRef.exportOptionsPath = exportOptionsPath;
-}
-
-async function getDefaultEntitlementsMacOS(projectRef: XcodeProject): Promise<string> {
-    const entitlementsPath = `${projectRef.projectPath}/Entitlements.plist`;
-    try {
-        await fs.promises.access(entitlementsPath, fs.constants.R_OK);
-        core.info(`Existing Entitlements.plist found at: ${entitlementsPath}`);
-        return entitlementsPath;
-    } catch (error) {
-        core.info(`Creating default entitlements at ${entitlementsPath}...`);
-    }
-    const exportOption = projectRef.exportOption;
-    let defaultEntitlements = undefined;
-    switch (exportOption) {
-        case 'app-store':
-        case 'app-store-connect':
-            defaultEntitlements = {
-                'com.apple.security.app-sandbox': true,
-                'com.apple.security.files.user-selected.read-only': true,
-            };
-            break;
-        default:
-            // use default hardened runtime entitlements
-            defaultEntitlements = {
-                'com.apple.security.cs.allow-jit': true,
-                'com.apple.security.cs.allow-unsigned-executable-memory': true,
-                'com.apple.security.cs.allow-dyld-environment-variables': true,
-                'com.apple.security.cs.disable-library-validation': true,
-                'com.apple.security.cs.disable-executable-page-protection': true,
-            };
-            break;
-    }
-    await fs.promises.writeFile(entitlementsPath, plist.build(defaultEntitlements));
-    return entitlementsPath;
 }
 
 async function execXcodeBuild(xcodeBuildArgs: string[]) {

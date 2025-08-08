@@ -1,5 +1,6 @@
 
 import core = require('@actions/core');
+import glob = require('@actions/glob');
 
 export function log(message: string, type: 'info' | 'warning' | 'error' = 'info') {
     if (type == 'info' && !core.isDebug()) { return; }
@@ -49,4 +50,21 @@ export function DeepEqual(a: any, b: any): boolean {
         if (!DeepEqual(a[key], b[key])) return false;
     }
     return true;
+}
+
+export function matchRegexPattern(string: string, pattern: RegExp, group: string | null): string {
+    const match = string.match(pattern);
+    if (!match) {
+        throw new Error(`Failed to resolve: ${pattern}`);
+    }
+    return group ? match.groups?.[group] : match[1];
+}
+
+export async function getFirstPathWithGlob(globPattern: string): Promise<string> {
+    const globber = await glob.create(globPattern);
+    const files = await globber.glob();
+    if (files.length === 0) {
+        throw new Error(`No file found at: ${globPattern}`);
+    }
+    return files[0];
 }

@@ -58328,7 +58328,10 @@ exports.XcodeProject = XcodeProject;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.log = log;
 exports.DeepEqual = DeepEqual;
+exports.matchRegexPattern = matchRegexPattern;
+exports.getFirstPathWithGlob = getFirstPathWithGlob;
 const core = __nccwpck_require__(2186);
+const glob = __nccwpck_require__(8090);
 function log(message, type = 'info') {
     if (type == 'info' && !core.isDebug()) {
         return;
@@ -58386,6 +58389,22 @@ function DeepEqual(a, b) {
             return false;
     }
     return true;
+}
+function matchRegexPattern(string, pattern, group) {
+    var _a;
+    const match = string.match(pattern);
+    if (!match) {
+        throw new Error(`Failed to resolve: ${pattern}`);
+    }
+    return group ? (_a = match.groups) === null || _a === void 0 ? void 0 : _a[group] : match[1];
+}
+async function getFirstPathWithGlob(globPattern) {
+    const globber = await glob.create(globPattern);
+    const files = await globber.glob();
+    if (files.length === 0) {
+        throw new Error(`No file found at: ${globPattern}`);
+    }
+    return files[0];
 }
 
 
@@ -58647,7 +58666,7 @@ async function getSupportedPlatform(projectPath) {
     core.debug(`.pbxproj file path: ${projectFilePath}`);
     await fs.promises.access(projectFilePath, fs.constants.R_OK);
     const content = await fs.promises.readFile(projectFilePath, 'utf8');
-    const platformName = core.getInput('platform') || matchRegexPattern(content, /\s+SDKROOT = (?<platform>\w+)/, 'platform');
+    const platformName = core.getInput('platform') || (0, utilities_1.matchRegexPattern)(content, /\s+SDKROOT = (?<platform>\w+)/, 'platform');
     if (!platformName) {
         throw new Error('Unable to determine the platform name from the build settings');
     }
@@ -58669,7 +58688,8 @@ async function getDestination(projectPath, scheme, platform) {
     const destinationArgs = [
         '-project', projectPath,
         '-scheme', scheme,
-        '-showdestinations'
+        '-showdestinations',
+        '-json'
     ];
     await (0, exec_1.exec)(xcodebuild, destinationArgs, {
         listeners: {
@@ -58704,24 +58724,22 @@ async function getBuildSettings(projectPath, scheme, platform, destination) {
     });
     let platformSdkVersion = core.getInput('platform-sdk-version') || null;
     if (!platformSdkVersion) {
-        platformSdkVersion = matchRegexPattern(buildSettingsOutput, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion') || null;
+        platformSdkVersion = (0, utilities_1.matchRegexPattern)(buildSettingsOutput, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion') || null;
     }
     if (platform !== 'macOS') {
         await downloadPlatformSdkIfMissing(platform, platformSdkVersion);
     }
-    const bundleId = core.getInput('bundle-id') || matchRegexPattern(buildSettingsOutput, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
+    const bundleId = core.getInput('bundle-id') || (0, utilities_1.matchRegexPattern)(buildSettingsOutput, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
     if (!bundleId || bundleId === 'NO') {
         throw new Error('Unable to determine the bundle ID from the build settings');
     }
     return bundleId;
 }
-function matchRegexPattern(string, pattern, group) {
-    var _a;
-    const match = string.match(pattern);
-    if (!match) {
-        throw new Error(`Failed to resolve: ${pattern}`);
+async function downloadPlatformSdkIfMissing(platform, version) {
+    await (0, exec_1.exec)('xcodes', ['runtimes']);
+    if (version) {
+        await (0, exec_1.exec)('xcodes', ['runtimes', 'install', `${platform} ${version}`]);
     }
-    return group ? (_a = match.groups) === null || _a === void 0 ? void 0 : _a[group] : match[1];
 }
 async function getProjectScheme(projectPath) {
     let scheme = core.getInput('scheme');
@@ -58762,11 +58780,115 @@ async function getProjectScheme(projectPath) {
     core.debug(`Using scheme: ${scheme}`);
     return scheme;
 }
-async function downloadPlatformSdkIfMissing(platform, version) {
-    await (0, exec_1.exec)('xcodes', ['runtimes']);
-    if (version) {
-        await (0, exec_1.exec)('xcodes', ['runtimes', 'install', `${platform} ${version}`]);
+async function getExportOptions(projectRef) {
+    const exportOptionPlistInput = core.getInput('export-option-plist');
+    let exportOptionsPath = undefined;
+    if (!exportOptionPlistInput) {
+        const exportOption = core.getInput('export-option') || 'development';
+        let method;
+        if (projectRef.platform === 'macOS') {
+            const archiveType = core.getInput('archive-type') || 'app';
+            projectRef.archiveType = archiveType;
+            switch (exportOption) {
+                case 'steam':
+                    method = 'developer-id';
+                    projectRef.isSteamBuild = true;
+                    projectRef.archiveType = 'app';
+                    break;
+                case 'ad-hoc':
+                    method = 'development';
+                    break;
+                default:
+                    method = exportOption;
+                    break;
+            }
+            core.info(`Export Archive type: ${archiveType}`);
+        }
+        else {
+            if (exportOption === 'steam') {
+                method = 'development';
+            }
+            else {
+                method = exportOption;
+            }
+        }
+        const xcodeMinVersion = semver.coerce('15.4');
+        if (semver.gte(projectRef.xcodeVersion, xcodeMinVersion)) {
+            switch (method) {
+                case 'app-store':
+                    method = 'app-store-connect';
+                    break;
+                case 'ad-hoc':
+                    method = 'release-testing';
+                    break;
+                case 'development':
+                    method = 'debugging';
+                    break;
+            }
+        }
+        const exportOptions = {
+            method: method,
+            signingStyle: projectRef.credential.manualSigningIdentity ? 'manual' : 'automatic',
+            teamID: `${projectRef.credential.teamId}`
+        };
+        if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {
+            exportOptions['manageAppVersionAndBuildNumber'] = true;
+        }
+        projectRef.exportOption = method;
+        exportOptionsPath = `${projectRef.projectPath}/exportOptions.plist`;
+        await fs.promises.writeFile(exportOptionsPath, plist.build(exportOptions));
     }
+    else {
+        exportOptionsPath = exportOptionPlistInput;
+    }
+    core.info(`Export options path: ${exportOptionsPath}`);
+    if (!exportOptionsPath) {
+        throw new Error(`Invalid path for export-option-plist: ${exportOptionsPath}`);
+    }
+    const exportOptionsHandle = await fs.promises.open(exportOptionsPath, fs.constants.O_RDONLY);
+    try {
+        const exportOptionContent = await fs.promises.readFile(exportOptionsHandle, 'utf8');
+        core.info(`----- Export options content: -----\n${exportOptionContent}\n-----------------------------------`);
+        const exportOptions = plist.parse(exportOptionContent);
+        projectRef.exportOption = exportOptions['method'];
+    }
+    finally {
+        await exportOptionsHandle.close();
+    }
+    projectRef.exportOptionsPath = exportOptionsPath;
+}
+async function getDefaultEntitlementsMacOS(projectRef) {
+    const entitlementsPath = `${projectRef.projectPath}/Entitlements.plist`;
+    try {
+        await fs.promises.access(entitlementsPath, fs.constants.R_OK);
+        core.info(`Existing Entitlements.plist found at: ${entitlementsPath}`);
+        return entitlementsPath;
+    }
+    catch (error) {
+        core.info(`Creating default entitlements at ${entitlementsPath}...`);
+    }
+    const exportOption = projectRef.exportOption;
+    let defaultEntitlements = undefined;
+    switch (exportOption) {
+        case 'app-store':
+        case 'app-store-connect':
+            defaultEntitlements = {
+                'com.apple.security.app-sandbox': true,
+                'com.apple.security.files.user-selected.read-only': true,
+            };
+            break;
+        default:
+            defaultEntitlements = {
+                'com.apple.security.cs.allow-jit': true,
+                'com.apple.security.cs.allow-unsigned-executable-memory': true,
+                'com.apple.security.cs.allow-dyld-environment-variables': true,
+                'com.apple.security.cs.disable-library-validation': true,
+                'com.apple.security.cs.disable-executable-page-protection': true,
+            };
+            break;
+    }
+    await fs.promises.writeFile(entitlementsPath, plist.build(defaultEntitlements));
+    return entitlementsPath;
 }
 async function ArchiveXcodeProject(projectRef) {
     const { projectPath, scheme, configuration, destination, platform, archivePath, entitlementsPath } = projectRef;
@@ -58864,7 +58986,7 @@ async function ExportXcodeArchive(projectRef) {
     }
     if (platform === 'macOS') {
         if (!projectRef.isAppStoreUpload()) {
-            projectRef.executablePath = await getFirstPathWithGlob(`${exportPath}/**/*.app`);
+            projectRef.executablePath = await (0, utilities_1.getFirstPathWithGlob)(`${exportPath}/**/*.app`);
             if (notarize) {
                 await signMacOSAppBundle(projectRef);
                 if (isSteamBuild) {
@@ -58887,11 +59009,11 @@ async function ExportXcodeArchive(projectRef) {
             }
         }
         else {
-            projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.pkg`);
+            projectRef.executablePath = await (0, utilities_1.getFirstPathWithGlob)(`${projectRef.exportPath}/**/*.pkg`);
         }
     }
     else {
-        projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.ipa`);
+        projectRef.executablePath = await (0, utilities_1.getFirstPathWithGlob)(`${projectRef.exportPath}/**/*.ipa`);
     }
     try {
         await fs.promises.access(projectRef.executablePath, fs.constants.R_OK);
@@ -58923,16 +59045,8 @@ async function isAppBundleNotarized(appPath) {
     }
     throw new Error(`Failed to validate the notarization ticket!\n${output}`);
 }
-async function getFirstPathWithGlob(globPattern) {
-    const globber = await glob.create(globPattern);
-    const files = await globber.glob();
-    if (files.length === 0) {
-        throw new Error(`No file found at: ${globPattern}`);
-    }
-    return files[0];
-}
 async function signMacOSAppBundle(projectRef) {
-    const appPath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
+    const appPath = await (0, utilities_1.getFirstPathWithGlob)(`${projectRef.exportPath}/**/*.app`);
     await fs.promises.access(appPath, fs.constants.R_OK);
     const stat = await fs.promises.stat(appPath);
     if (!stat.isDirectory()) {
@@ -59052,7 +59166,7 @@ async function createMacOSInstallerPkg(projectRef) {
     core.info('Creating macOS installer pkg...');
     let output = '';
     const pkgPath = `${projectRef.exportPath}/${projectRef.projectName}.pkg`;
-    const appPath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
+    const appPath = await (0, utilities_1.getFirstPathWithGlob)(`${projectRef.exportPath}/**/*.app`);
     const productBuildExitCode = await (0, exec_1.exec)('xcrun', [
         'productbuild',
         '--component',
@@ -59218,116 +59332,6 @@ async function getNotarizationLog(projectRef, id) {
     if (logExitCode !== 0) {
         throw new Error(`Failed to get notarization log!`);
     }
-}
-async function getExportOptions(projectRef) {
-    const exportOptionPlistInput = core.getInput('export-option-plist');
-    let exportOptionsPath = undefined;
-    if (!exportOptionPlistInput) {
-        const exportOption = core.getInput('export-option') || 'development';
-        let method;
-        if (projectRef.platform === 'macOS') {
-            const archiveType = core.getInput('archive-type') || 'app';
-            projectRef.archiveType = archiveType;
-            switch (exportOption) {
-                case 'steam':
-                    method = 'developer-id';
-                    projectRef.isSteamBuild = true;
-                    projectRef.archiveType = 'app';
-                    break;
-                case 'ad-hoc':
-                    method = 'development';
-                    break;
-                default:
-                    method = exportOption;
-                    break;
-            }
-            core.info(`Export Archive type: ${archiveType}`);
-        }
-        else {
-            if (exportOption === 'steam') {
-                method = 'development';
-            }
-            else {
-                method = exportOption;
-            }
-        }
-        const xcodeMinVersion = semver.coerce('15.4');
-        if (semver.gte(projectRef.xcodeVersion, xcodeMinVersion)) {
-            switch (method) {
-                case 'app-store':
-                    method = 'app-store-connect';
-                    break;
-                case 'ad-hoc':
-                    method = 'release-testing';
-                    break;
-                case 'development':
-                    method = 'debugging';
-                    break;
-            }
-        }
-        const exportOptions = {
-            method: method,
-            signingStyle: projectRef.credential.manualSigningIdentity ? 'manual' : 'automatic',
-            teamID: `${projectRef.credential.teamId}`
-        };
-        if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {
-            exportOptions['manageAppVersionAndBuildNumber'] = true;
-        }
-        projectRef.exportOption = method;
-        exportOptionsPath = `${projectRef.projectPath}/exportOptions.plist`;
-        await fs.promises.writeFile(exportOptionsPath, plist.build(exportOptions));
-    }
-    else {
-        exportOptionsPath = exportOptionPlistInput;
-    }
-    core.info(`Export options path: ${exportOptionsPath}`);
-    if (!exportOptionsPath) {
-        throw new Error(`Invalid path for export-option-plist: ${exportOptionsPath}`);
-    }
-    const exportOptionsHandle = await fs.promises.open(exportOptionsPath, fs.constants.O_RDONLY);
-    try {
-        const exportOptionContent = await fs.promises.readFile(exportOptionsHandle, 'utf8');
-        core.info(`----- Export options content: -----\n${exportOptionContent}\n-----------------------------------`);
-        const exportOptions = plist.parse(exportOptionContent);
-        projectRef.exportOption = exportOptions['method'];
-    }
-    finally {
-        await exportOptionsHandle.close();
-    }
-    projectRef.exportOptionsPath = exportOptionsPath;
-}
-async function getDefaultEntitlementsMacOS(projectRef) {
-    const entitlementsPath = `${projectRef.projectPath}/Entitlements.plist`;
-    try {
-        await fs.promises.access(entitlementsPath, fs.constants.R_OK);
-        core.info(`Existing Entitlements.plist found at: ${entitlementsPath}`);
-        return entitlementsPath;
-    }
-    catch (error) {
-        core.info(`Creating default entitlements at ${entitlementsPath}...`);
-    }
-    const exportOption = projectRef.exportOption;
-    let defaultEntitlements = undefined;
-    switch (exportOption) {
-        case 'app-store':
-        case 'app-store-connect':
-            defaultEntitlements = {
-                'com.apple.security.app-sandbox': true,
-                'com.apple.security.files.user-selected.read-only': true,
-            };
-            break;
-        default:
-            defaultEntitlements = {
-                'com.apple.security.cs.allow-jit': true,
-                'com.apple.security.cs.allow-unsigned-executable-memory': true,
-                'com.apple.security.cs.allow-dyld-environment-variables': true,
-                'com.apple.security.cs.disable-library-validation': true,
-                'com.apple.security.cs.disable-executable-page-protection': true,
-            };
-            break;
-    }
-    await fs.promises.writeFile(entitlementsPath, plist.build(defaultEntitlements));
-    return entitlementsPath;
 }
 async function execXcodeBuild(xcodeBuildArgs) {
     let output = '';
