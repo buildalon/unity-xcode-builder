@@ -348,7 +348,6 @@ async function getDestination(projectPath: string, scheme: string, platform: str
     // Available destinations for the "Unity-VisionOS" scheme:
     // { platform:visionOS, id:dvtdevice-DVTiOSDevicePlaceholder-xros:placeholder, name:Any visionOS Device }
     // ```
-    // TODO: parse the output to get the destination
     // Use regex to remove "Available destinations for the ".*" scheme:
     destinationOutput = destinationOutput.replace(/Available destinations for the ".*" scheme:\n/g, '');
     // trim the whitespace on each line
@@ -356,51 +355,51 @@ async function getDestination(projectPath: string, scheme: string, platform: str
     // split the lines
     const destinationLines = destinationOutput.split('\n').filter(line => line.trim() !== '');
 
-    if (destinationLines.length === 0) {
-        core.error('No valid destinations found');
-        return `generic/platform=${platform}`;
-    }
-
-    // convert the destination lines into json, since the format they give isn't actually in json form.
-    // keep in mind that there can be any key:value pair in the destination lines.
-    // if there are multiple `:` then strip the second one and the text following it.
-    const destinationJson = destinationLines.map(line => {
-        const match = line.match(/^\s*{([^}]+)}\s*$/);
-        if (!match) {
-            throw new Error(`line: ${line}`);
-        }
-        const json: Record<string, string> = {};
-        match[1].split(',').forEach(pair => {
-            // split the pair value by `:` then only use the first two parts
-            const valueParts = pair.split(':');
-            const key = valueParts[0].trim();
-            let value = valueParts[1].trim();
-            // if there is whitespace in the value, give it quotes
-            if (/\s/.test(value)) {
-                value = `"${value}"`;
+    if (destinationLines.length > 0) {
+        // convert the destination lines into json, since the format they give isn't actually in json form.
+        // keep in mind that there can be any key:value pair in the destination lines.
+        // if there are multiple `:` then strip the second one and the text following it.
+        const destinationJson = destinationLines.map(line => {
+            const match = line.match(/^\s*{([^}]+)}\s*$/);
+            if (!match) {
+                throw new Error(`line: ${line}`);
             }
-            json[key] = value;
+            const json: Record<string, string> = {};
+            match[1].split(',').forEach(pair => {
+                // split the pair value by `:` then only use the first two parts
+                const valueParts = pair.split(':');
+                const key = valueParts[0].trim();
+                let value = valueParts[1].trim();
+                // if there is whitespace in the value, give it quotes
+                if (/\s/.test(value)) {
+                    value = `"${value}"`;
+                }
+                json[key] = value;
+            });
+
+            return json;
         });
-        return json;
-    });
 
-    // find the first destination that has a platform that matches the input platform
+        // find the first destination that has a platform that matches the input platform
+        for (const destination of destinationJson) {
+            // at least match platform key value
+            if (!destination.platform) {
+                continue;
+            }
+            // skip placeholder destinations
+            if (destination.id && destination.id.includes('placeholder')) {
+                continue;
+            }
 
-    for (const destination of destinationJson) {
-        // at least match platform key value
-        if (!destination.platform) {
-            continue;
+            // we don't know ahead of time which keys can values will be there, so we convert it to the format that xcodebuild will expect for destination argument
+            const destinationArgs = Object.entries(destination).map(([key, value]) => `${key}=${value}`);
+            // join the arguments with ,
+            const destinationString = destinationArgs.join(',');
+            return destinationString;
         }
-
-        // we don't know ahead of time which keys can values will be there, so we convert it to the format that xcodebuild will expect for destination argument
-        const destinationArgs = Object.entries(destination).map(([key, value]) => `${key}=${value}`);
-        // join the arguments with ,
-        const destinationString = destinationArgs.join(',');
-        return destinationString;
     }
-
-    // fallback:
-    return `generic/platform=${platform}`;
+    // fallback: use the platform as the destination
+    return `platform=${platform}`;
 }
 
 async function getBuildSettings(projectPath: string, scheme: string, platform: string, destination: string | undefined): Promise<string> {

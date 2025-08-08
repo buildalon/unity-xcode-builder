@@ -58701,36 +58701,37 @@ async function getDestination(projectPath, scheme, platform) {
     destinationOutput = destinationOutput.replace(/Available destinations for the ".*" scheme:\n/g, '');
     destinationOutput = destinationOutput.replace(/^\s+|\s+$/g, '');
     const destinationLines = destinationOutput.split('\n').filter(line => line.trim() !== '');
-    if (destinationLines.length === 0) {
-        core.error('No valid destinations found');
-        return `generic/platform=${platform}`;
-    }
-    const destinationJson = destinationLines.map(line => {
-        const match = line.match(/^\s*{([^}]+)}\s*$/);
-        if (!match) {
-            throw new Error(`line: ${line}`);
-        }
-        const json = {};
-        match[1].split(',').forEach(pair => {
-            const valueParts = pair.split(':');
-            const key = valueParts[0].trim();
-            let value = valueParts[1].trim();
-            if (/\s/.test(value)) {
-                value = `"${value}"`;
+    if (destinationLines.length > 0) {
+        const destinationJson = destinationLines.map(line => {
+            const match = line.match(/^\s*{([^}]+)}\s*$/);
+            if (!match) {
+                throw new Error(`line: ${line}`);
             }
-            json[key] = value;
+            const json = {};
+            match[1].split(',').forEach(pair => {
+                const valueParts = pair.split(':');
+                const key = valueParts[0].trim();
+                let value = valueParts[1].trim();
+                if (/\s/.test(value)) {
+                    value = `"${value}"`;
+                }
+                json[key] = value;
+            });
+            return json;
         });
-        return json;
-    });
-    for (const destination of destinationJson) {
-        if (!destination.platform) {
-            continue;
+        for (const destination of destinationJson) {
+            if (!destination.platform) {
+                continue;
+            }
+            if (destination.id && destination.id.includes('placeholder')) {
+                continue;
+            }
+            const destinationArgs = Object.entries(destination).map(([key, value]) => `${key}=${value}`);
+            const destinationString = destinationArgs.join(',');
+            return destinationString;
         }
-        const destinationArgs = Object.entries(destination).map(([key, value]) => `${key}=${value}`);
-        const destinationString = destinationArgs.join(',');
-        return destinationString;
     }
-    return `generic/platform=${platform}`;
+    return `platform=${platform}`;
 }
 async function getBuildSettings(projectPath, scheme, platform, destination) {
     let buildSettingsOutput = '';
