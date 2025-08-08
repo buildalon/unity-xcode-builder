@@ -58461,15 +58461,8 @@ async function GetProjectDetails(credential, xcodeVersion) {
     if (platform !== 'macOS') {
         await checkSimulatorsAvailable(platform);
     }
-    const destinationInput = core.getInput('destination');
-    let destination;
-    if (destinationInput) {
-        destination = destinationInput;
-    }
-    else {
-        destination = `generic/platform=${platform}`;
-    }
-    core.debug(`Using destination: ${destination}`);
+    const destination = await getDestination(projectPath, scheme, platform);
+    core.info(`Destination: ${destination}`);
     const bundleId = await getBuildSettings(projectPath, scheme, platform, destination);
     core.info(`Bundle ID: ${bundleId}`);
     if (!bundleId) {
@@ -58668,6 +58661,10 @@ async function getSupportedPlatform(projectPath) {
     return platformMap[platformName];
 }
 async function getDestination(projectPath, scheme, platform) {
+    const destinationInput = core.getInput('destination');
+    if (destinationInput) {
+        return destinationInput;
+    }
     let destinationOutput = '';
     const destinationArgs = [
         '-project', projectPath,

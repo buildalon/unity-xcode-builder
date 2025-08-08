@@ -77,16 +77,8 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         await checkSimulatorsAvailable(platform);
     }
 
-    const destinationInput = core.getInput('destination');
-    let destination: string;
-
-    if (destinationInput) {
-        destination = destinationInput;
-    } else {
-        destination = `generic/platform=${platform}`;
-    }
-
-    core.debug(`Using destination: ${destination}`);
+    const destination: string = await getDestination(projectPath, scheme, platform);
+    core.info(`Destination: ${destination}`);
     const bundleId = await getBuildSettings(projectPath, scheme, platform, destination);
     core.info(`Bundle ID: ${bundleId}`);
 
@@ -326,6 +318,12 @@ async function getSupportedPlatform(projectPath: string): Promise<string> {
 }
 
 async function getDestination(projectPath: string, scheme: string, platform: string): Promise<string> {
+    const destinationInput = core.getInput('destination');
+
+    if (destinationInput) {
+        return destinationInput;
+    }
+
     let destinationOutput = '';
 
     const destinationArgs = [
