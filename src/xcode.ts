@@ -44,7 +44,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     const excludedProjects = ['GameAssembly', 'UnityFramework', 'Pods'];
 
     for (const file of files) {
-        if (file.endsWith('.xcodeproj')) {
+        if (file.endsWith('.xcodeproj') && !file.includes('DerivedData')) {
             const projectBaseName = path.basename(file, '.xcodeproj');
             if (excludedProjects.includes(projectBaseName)) {
                 continue;
