@@ -15838,6 +15838,9 @@ function _insertBefore(parent, node, child, _inDocumentAssertion) {
 	}
 	do{
 		newFirst.parentNode = parent;
+		// Update ownerDocument for each node being inserted
+		var targetDoc = parent.ownerDocument || parent;
+		_updateOwnerDocument(newFirst, targetDoc);
 	}while(newFirst !== newLast && (newFirst= newFirst.nextSibling))
 	_onUpdateChild(parent.ownerDocument||parent, parent);
 	//console.log(parent.lastChild.nextSibling == null)
@@ -15845,6 +15848,37 @@ function _insertBefore(parent, node, child, _inDocumentAssertion) {
 		node.firstChild = node.lastChild = null;
 	}
 	return node;
+}
+
+/**
+ * Recursively updates the ownerDocument property for a node and all its descendants
+ * @param {Node} node
+ * @param {Document} newOwnerDocument
+ * @private
+ */
+function _updateOwnerDocument(node, newOwnerDocument) {
+	if (node.ownerDocument === newOwnerDocument) {
+		return;
+	}
+	
+	node.ownerDocument = newOwnerDocument;
+	
+	// Update attributes if this is an element
+	if (node.nodeType === ELEMENT_NODE && node.attributes) {
+		for (var i = 0; i < node.attributes.length; i++) {
+			var attr = node.attributes.item(i);
+			if (attr) {
+				attr.ownerDocument = newOwnerDocument;
+			}
+		}
+	}
+	
+	// Recursively update child nodes
+	var child = node.firstChild;
+	while (child) {
+		_updateOwnerDocument(child, newOwnerDocument);
+		child = child.nextSibling;
+	}
 }
 
 /**
@@ -15872,6 +15906,11 @@ function _appendSingleChild (parentNode, newChild) {
 	}
 	parentNode.lastChild = newChild;
 	_onUpdateChild(parentNode.ownerDocument, parentNode, newChild);
+	
+	// Update ownerDocument for the new child and all its descendants
+	var targetDoc = parentNode.ownerDocument || parentNode;
+	_updateOwnerDocument(newChild, targetDoc);
+	
 	return newChild;
 }
 
@@ -15900,7 +15939,7 @@ Document.prototype = {
 			return newChild;
 		}
 		_insertBefore(this, newChild, refChild);
-		newChild.ownerDocument = this;
+		_updateOwnerDocument(newChild, this);
 		if (this.documentElement === null && newChild.nodeType === ELEMENT_NODE) {
 			this.documentElement = newChild;
 		}
@@ -15916,7 +15955,7 @@ Document.prototype = {
 	replaceChild: function (newChild, oldChild) {
 		//raises
 		_insertBefore(this, newChild, oldChild, assertPreReplacementValidityInDocument);
-		newChild.ownerDocument = this;
+		_updateOwnerDocument(newChild, this);
 		if (oldChild) {
 			this.removeChild(oldChild);
 		}
@@ -58449,7 +58488,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.debug(`Files found during search: ${files.join(', ')}`);
     const excludedProjects = ['GameAssembly', 'UnityFramework', 'Pods'];
     for (const file of files) {
-        if (file.endsWith('.xcodeproj')) {
+        if (file.endsWith('.xcodeproj') && !file.includes('DerivedData')) {
             const projectBaseName = path.basename(file, '.xcodeproj');
             if (excludedProjects.includes(projectBaseName)) {
                 continue;
@@ -61570,14 +61609,11 @@ const main = async () => {
                     const match = line.match(/(\d+\.\d+(\s\w+)?)/);
                     return match ? match[1] : null;
                 }).filter(Boolean);
-                core.debug(`Installed Xcode versions:\n  ${installedXcodeVersions.join('\n')}`);
+                core.info(`Installed Xcode versions:`);
+                installedXcodeVersions.forEach(version => core.info(`  > ${version}`));
                 if (installedXcodeVersions.length === 0 || !xcodeVersionString.includes('latest')) {
                     if (installedXcodeVersions.length === 0 || !installedXcodeVersions.includes(xcodeVersionString)) {
-                        core.info(`Downloading missing Xcode version ${xcodeVersionString}...`);
-                        const installExitCode = await exec.exec('xcodes', ['install', xcodeVersionString, '--select']);
-                        if (installExitCode !== 0) {
-                            throw new Error(`Failed to install Xcode version ${xcodeVersionString}!`);
-                        }
+                        throw new Error(`Xcode version ${xcodeVersionString} is not installed! You will need to install this is a step before this one.`);
                     }
                     else {
                         core.info(`Selecting installed Xcode version ${xcodeVersionString}...`);

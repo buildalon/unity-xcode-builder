@@ -75,6 +75,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
     }
+
     if (platform !== 'macOS') {
         await checkSimulatorsAvailable(platform);
     }

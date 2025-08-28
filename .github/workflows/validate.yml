@@ -30,8 +30,8 @@ jobs:
         unity-version: [2021.x, 2022.x, 6000.x]
         xcode-version: ['16.2']
         build-target:
-          # - iOS
-          # - StandaloneOSX
+          - iOS
+          - StandaloneOSX
           - VisionOS
         exclude:
           - os: macos-latest

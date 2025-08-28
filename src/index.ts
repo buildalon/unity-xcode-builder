@@ -25,6 +25,7 @@ const main = async () => {
             if (xcodeVersionString) {
                 core.info(`Setting xcode version to ${xcodeVersionString}`);
                 let xcodeVersionOutput = '';
+
                 const installedExitCode = await exec.exec('xcodes', ['installed'], {
                     listeners: {
                         stdout: (data: Buffer) => {
@@ -32,22 +33,22 @@ const main = async () => {
                         }
                     }
                 });
+
                 if (installedExitCode !== 0) {
                     throw new Error('Failed to get installed Xcode versions!');
                 }
+
                 const installedXcodeVersions = xcodeVersionOutput.split('\n').map(line => {
                     const match = line.match(/(\d+\.\d+(\s\w+)?)/);
                     return match ? match[1] : null;
                 }).filter(Boolean) as string[];
-                core.debug(`Installed Xcode versions:\n  ${installedXcodeVersions.join('\n')}`);
+
+                core.info(`Installed Xcode versions:`);
+                installedXcodeVersions.forEach(version => core.info(`  > ${version}`));
+
                 if (installedXcodeVersions.length === 0 || !xcodeVersionString.includes('latest')) {
                     if (installedXcodeVersions.length === 0 || !installedXcodeVersions.includes(xcodeVersionString)) {
-                        core.info(`Downloading missing Xcode version ${xcodeVersionString}...`);
-                        const installExitCode = await exec.exec('xcodes', ['install', xcodeVersionString, '--select']);
-
-                        if (installExitCode !== 0) {
-                            throw new Error(`Failed to install Xcode version ${xcodeVersionString}!`);
-                        }
+                        throw new Error(`Xcode version ${xcodeVersionString} is not installed! You will need to install this is a step before this one.`);
                     } else {
                         core.info(`Selecting installed Xcode version ${xcodeVersionString}...`);
                         const selectExitCode = await exec.exec('xcodes', ['select', xcodeVersionString]);
