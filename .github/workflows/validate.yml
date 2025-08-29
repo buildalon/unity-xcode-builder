@@ -5,15 +5,14 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
     branches: ['*']
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
+  workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   unity-build:
     if: github.event.pull_request.draft == false
-    name: '(${{ matrix.unity-version }}) ${{ matrix.build-target }}'
+    name: '${{ matrix.build-target }} (${{ matrix.unity-version }}, ${{ matrix.xcode-version }})'
     permissions:
       contents: read
     env:
@@ -24,11 +23,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
-      max-parallel: 2
+      # max-parallel: 2
       matrix:
         os: [macos-latest]
         unity-version: [2021.x, 2022.x, 6000.x]
-        xcode-version: ['16.2']
+        xcode-version: ['16.2', 'latest']
         build-target:
           - iOS
           - StandaloneOSX
