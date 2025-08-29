@@ -58514,7 +58514,9 @@ async function GetProjectDetails(credential, xcodeVersion) {
     const scheme = await getProjectScheme(projectPath);
     const platform = await getSupportedPlatform(projectPath);
     core.info(`Platform: ${platform}`);
-    await downloadPlatform(platform);
+    if (platform !== 'macOS') {
+        await downloadPlatform(platform);
+    }
     const configuration = core.getInput('configuration') || 'Release';
     core.info(`Configuration: ${configuration}`);
     if (!platform) {
@@ -61631,8 +61633,12 @@ const main = async () => {
                     }
                 }
                 else {
+                    const nonBetaVersions = installedXcodeVersions.filter(v => !/Beta/i.test(v));
+                    if (nonBetaVersions.length === 0) {
+                        throw new Error('No Xcode versions installed!');
+                    }
+                    xcodeVersionString = nonBetaVersions[nonBetaVersions.length - 1];
                     core.info(`Selecting latest installed Xcode version ${xcodeVersionString}...`);
-                    xcodeVersionString = installedXcodeVersions[installedXcodeVersions.length - 1];
                     const selectExitCode = await exec.exec('xcodes', ['select', xcodeVersionString]);
                     if (selectExitCode !== 0) {
                         throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);

@@ -72,7 +72,11 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     const scheme = await getProjectScheme(projectPath);
     const platform = await getSupportedPlatform(projectPath);
     core.info(`Platform: ${platform}`);
-    await downloadPlatform(platform);
+
+    if (platform !== 'macOS') {
+        await downloadPlatform(platform);
+    }
+
     const configuration = core.getInput('configuration') || 'Release';
     core.info(`Configuration: ${configuration}`);
 

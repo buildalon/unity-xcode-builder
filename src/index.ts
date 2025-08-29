@@ -58,8 +58,15 @@ const main = async () => {
                         }
                     }
                 } else {
+                    // Exclude versions containing 'Beta' and select the latest version
+                    const nonBetaVersions = installedXcodeVersions.filter(v => !/Beta/i.test(v));
+
+                    if (nonBetaVersions.length === 0) {
+                        throw new Error('No Xcode versions installed!');
+                    }
+
+                    xcodeVersionString = nonBetaVersions[nonBetaVersions.length - 1];
                     core.info(`Selecting latest installed Xcode version ${xcodeVersionString}...`);
-                    xcodeVersionString = installedXcodeVersions[installedXcodeVersions.length - 1];
                     const selectExitCode = await exec.exec('xcodes', ['select', xcodeVersionString]);
 
                     if (selectExitCode !== 0) {
