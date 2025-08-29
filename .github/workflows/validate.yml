@@ -12,7 +12,7 @@ concurrency:
 jobs:
   unity-build:
     if: github.event.pull_request.draft == false
-    name: '${{ matrix.build-target }} (${{ matrix.unity-version }}, ${{ matrix.xcode-version }})'
+    name: '(${{ matrix.xcode-version }}) ${{ matrix.build-target }}'
     permissions:
       contents: read
     env:
@@ -27,7 +27,7 @@ jobs:
       matrix:
         os: [macos-latest]
         unity-version: [2021.x, 2022.x, 6000.x]
-        xcode-version: ['16.2', 'latest']
+        xcode-version: ['latest']
         build-target:
           - iOS
           - StandaloneOSX
