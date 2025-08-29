@@ -12,7 +12,7 @@ concurrency:
 jobs:
   unity-build:
     if: github.event.pull_request.draft == false
-    name: '(${{ matrix.xcode-version }}) ${{ matrix.build-target }}'
+    name: '${{ matrix.unity-version }} | ${{ matrix.xcode-version }} | ${{ matrix.build-target }}'
     permissions:
       contents: read
     env:
@@ -27,7 +27,7 @@ jobs:
       matrix:
         os: [macos-latest]
         unity-version: [2021.x, 2022.x, 6000.x]
-        xcode-version: ['16.4']
+        xcode-version: ['16.2']
         build-target:
           - iOS
           - StandaloneOSX
@@ -127,10 +127,17 @@ jobs:
           else
             INFO_PLIST_PATH="${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}/com.test.buildalon.xcode/Info.plist"
           fi
+          # test path exists
+          if [ ! -f "$INFO_PLIST_PATH" ]; then
+            echo "Info.plist not found at path: $INFO_PLIST_PATH"
+            exit 1
+          fi
           # make sure plist buddy is installed
           if ! command -v /usr/libexec/PlistBuddy &> /dev/null
           then
               echo "PlistBuddy could not be found"
+              # list build output files recursively
+              ls -alR "${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}/com.test.buildalon.xcode"
               exit 1
           fi
           # set ITSAppUsesNonExemptEncryption to false in Info.plist using PlistBuddy
