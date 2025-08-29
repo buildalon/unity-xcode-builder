@@ -58510,9 +58510,10 @@ async function GetProjectDetails(credential, xcodeVersion) {
     const projectName = path.basename(projectPath, '.xcodeproj');
     const scheme = await getProjectScheme(projectPath);
     const platform = await getSupportedPlatform(projectPath);
+    core.info(`Platform: ${platform}`);
+    await downloadPlatform(platform);
     const configuration = core.getInput('configuration') || 'Release';
     core.info(`Configuration: ${configuration}`);
-    core.info(`Platform: ${platform}`);
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
     }
@@ -58800,6 +58801,9 @@ async function getBuildSettings(projectPath, scheme, platform, destination) {
         throw new Error('Unable to determine the bundle ID from the build settings');
     }
     return bundleId;
+}
+async function downloadPlatform(platform) {
+    await execXcodeBuild(['-downloadPlatform', platform]);
 }
 async function downloadPlatformSdkIfMissing(platform, version) {
     await (0, exec_1.exec)('xcodes', ['runtimes']);

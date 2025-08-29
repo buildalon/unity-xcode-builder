@@ -68,9 +68,10 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     const projectName = path.basename(projectPath, '.xcodeproj');
     const scheme = await getProjectScheme(projectPath);
     const platform = await getSupportedPlatform(projectPath);
+    core.info(`Platform: ${platform}`);
+    await downloadPlatform(platform);
     const configuration = core.getInput('configuration') || 'Release';
     core.info(`Configuration: ${configuration}`);
-    core.info(`Platform: ${platform}`);
 
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
@@ -362,9 +363,11 @@ async function getDestination(projectPath: string, scheme: string, platform: str
         // if there are multiple `:` then strip the second one and the text following it.
         const destinationJson = destinationLines.map(line => {
             const match = line.match(/^\s*{([^}]+)}\s*$/);
+
             if (!match) {
                 throw new Error(`line: ${line}`);
             }
+
             const json: Record<string, string> = {};
             match[1].split(',').forEach(pair => {
                 // split the pair value by `:` then only use the first two parts
@@ -372,9 +375,11 @@ async function getDestination(projectPath: string, scheme: string, platform: str
                 const key = valueParts[0].trim();
                 let value = valueParts[1].trim();
                 // if there is whitespace in the value, give it quotes
+
                 if (/\s/.test(value)) {
                     value = `"${value}"`;
                 }
+
                 json[key] = value;
             });
 
@@ -444,6 +449,10 @@ async function getBuildSettings(projectPath: string, scheme: string, platform: s
     }
 
     return bundleId;
+}
+
+async function downloadPlatform(platform: string) {
+    await execXcodeBuild(['-downloadPlatform', platform]);
 }
 
 async function downloadPlatformSdkIfMissing(platform: string, version: string | null) {
