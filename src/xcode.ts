@@ -31,7 +31,7 @@ const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
 
 export async function GetProjectDetails(credential: AppleCredential, xcodeVersion: SemVer): Promise<XcodeProject> {
     const projectPathInput = core.getInput('project-path') || `${WORKSPACE}/**/*.xcodeproj`;
-    core.debug(`Project path input: ${projectPathInput}`);
+    core.info(`Project path input: ${projectPathInput}`);
     let projectPath = undefined;
     const globber = await glob.create(projectPathInput);
     const files = await globber.glob();
@@ -40,16 +40,19 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         throw new Error(`No project found at: ${projectPathInput}`);
     }
 
-    core.debug(`Files found during search: ${files.join(', ')}`);
+    core.info(`Files found during search: ${files.join(', ')}`);
     const excludedProjects = ['GameAssembly', 'UnityFramework', 'Pods'];
 
     for (const file of files) {
-        if (file.endsWith('.xcodeproj') && !file.includes('DerivedData')) {
+        if (file.includes('DerivedData')) { continue; }
+        if (file.endsWith('.xcodeproj')) {
             const projectBaseName = path.basename(file, '.xcodeproj');
+
             if (excludedProjects.includes(projectBaseName)) {
                 continue;
             }
-            core.debug(`Found Xcode project: ${file}`);
+
+            core.info(`Found Xcode project: ${file}`);
             projectPath = file;
             break;
         }
@@ -59,7 +62,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         throw new Error(`Invalid project-path! Unable to find .xcodeproj in ${projectPathInput}. ${files.length} files were found but none matched.\n${files.join(', ')}`);
     }
 
-    core.debug(`Resolved Project path: ${projectPath}`);
+    core.info(`Resolved Project path: ${projectPath}`);
     await fs.promises.access(projectPath, fs.constants.R_OK);
     const projectDirectory = path.dirname(projectPath);
     core.info(`Project directory: ${projectDirectory}`);
