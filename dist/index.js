@@ -58515,7 +58515,13 @@ async function GetProjectDetails(credential, xcodeVersion) {
     const platform = await getSupportedPlatform(projectPath);
     core.info(`Platform: ${platform}`);
     if (platform !== 'macOS') {
-        await downloadPlatform(platform);
+        const platformInstalled = await isPlatformInstalled(platform);
+        if (!platformInstalled) {
+            await downloadPlatform(platform);
+        }
+        else {
+            core.info(`${platform} platform is already installed. Skipping download.`);
+        }
     }
     const configuration = core.getInput('configuration') || 'Release';
     core.info(`Configuration: ${configuration}`);
@@ -58756,7 +58762,7 @@ async function getDestination(projectPath, scheme, platform) {
             match[1].split(',').forEach(pair => {
                 const valueParts = pair.split(':');
                 const key = valueParts[0].trim();
-                let value = valueParts[1].trim();
+                let value = (valueParts.length > 1 && valueParts[1] !== undefined) ? valueParts[1].trim() : '';
                 if (/\s/.test(value)) {
                     value = `"${value}"`;
                 }
@@ -58809,6 +58815,27 @@ async function getBuildSettings(projectPath, scheme, platform, destination) {
 }
 async function downloadPlatform(platform) {
     await execXcodeBuild(['-downloadPlatform', platform]);
+}
+async function isPlatformInstalled(platform) {
+    let output = '';
+    await (0, exec_1.exec)(xcodebuild, ['-showsdks'], {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            }
+        },
+        silent: true
+    });
+    const sdkMap = {
+        'iOS': 'iphoneos',
+        'tvOS': 'appletvos',
+        'watchOS': 'watchos',
+        'visionOS': 'xros',
+    };
+    const sdkString = sdkMap[platform];
+    if (!sdkString)
+        return false;
+    return output.includes(`-sdk ${sdkString}`);
 }
 async function downloadPlatformSdkIfMissing(platform, version) {
     await (0, exec_1.exec)('xcodes', ['runtimes']);

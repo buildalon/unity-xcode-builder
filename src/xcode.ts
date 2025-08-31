@@ -74,7 +74,12 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     core.info(`Platform: ${platform}`);
 
     if (platform !== 'macOS') {
-        await downloadPlatform(platform);
+        const platformInstalled = await isPlatformInstalled(platform);
+        if (!platformInstalled) {
+            await downloadPlatform(platform);
+        } else {
+            core.info(`${platform} platform is already installed. Skipping download.`);
+        }
     }
 
     const configuration = core.getInput('configuration') || 'Release';
@@ -364,6 +369,7 @@ async function getDestination(projectPath: string, scheme: string, platform: str
     // split the lines
     const destinationLines = destinationOutput.split('\n').filter(line => line.trim() !== '');
 
+
     if (destinationLines.length > 0) {
         // convert the destination lines into json, since the format they give isn't actually in json form.
         // keep in mind that there can be any key:value pair in the destination lines.
@@ -380,13 +386,11 @@ async function getDestination(projectPath: string, scheme: string, platform: str
                 // split the pair value by `:` then only use the first two parts
                 const valueParts = pair.split(':');
                 const key = valueParts[0].trim();
-                let value = valueParts[1].trim();
+                let value = (valueParts.length > 1 && valueParts[1] !== undefined) ? valueParts[1].trim() : '';
                 // if there is whitespace in the value, give it quotes
-
                 if (/\s/.test(value)) {
                     value = `"${value}"`;
                 }
-
                 json[key] = value;
             });
 
@@ -460,6 +464,30 @@ async function getBuildSettings(projectPath: string, scheme: string, platform: s
 
 async function downloadPlatform(platform: string) {
     await execXcodeBuild(['-downloadPlatform', platform]);
+}
+
+async function isPlatformInstalled(platform: string): Promise<boolean> {
+    // Check if the platform SDK is available using xcodebuild -showsdks
+    let output = '';
+    await exec(xcodebuild, ['-showsdks'], {
+        listeners: {
+            stdout: (data: Buffer) => {
+                output += data.toString();
+            }
+        },
+        silent: true
+    });
+    // Example output line: "iOS SDKs:\n\tiOS 17.0                       -sdk iphoneos17.0"
+    // Map platform to sdk string
+    const sdkMap: Record<string, string> = {
+        'iOS': 'iphoneos',
+        'tvOS': 'appletvos',
+        'watchOS': 'watchos',
+        'visionOS': 'xros',
+    };
+    const sdkString = sdkMap[platform];
+    if (!sdkString) return false;
+    return output.includes(`-sdk ${sdkString}`);
 }
 
 async function downloadPlatformSdkIfMissing(platform: string, version: string | null) {
