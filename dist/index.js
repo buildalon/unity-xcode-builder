@@ -58729,25 +58729,12 @@ async function getSupportedPlatform(projectPath) {
     return platformMap[platformName];
 }
 async function getDestination(projectPath, scheme, platform) {
-    const destinationArgs = [
+    await execXcodeBuild([
         '-project', projectPath,
         '-scheme', scheme,
         '-showdestinations',
         '-json'
-    ];
-    if (core.isDebug()) {
-        core.info(`[command]${xcodebuild} ${destinationArgs.join(' ')}`);
-    }
-    let destinationOutput = '';
-    await (0, exec_1.exec)(xcodebuild, destinationArgs, {
-        listeners: {
-            stdout: (data) => {
-                destinationOutput += data.toString();
-            }
-        },
-        silent: true,
-        failOnStdErr: false
-    });
+    ]);
     const destinationInput = core.getInput('destination');
     if (destinationInput) {
         return destinationInput;
@@ -58757,27 +58744,11 @@ async function getDestination(projectPath, scheme, platform) {
     }
 }
 async function getBuildSettings(projectPath) {
-    const projectSettingsArgs = [
+    return await execXcodeBuild([
         'build',
         '-project', projectPath,
         '-showBuildSettings'
-    ];
-    if (!core.isDebug()) {
-        core.info(`[command]${xcodebuild} ${projectSettingsArgs.join(' ')}`);
-    }
-    let buildSettingsOutput = '';
-    await (0, exec_1.exec)(xcodebuild, projectSettingsArgs, {
-        listeners: {
-            stdout: (data) => {
-                buildSettingsOutput += data.toString();
-            }
-        },
-        silent: !core.isDebug()
-    });
-    if (!core.isDebug()) {
-        core.info(buildSettingsOutput);
-    }
-    return buildSettingsOutput;
+    ]);
 }
 function getBundleId(buildSettingsOutput) {
     const bundleId = core.getInput('bundle-id') || (0, utilities_1.matchRegexPattern)(buildSettingsOutput, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
@@ -58801,19 +58772,7 @@ async function downloadPlatform(platform) {
     await execXcodeBuild(['-downloadPlatform', platform]);
 }
 async function isPlatformInstalled(platform) {
-    if (!core.isDebug()) {
-        core.info(`[command]${xcodebuild} -showsdks`);
-    }
-    let output = '';
-    await (0, exec_1.exec)(xcodebuild, ['-showsdks'], {
-        listeners: {
-            stdout: (data) => {
-                output += data.toString();
-            }
-        },
-        silent: !core.isDebug()
-    });
-    core.info(output);
+    const output = await execXcodeBuild(['-showsdks']);
     const sdkMap = {
         'iOS': 'iphoneos',
         'tvOS': 'appletvos',
@@ -58834,25 +58793,15 @@ async function downloadPlatformSdkIfMissing(platform, version) {
 }
 async function getProjectScheme(projectPath) {
     let scheme = core.getInput('scheme');
-    let projectInfoOutput = '';
-    if (!core.isDebug()) {
-        core.info(`[command]${xcodebuild} -list -project ${projectPath} -json`);
-    }
-    await (0, exec_1.exec)(xcodebuild, ['-list', '-project', projectPath, `-json`], {
-        listeners: {
-            stdout: (data) => {
-                projectInfoOutput += data.toString();
-            }
-        },
-        silent: !core.isDebug()
-    });
+    core.debug(`Scheme input: ${scheme}`);
+    const projectInfoOutput = await execXcodeBuild(['-list', '-project', projectPath, `-json`]);
     const projectInfo = JSON.parse(projectInfoOutput);
     const schemes = projectInfo.project.schemes;
     if (!schemes) {
         throw new Error('No schemes found in the project');
     }
-    core.debug(`Available schemes:`);
-    schemes.forEach(s => core.debug(`  > ${s}`));
+    core.info(`Available Schemes:`);
+    schemes.forEach(s => core.info(`  > ${s}`));
     if (!scheme) {
         if (schemes.includes('Unity-iPhone')) {
             scheme = 'Unity-iPhone';
@@ -58868,7 +58817,7 @@ async function getProjectScheme(projectPath) {
     if (!scheme) {
         throw new Error('Unable to determine the scheme to build');
     }
-    core.debug(`Using scheme: ${scheme}`);
+    core.info(`Scheme: ${scheme}`);
     return scheme;
 }
 async function getExportOptions(projectRef) {
@@ -59424,22 +59373,41 @@ async function getNotarizationLog(projectRef, id) {
     }
 }
 async function execXcodeBuild(xcodeBuildArgs) {
+    let exitCode = 1;
     let output = '';
-    const exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
-        listeners: {
-            stdout: (data) => {
-                output += data.toString();
+    if (!core.isDebug()) {
+        core.startGroup(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
+    }
+    try {
+        exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
+            listeners: {
+                stdout: (data) => {
+                    const chunk = data.toString();
+                    output += chunk;
+                    if (!core.isDebug()) {
+                        core.info(chunk);
+                    }
+                },
+                stderr: (data) => {
+                    const chunk = data.toString();
+                    output += chunk;
+                    if (!core.isDebug()) {
+                        core.info(chunk);
+                    }
+                }
             },
-            stderr: (data) => {
-                output += data.toString();
-            }
-        },
-        ignoreReturnCode: true
-    });
-    await parseBundleLog(output);
+            silent: !core.isDebug(),
+            ignoreReturnCode: true
+        });
+        await parseBundleLog(output);
+    }
+    finally {
+        core.endGroup();
+    }
     if (exitCode !== 0) {
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
     }
+    return output;
 }
 async function execWithXcBeautify(xcodeBuildArgs) {
     try {
