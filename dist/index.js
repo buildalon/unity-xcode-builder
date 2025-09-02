@@ -58528,8 +58528,10 @@ async function GetProjectDetails(credential, xcodeVersion) {
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
     }
+    const platformSdkVersion = await getPlatformSdkVersion(projectPath);
     if (platform !== 'macOS') {
         await checkSimulatorsAvailable(platform);
+        await downloadPlatformSdkIfMissing(platform, platformSdkVersion);
     }
     const destination = await getDestination(projectPath, scheme, platform);
     core.info(`Destination: ${destination}`);
@@ -58690,10 +58692,10 @@ async function GetProjectDetails(credential, xcodeVersion) {
 }
 async function checkSimulatorsAvailable(platform) {
     const destinationArgs = ['simctl', 'list', 'devices', '--json'];
-    let output = '';
     if (!core.isDebug()) {
         core.info(`[command]${xcrun} ${destinationArgs.join(' ')}`);
     }
+    let output = '';
     await (0, exec_1.exec)(xcrun, destinationArgs, {
         listeners: {
             stdout: (data) => {
@@ -58710,7 +58712,7 @@ async function checkSimulatorsAvailable(platform) {
     if (platformDevices.length > 0) {
         return;
     }
-    await (0, exec_1.exec)(xcodebuild, ['-downloadPlatform', platform]);
+    await downloadPlatform(platform);
 }
 async function getSupportedPlatform(projectPath) {
     const projectFilePath = `${projectPath}/project.pbxproj`;
@@ -58730,29 +58732,50 @@ async function getSupportedPlatform(projectPath) {
     };
     return platformMap[platformName];
 }
-async function getDestination(projectPath, scheme, platform) {
-    const destinationInput = core.getInput('destination');
-    if (destinationInput) {
-        return destinationInput;
+async function getPlatformSdkVersion(projectPath) {
+    let platformSdkVersion = core.getInput('platform-sdk-version');
+    if (!platformSdkVersion) {
+        const projectFilePath = `${projectPath}/project.pbxproj`;
+        core.debug(`.pbxproj file path: ${projectFilePath}`);
+        await fs.promises.access(projectFilePath, fs.constants.R_OK);
+        const content = await fs.promises.readFile(projectFilePath, 'utf8');
+        platformSdkVersion = (0, utilities_1.matchRegexPattern)(content, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion');
+        if (!platformSdkVersion) {
+            throw new Error('Unable to determine the SDK version from the project file');
+        }
     }
-    let destinationOutput = '';
+    core.info(`Platform SDK version: ${platformSdkVersion}`);
+    return platformSdkVersion;
+}
+async function getDestination(projectPath, scheme, platform) {
     const destinationArgs = [
         '-project', projectPath,
         '-scheme', scheme,
         '-showdestinations',
         '-json'
     ];
+    if (core.isDebug()) {
+        core.info(`[command]${xcodebuild} ${destinationArgs.join(' ')}`);
+    }
+    let destinationOutput = '';
     await (0, exec_1.exec)(xcodebuild, destinationArgs, {
         listeners: {
             stdout: (data) => {
                 destinationOutput += data.toString();
             }
-        }
+        },
+        silent: true,
+        failOnStdErr: false
     });
-    return `generic/platform=${platform}`;
+    const destinationInput = core.getInput('destination');
+    if (destinationInput) {
+        return destinationInput;
+    }
+    else {
+        return `generic/platform=${platform}`;
+    }
 }
 async function getBuildSettings(projectPath, scheme, platform, destination) {
-    let buildSettingsOutput = '';
     const projectSettingsArgs = [
         'build',
         '-project', projectPath,
@@ -58760,19 +58783,20 @@ async function getBuildSettings(projectPath, scheme, platform, destination) {
         '-destination', destination,
         '-showBuildSettings'
     ];
+    if (!core.isDebug()) {
+        core.info(`[command]${xcodebuild} ${projectSettingsArgs.join(' ')}`);
+    }
+    let buildSettingsOutput = '';
     await (0, exec_1.exec)(xcodebuild, projectSettingsArgs, {
         listeners: {
             stdout: (data) => {
                 buildSettingsOutput += data.toString();
             }
         },
+        silent: !core.isDebug()
     });
-    let platformSdkVersion = core.getInput('platform-sdk-version') || null;
-    if (!platformSdkVersion) {
-        platformSdkVersion = (0, utilities_1.matchRegexPattern)(buildSettingsOutput, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion') || null;
-    }
-    if (platform !== 'macOS') {
-        await downloadPlatformSdkIfMissing(platform, platformSdkVersion);
+    if (!core.isDebug()) {
+        core.info(buildSettingsOutput);
     }
     const bundleId = core.getInput('bundle-id') || (0, utilities_1.matchRegexPattern)(buildSettingsOutput, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
     if (!bundleId || bundleId === 'NO') {
@@ -58784,6 +58808,9 @@ async function downloadPlatform(platform) {
     await execXcodeBuild(['-downloadPlatform', platform]);
 }
 async function isPlatformInstalled(platform) {
+    if (core.isDebug()) {
+        core.info(`[command]${xcodebuild} -showsdks`);
+    }
     let output = '';
     await (0, exec_1.exec)(xcodebuild, ['-showsdks'], {
         listeners: {
@@ -58791,8 +58818,9 @@ async function isPlatformInstalled(platform) {
                 output += data.toString();
             }
         },
-        silent: true
+        silent: !core.isDebug()
     });
+    core.info(output);
     const sdkMap = {
         'iOS': 'iphoneos',
         'tvOS': 'appletvos',
@@ -58800,8 +58828,9 @@ async function isPlatformInstalled(platform) {
         'visionOS': 'xros',
     };
     const sdkString = sdkMap[platform];
-    if (!sdkString)
+    if (!sdkString) {
         return false;
+    }
     return output.includes(`-sdk ${sdkString}`);
 }
 async function downloadPlatformSdkIfMissing(platform, version) {
@@ -59380,8 +59409,7 @@ async function getNotarizationLog(projectRef, id) {
     let output = '';
     const notaryLogArgs = [
         'notarytool',
-        'log',
-        id,
+        'log', id,
         '--key', projectRef.credential.appStoreConnectKeyPath,
         '--key-id', projectRef.credential.appStoreConnectKeyId,
         '--issuer', projectRef.credential.appStoreConnectIssuerId,

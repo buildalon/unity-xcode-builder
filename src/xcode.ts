@@ -89,8 +89,11 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         throw new Error('Unable to determine the platform to build for.');
     }
 
+    const platformSdkVersion = await getPlatformSdkVersion(projectPath);
+
     if (platform !== 'macOS') {
         await checkSimulatorsAvailable(platform);
+        await downloadPlatformSdkIfMissing(platform, platformSdkVersion);
     }
 
     const destination: string = await getDestination(projectPath, scheme, platform);
@@ -283,12 +286,12 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 
 async function checkSimulatorsAvailable(platform: string): Promise<void> {
     const destinationArgs = ['simctl', 'list', 'devices', '--json'];
-    let output = '';
 
     if (!core.isDebug()) {
         core.info(`[command]${xcrun} ${destinationArgs.join(' ')}`);
     }
 
+    let output = '';
     await exec(xcrun, destinationArgs, {
         listeners: {
             stdout: (data: Buffer) => {
@@ -308,7 +311,7 @@ async function checkSimulatorsAvailable(platform: string): Promise<void> {
         return;
     }
 
-    await exec(xcodebuild, ['-downloadPlatform', platform]);
+    await downloadPlatform(platform);
 }
 
 async function getSupportedPlatform(projectPath: string): Promise<string> {
@@ -333,15 +336,27 @@ async function getSupportedPlatform(projectPath: string): Promise<string> {
     return platformMap[platformName];
 }
 
-async function getDestination(projectPath: string, scheme: string, platform: string): Promise<string> {
-    const destinationInput = core.getInput('destination');
+async function getPlatformSdkVersion(projectPath: string): Promise<string> {
+    let platformSdkVersion = core.getInput('platform-sdk-version');
 
-    if (destinationInput) {
-        return destinationInput;
+    if (!platformSdkVersion) {
+        const projectFilePath = `${projectPath}/project.pbxproj`;
+        core.debug(`.pbxproj file path: ${projectFilePath}`);
+        await fs.promises.access(projectFilePath, fs.constants.R_OK);
+        const content = await fs.promises.readFile(projectFilePath, 'utf8');
+        platformSdkVersion = matchRegexPattern(content, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion');
+
+        if (!platformSdkVersion) {
+            throw new Error('Unable to determine the SDK version from the project file');
+        }
     }
 
-    let destinationOutput = '';
+    core.info(`Platform SDK version: ${platformSdkVersion}`);
+    return platformSdkVersion;
+}
 
+async function getDestination(projectPath: string, scheme: string, platform: string): Promise<string> {
+    // list all the destinations for the scheme for the developer
     const destinationArgs = [
         '-project', projectPath,
         '-scheme', scheme,
@@ -349,79 +364,31 @@ async function getDestination(projectPath: string, scheme: string, platform: str
         '-json'
     ];
 
+    if (core.isDebug()) {
+        core.info(`[command]${xcodebuild} ${destinationArgs.join(' ')}`);
+    }
+
+    let destinationOutput = '';
     await exec(xcodebuild, destinationArgs, {
         listeners: {
             stdout: (data: Buffer) => {
                 destinationOutput += data.toString();
             }
-        }
+        },
+        silent: true,
+        failOnStdErr: false
     });
-    // // /usr/bin/xcodebuild -project /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/VisionOS/com.test.buildalon.xcode/Unity-VisionOS.xcodeproj -scheme Unity-VisionOS -showdestinations -json
-    // // example output:
-    // // ```string
-    // // Available destinations for the "Unity-VisionOS" scheme:
-    // // { platform:visionOS, id:dvtdevice-DVTiOSDevicePlaceholder-xros:placeholder, name:Any visionOS Device }
-    // // ```
-    // // Use regex to remove "Available destinations for the ".*" scheme:
-    // destinationOutput = destinationOutput.replace(/Available destinations for the ".*" scheme:\n/g, '');
-    // // trim the whitespace on each line
-    // destinationOutput = destinationOutput.replace(/^\s+|\s+$/g, '');
-    // // split the lines
-    // const destinationLines = destinationOutput.split('\n').filter(line => line.trim() !== '');
 
+    const destinationInput = core.getInput('destination');
 
-    // if (destinationLines.length > 0) {
-    //     // convert the destination lines into json, since the format they give isn't actually in json form.
-    //     // keep in mind that there can be any key:value pair in the destination lines.
-    //     // if there are multiple `:` then strip the second one and the text following it.
-    //     const destinationJson = destinationLines.map(line => {
-    //         const match = line.match(/^\s*{([^}]+)}\s*$/);
-
-    //         if (!match) {
-    //             throw new Error(`line: ${line}`);
-    //         }
-
-    //         const json: Record<string, string> = {};
-    //         match[1].split(',').forEach(pair => {
-    //             // split the pair value by `:` then only use the first two parts
-    //             const valueParts = pair.split(':');
-    //             const key = valueParts[0].trim();
-    //             let value = (valueParts.length > 1 && valueParts[1] !== undefined) ? valueParts[1].trim() : '';
-    //             // if there is whitespace in the value, give it quotes
-    //             if (/\s/.test(value)) {
-    //                 value = `"${value}"`;
-    //             }
-    //             json[key] = value;
-    //         });
-
-    //         return json;
-    //     });
-
-    //     // find the first destination that has a platform that matches the input platform
-    //     for (const destination of destinationJson) {
-    //         // at least match platform key value
-    //         if (!destination.platform) {
-    //             continue;
-    //         }
-    //         // skip placeholder destinations
-    //         if (destination.id && destination.id.toLowerCase().includes('placeholder')) {
-    //             continue;
-    //         }
-
-    //         // we don't know ahead of time which keys can values will be there, so we convert it to the format that xcodebuild will expect for destination argument
-    //         const destinationArgs = Object.entries(destination).map(([key, value]) => `${key}=${value}`);
-    //         // join the arguments with ,
-    //         const destinationString = destinationArgs.join(',');
-    //         return destinationString;
-    //     }
-    // }
-
-    return `generic/platform=${platform}`;
+    if (destinationInput) {
+        return destinationInput;
+    } else {
+        return `generic/platform=${platform}`;
+    }
 }
 
 async function getBuildSettings(projectPath: string, scheme: string, platform: string, destination: string | undefined): Promise<string> {
-    let buildSettingsOutput = '';
-
     const projectSettingsArgs = [
         'build',
         '-project', projectPath,
@@ -430,27 +397,22 @@ async function getBuildSettings(projectPath: string, scheme: string, platform: s
         '-showBuildSettings'
     ];
 
-    // if (!core.isDebug()) {
-    //     core.info(`[command]${xcodebuild} ${projectSettingsArgs.join(' ')}`);
-    // }
+    if (!core.isDebug()) {
+        core.info(`[command]${xcodebuild} ${projectSettingsArgs.join(' ')}`);
+    }
 
+    let buildSettingsOutput = '';
     await exec(xcodebuild, projectSettingsArgs, {
         listeners: {
             stdout: (data: Buffer) => {
                 buildSettingsOutput += data.toString();
             }
         },
-        // silent: !core.isDebug()
+        silent: !core.isDebug()
     });
 
-    let platformSdkVersion = core.getInput('platform-sdk-version') || null;
-
-    if (!platformSdkVersion) {
-        platformSdkVersion = matchRegexPattern(buildSettingsOutput, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion') || null;
-    }
-
-    if (platform !== 'macOS') {
-        await downloadPlatformSdkIfMissing(platform, platformSdkVersion);
+    if (!core.isDebug()) {
+        core.info(buildSettingsOutput);
     }
 
     const bundleId = core.getInput('bundle-id') || matchRegexPattern(buildSettingsOutput, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
@@ -468,6 +430,10 @@ async function downloadPlatform(platform: string) {
 
 async function isPlatformInstalled(platform: string): Promise<boolean> {
     // Check if the platform SDK is available using xcodebuild -showsdks
+    if (core.isDebug()) {
+        core.info(`[command]${xcodebuild} -showsdks`);
+    }
+
     let output = '';
     await exec(xcodebuild, ['-showsdks'], {
         listeners: {
@@ -475,8 +441,10 @@ async function isPlatformInstalled(platform: string): Promise<boolean> {
                 output += data.toString();
             }
         },
-        silent: true
+        silent: !core.isDebug()
     });
+    core.info(output);
+
     // Example output line: "iOS SDKs:\n\tiOS 17.0                       -sdk iphoneos17.0"
     // Map platform to sdk string
     const sdkMap: Record<string, string> = {
@@ -486,7 +454,7 @@ async function isPlatformInstalled(platform: string): Promise<boolean> {
         'visionOS': 'xros',
     };
     const sdkString = sdkMap[platform];
-    if (!sdkString) return false;
+    if (!sdkString) { return false; }
     return output.includes(`-sdk ${sdkString}`);
 }
 
@@ -1094,8 +1062,7 @@ async function getNotarizationLog(projectRef: XcodeProject, id: string): Promise
     let output = '';
     const notaryLogArgs = [
         'notarytool',
-        'log',
-        id,
+        'log', id,
         '--key', projectRef.credential.appStoreConnectKeyPath,
         '--key-id', projectRef.credential.appStoreConnectKeyId,
         '--issuer', projectRef.credential.appStoreConnectIssuerId,
