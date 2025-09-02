@@ -58511,6 +58511,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     const projectFiles = await fs.promises.readdir(projectDirectory);
     projectFiles.forEach(file => core.info(`  > ${file}`));
     const projectName = path.basename(projectPath, '.xcodeproj');
+    const buildSettings = await getBuildSettings(projectPath);
     const scheme = await getProjectScheme(projectPath);
     const platform = await getSupportedPlatform(projectPath);
     core.info(`Platform: ${platform}`);
@@ -58519,23 +58520,18 @@ async function GetProjectDetails(credential, xcodeVersion) {
         if (!platformInstalled) {
             await downloadPlatform(platform);
         }
-        else {
-            core.info(`${platform} platform is already installed. Skipping download.`);
-        }
+        await checkSimulatorsAvailable(platform);
+        const platformSdkVersion = await getPlatformSdkVersion(buildSettings);
+        await downloadPlatformSdkIfMissing(platform, platformSdkVersion);
     }
     const configuration = core.getInput('configuration') || 'Release';
     core.info(`Configuration: ${configuration}`);
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
     }
-    const platformSdkVersion = await getPlatformSdkVersion(projectPath);
-    if (platform !== 'macOS') {
-        await checkSimulatorsAvailable(platform);
-        await downloadPlatformSdkIfMissing(platform, platformSdkVersion);
-    }
     const destination = await getDestination(projectPath, scheme, platform);
     core.info(`Destination: ${destination}`);
-    const bundleId = await getBuildSettings(projectPath, scheme, platform, destination);
+    const bundleId = getBundleId(buildSettings);
     core.info(`Bundle ID: ${bundleId}`);
     if (!bundleId) {
         throw new Error('Unable to determine the bundle ID');
@@ -58732,21 +58728,6 @@ async function getSupportedPlatform(projectPath) {
     };
     return platformMap[platformName];
 }
-async function getPlatformSdkVersion(projectPath) {
-    let platformSdkVersion = core.getInput('platform-sdk-version');
-    if (!platformSdkVersion) {
-        const projectFilePath = `${projectPath}/project.pbxproj`;
-        core.debug(`.pbxproj file path: ${projectFilePath}`);
-        await fs.promises.access(projectFilePath, fs.constants.R_OK);
-        const content = await fs.promises.readFile(projectFilePath, 'utf8');
-        platformSdkVersion = (0, utilities_1.matchRegexPattern)(content, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion');
-        if (!platformSdkVersion) {
-            throw new Error('Unable to determine the SDK version from the project file');
-        }
-    }
-    core.info(`Platform SDK version: ${platformSdkVersion}`);
-    return platformSdkVersion;
-}
 async function getDestination(projectPath, scheme, platform) {
     const destinationArgs = [
         '-project', projectPath,
@@ -58775,12 +58756,10 @@ async function getDestination(projectPath, scheme, platform) {
         return `generic/platform=${platform}`;
     }
 }
-async function getBuildSettings(projectPath, scheme, platform, destination) {
+async function getBuildSettings(projectPath) {
     const projectSettingsArgs = [
         'build',
         '-project', projectPath,
-        '-scheme', scheme,
-        '-destination', destination,
         '-showBuildSettings'
     ];
     if (!core.isDebug()) {
@@ -58798,17 +58777,31 @@ async function getBuildSettings(projectPath, scheme, platform, destination) {
     if (!core.isDebug()) {
         core.info(buildSettingsOutput);
     }
+    return buildSettingsOutput;
+}
+function getBundleId(buildSettingsOutput) {
     const bundleId = core.getInput('bundle-id') || (0, utilities_1.matchRegexPattern)(buildSettingsOutput, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
     if (!bundleId || bundleId === 'NO') {
         throw new Error('Unable to determine the bundle ID from the build settings');
     }
     return bundleId;
 }
+async function getPlatformSdkVersion(buildSettingsOutput) {
+    let platformSdkVersion = core.getInput('platform-sdk-version');
+    if (!platformSdkVersion) {
+        platformSdkVersion = (0, utilities_1.matchRegexPattern)(buildSettingsOutput, /\s+SDK_VERSION = (?<sdkVersion>[\d.]+)/, 'sdkVersion');
+        if (!platformSdkVersion) {
+            throw new Error('Unable to determine the SDK version from the project file');
+        }
+    }
+    core.info(`Platform SDK version: ${platformSdkVersion}`);
+    return platformSdkVersion;
+}
 async function downloadPlatform(platform) {
     await execXcodeBuild(['-downloadPlatform', platform]);
 }
 async function isPlatformInstalled(platform) {
-    if (core.isDebug()) {
+    if (!core.isDebug()) {
         core.info(`[command]${xcodebuild} -showsdks`);
     }
     let output = '';
