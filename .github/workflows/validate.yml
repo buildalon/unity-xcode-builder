@@ -27,7 +27,7 @@ jobs:
       matrix:
         os: [macos-latest]
         unity-version: [2021.x, 2022.x, 6000.x]
-        xcode-version: [16.2]
+        xcode-version: [16.4]
         build-target: [iOS, StandaloneOSX, VisionOS]
         exclude:
           - os: macos-latest
