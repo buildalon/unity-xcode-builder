@@ -79,7 +79,6 @@ jobs:
         name: Create Test Project
         with:
           project-name: UnityProject
-          project-directory: ${{ env.UNITY_PROJECT_PATH }}
           template-name: com.unity.template.3d(-cross-platform)?
       - run: openupm add com.virtualmaker.buildalon
         name: Add Build Pipeline Package
