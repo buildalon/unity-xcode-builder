@@ -58,8 +58,8 @@ jobs:
             }
           echo "VERSION=$version" >> $env:GITHUB_ENV
 
-          # if the unity-version is 6000.x then set export option to app-store-connect otherwise set it to development
-          if ('${{ matrix.unity-version }}' -eq '6000.x') {
+          # if the unity-version is 6000.1.x then set export option to app-store-connect otherwise set it to development
+          if ('${{ matrix.unity-version }}' -eq '6000.1.x') {
             echo "EXPORT_OPTION=app-store-connect" >> $env:GITHUB_ENV
           } else {
             if ('${{ matrix.build-target }}' -eq 'StandaloneOSX') {
@@ -164,7 +164,7 @@ jobs:
           app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           team-id: ${{ secrets.APPLE_TEAM_ID }}
           export-option: ${{ env.EXPORT_OPTION }}
-          notarize: ${{ matrix.unity-version != '6000.x' }}
+          notarize: ${{ matrix.unity-version != '6000.1.x' }}
           archive-type: pkg
           test-groups: Beta
           developer-id-application-certificate: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT }}
