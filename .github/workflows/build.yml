@@ -23,10 +23,9 @@ jobs:
       contents: read
     env:
       VERSION: ''
-      TEMPLATE_PATH: ''
       EXPORT_OPTION: ''
       BUILD_DIRECTORY: ''
-      UNITY_PROJECT_PATH: ''
+      UNITY_PROJECT_PATH: ${{ github.workspace }}/UnityProject
     steps:
       - uses: actions/checkout@v4
       - run: 'npm install -g openupm-cli'
@@ -35,63 +34,56 @@ jobs:
           version-file: 'None'
           build-targets: ${{ matrix.build-target }}
           unity-version: ${{ matrix.unity-version }}
-      - name: Find Unity Template Path and Version
+      - name: Set Build Args
+        shell: bash
         run: |
-          $rootPath = $env:UNITY_EDITOR_PATH -replace "Editor.*", ""
-          Write-Host "ROOT_PATH=$rootPath"
-          $templatePath = Get-ChildItem -Recurse -Filter "com.unity.template.3d*.tgz" -Path $rootPath | Select-Object -First 1 | Select-Object -ExpandProperty FullName
-          Write-Host "TEMPLATE_PATH=$templatePath"
-          echo "TEMPLATE_PATH=$templatePath" >> $env:GITHUB_ENV
-          $projectPath = "${{ github.workspace }}/UnityProject"
-          echo "UNITY_PROJECT_PATH=$projectPath" >> $env:GITHUB_ENV
-
+          set -e
           # Read version from package.json instead of git tags
-          $packageJsonPath = "${{ github.workspace }}/package.json"
-          $packageJson = Get-Content -Raw -Path $packageJsonPath | ConvertFrom-Json
-          $version = $packageJson.version
+          package_json_path="${{ github.workspace }}/package.json"
+          version=$(jq -r .version "$package_json_path")
 
-          if ($version -match '^\d+\.\d+\.\d+$') {
-              Write-Host "Version from package.json: $version"
-            } else {
-              Write-Host "Version: $version is not a valid version string"
-              exit 1
-            }
-          echo "VERSION=$version" >> $env:GITHUB_ENV
+          if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version from package.json: $version"
+          else
+            echo "Version: $version is not a valid version string"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
 
           # if the unity-version is 6000.1.x then set export option to app-store-connect otherwise set it to development
-          if ('${{ matrix.unity-version }}' -eq '6000.1.x') {
-            echo "EXPORT_OPTION=app-store-connect" >> $env:GITHUB_ENV
-          } else {
-            if ('${{ matrix.build-target }}' -eq 'StandaloneOSX') {
-                if ('${{ matrix.unity-version }}' -eq '2022.x') {
-                  echo "EXPORT_OPTION=steam" >> $env:GITHUB_ENV
-                } else {
-                  echo "EXPORT_OPTION=developer-id" >> $env:GITHUB_ENV
-                }
-            } else {
-              echo "EXPORT_OPTION=development" >> $env:GITHUB_ENV
-            }
-          }
+          if [[ "${{ matrix.unity-version }}" == "6000.1.x" ]]; then
+            echo "EXPORT_OPTION=app-store-connect" >> "$GITHUB_ENV"
+          else
+            if [[ "${{ matrix.build-target }}" == "StandaloneOSX" ]]; then
+              if [[ "${{ matrix.unity-version }}" == "2022.x" ]]; then
+                echo "EXPORT_OPTION=steam" >> "$GITHUB_ENV"
+              else
+                echo "EXPORT_OPTION=developer-id" >> "$GITHUB_ENV"
+              fi
+            else
+              echo "EXPORT_OPTION=development" >> "$GITHUB_ENV"
+            fi
+          fi
 
           # set BUILD_DIRECTORY to a path in the root of the workspace named ./Builds/<build-target>/
-          $buildDirectory = "${{ github.workspace }}/Builds/${{ matrix.build-target }}"
-          echo "Creating build directory at $buildDirectory"
-          New-Item -ItemType Directory -Path $buildDirectory -Force | Out-Null
-          echo "BUILD_DIRECTORY=$buildDirectory" >> $env:GITHUB_ENV
-        shell: pwsh
+          build_directory="${{ github.workspace }}/Builds/${{ matrix.build-target }}"
+          echo "Creating build directory at $build_directory"
+          mkdir -p "$build_directory"
+          echo "BUILD_DIRECTORY=$build_directory" >> "$GITHUB_ENV"
       - uses: buildalon/activate-unity-license@v1
         with:
           license: 'Personal'
           username: ${{ secrets.UNITY_USERNAME }}
           password: ${{ secrets.UNITY_PASSWORD }}
-      - uses: buildalon/unity-action@v1
+      - uses: buildalon/create-unity-project@v1
         name: Create Test Project
         with:
-          log-name: 'create-test-project'
-          args: '-quit -nographics -batchmode -createProject "${{ github.workspace }}/UnityProject" -cloneFromTemplate "${{ env.TEMPLATE_PATH }}"'
+          project-name: UnityProject
+          project-directory: ${{ env.UNITY_PROJECT_PATH }}
+          template-name: com.unity.template.3d(-cross-platform)?
       - run: openupm add com.virtualmaker.buildalon
         name: Add Build Pipeline Package
-        working-directory: ${{ github.workspace }}/UnityProject
+        working-directory:  ${{ env.UNITY_PROJECT_PATH }}
       - uses: buildalon/unity-action@v1
         name: '${{ matrix.build-target }}-Validate'
         with:
@@ -107,7 +99,7 @@ jobs:
       - name: Update Info.Plist with encryption compliance
         shell: bash
         run: |
-          set -xe
+          set -e
           BUILD_DIRECTORY="${{ env.BUILD_DIRECTORY }}"
 
           if [ -z "$BUILD_DIRECTORY" ]; then
@@ -172,7 +164,6 @@ jobs:
           developer-id-installer-certificate: ${{ secrets.DEVELOPER_ID_INSTALLER_CERT }}
           developer-id-installer-certificate-password: ${{ secrets.SIGNING_CERT_PASSWORD }}
       - name: print outputs
-        if: always()
         run: |
           set -e
 
