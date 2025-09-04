@@ -58521,13 +58521,6 @@ async function GetOrSetXcodeVersion() {
             if (installedXcodeVersions.length === 0 || !installedXcodeVersions.includes(xcodeVersionString)) {
                 throw new Error(`Xcode version ${xcodeVersionString} is not installed! You will need to install this is a step before this one.`);
             }
-            else {
-                core.info(`Selecting installed Xcode version ${xcodeVersionString}...`);
-                const selectExitCode = await (0, exec_1.exec)('xcodes', ['select', xcodeVersionString]);
-                if (selectExitCode !== 0) {
-                    throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
-                }
-            }
         }
         else {
             const nonBetaVersions = installedXcodeVersions.filter(v => !/Beta/i.test(v));
@@ -58535,11 +58528,11 @@ async function GetOrSetXcodeVersion() {
                 throw new Error('No Xcode versions installed!');
             }
             xcodeVersionString = nonBetaVersions[nonBetaVersions.length - 1];
-            core.info(`Selecting latest installed Xcode version ${xcodeVersionString}...`);
-            const selectExitCode = await (0, exec_1.exec)('xcodes', ['select', xcodeVersionString]);
-            if (selectExitCode !== 0) {
-                throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
-            }
+        }
+        core.info(`Selecting latest installed Xcode version ${xcodeVersionString}...`);
+        const selectExitCode = await (0, exec_1.exec)('xcodes', ['select', xcodeVersionString]);
+        if (selectExitCode !== 0) {
+            throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
         }
     }
     let xcodeVersionOutput = '';
@@ -58603,13 +58596,12 @@ async function GetProjectDetails(credential, xcodeVersion) {
     const platform = await getSupportedPlatform(projectPath);
     core.info(`Platform: ${platform}`);
     if (platform !== 'macOS') {
-        const platformInstalled = await isPlatformInstalled(platform);
-        if (!platformInstalled) {
-            await downloadPlatform(platform);
-        }
-        await checkSimulatorsAvailable(platform);
+        const platformInstalled = await isSdkPlatformInstalled(platform);
         const platformSdkVersion = await getPlatformSdkVersion(buildSettings);
-        await downloadPlatformSdkIfMissing(platform, platformSdkVersion);
+        const hasSimulators = await checkSimulatorsAvailable(platform);
+        if (!platformInstalled || !hasSimulators) {
+            await downloadPlatformAndSdk(platform, platformSdkVersion);
+        }
     }
     const configuration = core.getInput('configuration') || 'Release';
     core.info(`Configuration: ${configuration}`);
@@ -58781,10 +58773,7 @@ async function checkSimulatorsAvailable(platform) {
     const platformDevices = Object.keys(devices)
         .filter(key => key.toLowerCase().includes(platform.toLowerCase()))
         .flatMap(key => devices[key]);
-    if (platformDevices.length > 0) {
-        return;
-    }
-    await downloadPlatform(platform);
+    return platformDevices.length > 0;
 }
 async function getSupportedPlatform(projectPath) {
     const projectFilePath = `${projectPath}/project.pbxproj`;
@@ -58844,8 +58833,9 @@ async function getPlatformSdkVersion(buildSettingsOutput) {
     core.info(`Platform SDK version: ${platformSdkVersion}`);
     return platformSdkVersion;
 }
-async function isPlatformInstalled(platform) {
+async function isSdkPlatformInstalled(platform) {
     const output = await execXcodeBuild(['-showsdks']);
+    core.info(`SDKs available:\n${output}`);
     const sdkMap = {
         'iOS': 'iphoneos',
         'tvOS': 'appletvos',
@@ -58858,14 +58848,15 @@ async function isPlatformInstalled(platform) {
     }
     return output.includes(`-sdk ${sdkString}`);
 }
-async function downloadPlatform(platform) {
-    await execXcodeBuild(['-downloadPlatform', platform]);
-}
-async function downloadPlatformSdkIfMissing(platform, version) {
-    await (0, exec_1.exec)('xcodes', ['runtimes']);
-    if (version) {
-        await (0, exec_1.exec)('xcodes', ['runtimes', 'install', `${platform} ${version}`]);
+async function downloadPlatformAndSdk(platform, version) {
+    const downloadDir = `${process.env.RUNNER_TEMP}/xcodes/${platform}-${version}`;
+    await execXcodeBuild(['-downloadPlatform', platform, '-buildVersion', version, '-exportPath', downloadDir]);
+    const dmgPath = await (0, utilities_1.getFirstPathWithGlob)(`${downloadDir}/**/*.dmg`);
+    if (!dmgPath) {
+        throw new Error(`Failed to find downloaded .dmg for platform ${platform} version ${version}`);
     }
+    await fs.promises.access(dmgPath, fs.constants.X_OK);
+    await execXcodeBuild(['-importPlatform', dmgPath]);
 }
 async function getProjectScheme(projectPath) {
     let scheme = core.getInput('scheme');

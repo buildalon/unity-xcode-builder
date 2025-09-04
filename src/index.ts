@@ -1,5 +1,4 @@
 import core = require('@actions/core');
-import exec = require('@actions/exec');
 import {
     GetProjectDetails,
     ArchiveXcodeProject,
@@ -12,7 +11,6 @@ import {
     ImportCredentials,
     RemoveCredentials
 } from './AppleCredential';
-import semver = require('semver');
 
 const IS_POST = !!core.getState('isPost');
 
