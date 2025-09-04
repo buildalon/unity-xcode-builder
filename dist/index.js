@@ -58369,8 +58369,10 @@ exports.log = log;
 exports.DeepEqual = DeepEqual;
 exports.matchRegexPattern = matchRegexPattern;
 exports.getFirstPathWithGlob = getFirstPathWithGlob;
+exports.getFileContents = getFileContents;
 const core = __nccwpck_require__(2186);
 const glob = __nccwpck_require__(8090);
+const fs = __nccwpck_require__(7147);
 function log(message, type = 'info') {
     if (type == 'info' && !core.isDebug()) {
         return;
@@ -58444,6 +58446,24 @@ async function getFirstPathWithGlob(globPattern) {
         throw new Error(`No file found at: ${globPattern}`);
     }
     return files[0];
+}
+async function getFileContents(filePath, printContent = true) {
+    let fileContents = '';
+    if (printContent) {
+        core.startGroup(`${filePath} content:`);
+    }
+    const fileHandle = await fs.promises.open(filePath, fs.constants.O_RDONLY);
+    try {
+        fileContents = await fs.promises.readFile(fileHandle, 'utf8');
+    }
+    finally {
+        await fileHandle.close();
+        if (printContent) {
+            core.info(fileContents);
+            core.endGroup();
+        }
+    }
+    return fileContents;
 }
 
 
@@ -58608,14 +58628,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
         infoPlistPath = `${projectDirectory}/Info.plist`;
     }
     core.info(`Info.plist path: ${infoPlistPath}`);
-    const infoPlistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
-    let infoPlistContent;
-    try {
-        infoPlistContent = await fs.promises.readFile(infoPlistHandle, 'utf8');
-    }
-    finally {
-        await infoPlistHandle.close();
-    }
+    let infoPlistContent = await (0, utilities_1.getFileContents)(infoPlistPath, false);
     const infoPlist = plist.parse(infoPlistContent);
     let cFBundleShortVersionString = infoPlist['CFBundleShortVersionString'];
     if (cFBundleShortVersionString) {
@@ -58651,6 +58664,9 @@ async function GetProjectDetails(credential, xcodeVersion) {
     }
     else {
         projectRef.entitlementsPath = entitlementsPath;
+    }
+    if (projectRef.entitlementsPath) {
+        await (0, utilities_1.getFileContents)(projectRef.entitlementsPath);
     }
     if (projectRef.isAppStoreUpload()) {
         projectRef.appId = await (0, AppStoreConnectClient_1.GetAppId)(projectRef);
@@ -58743,14 +58759,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
             }
         }
     }
-    const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
-    try {
-        infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
-    }
-    finally {
-        await plistHandle.close();
-    }
-    core.info(`------- Info.plist content: -------\n${infoPlistContent}\n-----------------------------------`);
+    infoPlistContent = await (0, utilities_1.getFileContents)(infoPlistPath);
     return projectRef;
 }
 async function checkSimulatorsAvailable(platform) {
@@ -58952,16 +58961,7 @@ async function getExportOptions(projectRef) {
     if (!exportOptionsPath) {
         throw new Error(`Invalid path for export-option-plist: ${exportOptionsPath}`);
     }
-    const exportOptionsHandle = await fs.promises.open(exportOptionsPath, fs.constants.O_RDONLY);
-    try {
-        const exportOptionContent = await fs.promises.readFile(exportOptionsHandle, 'utf8');
-        core.info(`----- Export options content: -----\n${exportOptionContent}\n-----------------------------------`);
-        const exportOptions = plist.parse(exportOptionContent);
-        projectRef.exportOption = exportOptions['method'];
-    }
-    finally {
-        await exportOptionsHandle.close();
-    }
+    await (0, utilities_1.getFileContents)(exportOptionsPath);
     projectRef.exportOptionsPath = exportOptionsPath;
 }
 async function getDefaultEntitlementsMacOS(projectRef) {
@@ -58981,7 +58981,6 @@ async function getDefaultEntitlementsMacOS(projectRef) {
         case 'app-store-connect':
             defaultEntitlements = {
                 'com.apple.security.app-sandbox': true,
-                'com.apple.security.files.user-selected.read-only': true,
             };
             break;
         default:
@@ -59029,16 +59028,6 @@ async function ArchiveXcodeProject(projectRef) {
         archiveArgs.push(`AD_HOC_CODE_SIGNING_ALLOWED=YES`, `-allowProvisioningUpdates`);
     }
     if (entitlementsPath) {
-        core.debug(`Entitlements path: ${entitlementsPath}`);
-        const entitlementsHandle = await fs.promises.open(entitlementsPath, fs.constants.O_RDONLY);
-        try {
-            const entitlementsContent = await fs.promises.readFile(entitlementsHandle, 'utf8');
-            core.startGroup(`----- Entitlements content: -----\n${entitlementsContent}\n-----------------------------------`);
-        }
-        finally {
-            await entitlementsHandle.close();
-            core.endGroup();
-        }
         archiveArgs.push(`CODE_SIGN_ENTITLEMENTS=${entitlementsPath}`);
     }
     if (platform === 'iOS') {

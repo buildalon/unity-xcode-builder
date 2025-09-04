@@ -1,6 +1,7 @@
 
 import core = require('@actions/core');
 import glob = require('@actions/glob');
+import fs = require('fs');
 
 export function log(message: string, type: 'info' | 'warning' | 'error' = 'info') {
     if (type == 'info' && !core.isDebug()) { return; }
@@ -67,4 +68,27 @@ export async function getFirstPathWithGlob(globPattern: string): Promise<string>
         throw new Error(`No file found at: ${globPattern}`);
     }
     return files[0];
+}
+
+export async function getFileContents(filePath: string, printContent: boolean = true): Promise<string> {
+    let fileContents: string = '';
+
+    if (printContent) {
+        core.startGroup(`${filePath} content:`);
+    }
+
+    const fileHandle = await fs.promises.open(filePath, fs.constants.O_RDONLY);
+
+    try {
+        fileContents = await fs.promises.readFile(fileHandle, 'utf8');
+    } finally {
+        await fileHandle.close();
+
+        if (printContent) {
+            core.info(fileContents);
+            core.endGroup();
+        }
+    }
+
+    return fileContents;
 }

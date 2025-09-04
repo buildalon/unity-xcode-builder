@@ -11,7 +11,8 @@ import {
     DeepEqual,
     log,
     matchRegexPattern,
-    getFirstPathWithGlob
+    getFirstPathWithGlob,
+    getFileContents
 } from './utilities';
 import { SemVer } from 'semver';
 import core = require('@actions/core');
@@ -193,15 +194,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     }
 
     core.info(`Info.plist path: ${infoPlistPath}`);
-    const infoPlistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
-    let infoPlistContent: string;
-
-    try {
-        infoPlistContent = await fs.promises.readFile(infoPlistHandle, 'utf8');
-    } finally {
-        await infoPlistHandle.close();
-    }
-
+    let infoPlistContent: string = await getFileContents(infoPlistPath, false);
     const infoPlist = plist.parse(infoPlistContent) as any;
     let cFBundleShortVersionString: string = infoPlist['CFBundleShortVersionString'];
 
@@ -254,6 +247,10 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         }
     } else {
         projectRef.entitlementsPath = entitlementsPath;
+    }
+
+    if (projectRef.entitlementsPath) {
+        await getFileContents(projectRef.entitlementsPath);
     }
 
     if (projectRef.isAppStoreUpload()) {
@@ -354,15 +351,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         }
     }
 
-    const plistHandle = await fs.promises.open(infoPlistPath, fs.constants.O_RDONLY);
-
-    try {
-        infoPlistContent = await fs.promises.readFile(plistHandle, 'utf8');
-    } finally {
-        await plistHandle.close();
-    }
-
-    core.info(`------- Info.plist content: -------\n${infoPlistContent}\n-----------------------------------`);
+    infoPlistContent = await getFileContents(infoPlistPath);
     return projectRef;
 }
 
@@ -594,18 +583,13 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
         exportOptionsPath = exportOptionPlistInput;
     }
     core.info(`Export options path: ${exportOptionsPath}`);
+
     if (!exportOptionsPath) {
         throw new Error(`Invalid path for export-option-plist: ${exportOptionsPath}`);
     }
-    const exportOptionsHandle = await fs.promises.open(exportOptionsPath, fs.constants.O_RDONLY);
-    try {
-        const exportOptionContent = await fs.promises.readFile(exportOptionsHandle, 'utf8');
-        core.info(`----- Export options content: -----\n${exportOptionContent}\n-----------------------------------`);
-        const exportOptions = plist.parse(exportOptionContent);
-        projectRef.exportOption = exportOptions['method'];
-    } finally {
-        await exportOptionsHandle.close();
-    }
+
+    await getFileContents(exportOptionsPath);
+
     projectRef.exportOptionsPath = exportOptionsPath;
 }
 
@@ -701,15 +685,6 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         );
     }
     if (entitlementsPath) {
-        core.debug(`Entitlements path: ${entitlementsPath}`);
-        const entitlementsHandle = await fs.promises.open(entitlementsPath, fs.constants.O_RDONLY);
-        try {
-            const entitlementsContent = await fs.promises.readFile(entitlementsHandle, 'utf8');
-            core.startGroup(`----- Entitlements content: -----\n${entitlementsContent}\n-----------------------------------`);
-        } finally {
-            await entitlementsHandle.close();
-            core.endGroup();
-        }
         archiveArgs.push(`CODE_SIGN_ENTITLEMENTS=${entitlementsPath}`);
     }
     if (platform === 'iOS') {
