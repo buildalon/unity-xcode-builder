@@ -2,9 +2,6 @@
   "os": [
     "macos-latest"
   ],
-  "xcode-version": [
-    "16.4"
-  ],
   "unity-version": [
     "2021.x",
     "2022.x",
@@ -17,16 +14,21 @@
     "iOS",
     "visionOS"
   ],
+  "xcode-version": [
+    "16.4"
+  ],
   "exclude": [
     {
       "os": "macos-latest",
       "unity-version": "2021.x",
-      "build-target": "visionOS"
+      "build-target": "visionOS",
+      "xcode-version": "16.4"
     },
     {
       "os": "macos-latest",
       "unity-version": "2022.x",
-      "build-target": "visionOS"
+      "build-target": "visionOS",
+      "xcode-version": "16.4"
     }
   ]
 }
