@@ -19,10 +19,12 @@
   ],
   "exclude": [
     {
+      "os": "macos-latest",
       "unity-version": "2021.x",
       "build-target": "visionOS"
     },
     {
+      "os": "macos-latest",
       "unity-version": "2022.x",
       "build-target": "visionOS"
     }
