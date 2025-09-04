@@ -12,23 +12,19 @@
   "build-target": [
     "StandaloneOSX",
     "iOS",
-    "visionOS"
+    "VisionOS"
   ],
   "xcode-version": [
     "16.4"
   ],
   "exclude": [
     {
-      "os": "macos-latest",
       "unity-version": "2021.x",
-      "build-target": "visionOS",
-      "xcode-version": "16.4"
+      "build-target": "VisionOS"
     },
     {
-      "os": "macos-latest",
       "unity-version": "2022.x",
-      "build-target": "visionOS",
-      "xcode-version": "16.4"
+      "build-target": "VisionOS"
     }
   ]
 }
