@@ -58368,6 +58368,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.log = log;
 exports.DeepEqual = DeepEqual;
 exports.matchRegexPattern = matchRegexPattern;
+exports.getPathsWithGlob = getPathsWithGlob;
 exports.getFirstPathWithGlob = getFirstPathWithGlob;
 exports.getFileContents = getFileContents;
 const core = __nccwpck_require__(2186);
@@ -58438,6 +58439,14 @@ function matchRegexPattern(string, pattern, group) {
         throw new Error(`Failed to resolve: ${pattern}`);
     }
     return group ? (_a = match.groups) === null || _a === void 0 ? void 0 : _a[group] : match[1];
+}
+async function getPathsWithGlob(globPattern) {
+    const globber = await glob.create(globPattern);
+    const files = await globber.glob();
+    if (files.length === 0) {
+        throw new Error(`No file found at: ${globPattern}`);
+    }
+    return files;
 }
 async function getFirstPathWithGlob(globPattern) {
     const globber = await glob.create(globPattern);
@@ -58596,10 +58605,9 @@ async function GetProjectDetails(credential, xcodeVersion) {
     const platform = await getSupportedPlatform(projectPath);
     core.info(`Platform: ${platform}`);
     if (platform !== 'macOS') {
-        const platformInstalled = await isSdkPlatformInstalled(platform);
         const platformSdkVersion = await getPlatformSdkVersion(buildSettings);
-        const hasSimulators = await checkSimulatorsAvailable(platform);
-        if (!platformInstalled || !hasSimulators) {
+        const platformSdk = await getSdkInfo(platform, platformSdkVersion);
+        if (!platformSdk) {
             await downloadPlatformAndSdk(platform, platformSdkVersion);
         }
     }
@@ -58754,27 +58762,6 @@ async function GetProjectDetails(credential, xcodeVersion) {
     infoPlistContent = await (0, utilities_1.getFileContents)(infoPlistPath);
     return projectRef;
 }
-async function checkSimulatorsAvailable(platform) {
-    const destinationArgs = ['simctl', 'list', 'devices', '--json'];
-    if (!core.isDebug()) {
-        core.info(`[command]${xcrun} ${destinationArgs.join(' ')}`);
-    }
-    let output = '';
-    await (0, exec_1.exec)(xcrun, destinationArgs, {
-        listeners: {
-            stdout: (data) => {
-                output += data.toString();
-            }
-        },
-        silent: !core.isDebug()
-    });
-    const response = JSON.parse(output);
-    const devices = response.devices;
-    const platformDevices = Object.keys(devices)
-        .filter(key => key.toLowerCase().includes(platform.toLowerCase()))
-        .flatMap(key => devices[key]);
-    return platformDevices.length > 0;
-}
 async function getSupportedPlatform(projectPath) {
     const projectFilePath = `${projectPath}/project.pbxproj`;
     core.debug(`.pbxproj file path: ${projectFilePath}`);
@@ -58833,30 +58820,23 @@ async function getPlatformSdkVersion(buildSettingsOutput) {
     core.info(`Platform SDK version: ${platformSdkVersion}`);
     return platformSdkVersion;
 }
-async function isSdkPlatformInstalled(platform) {
-    const output = await execXcodeBuild(['-showsdks']);
-    core.info(`SDKs available:\n${output}`);
-    const sdkMap = {
-        'iOS': 'iphoneos',
-        'tvOS': 'appletvos',
-        'watchOS': 'watchos',
-        'visionOS': 'xros',
-    };
-    const sdkString = sdkMap[platform];
-    if (!sdkString) {
-        return false;
-    }
-    return output.includes(`-sdk ${sdkString}`);
+async function getSdkInfo(platform, version) {
+    const output = await execXcodeBuild(['-showsdks', '-json']);
+    core.info(`Installed SDKs:\n${output}`);
+    const installedSdks = JSON.parse(output);
+    const sdk = installedSdks.find(sdk => sdk.platform.toLowerCase() === platform.toLowerCase() && sdk.sdkVersion.toString() === version);
+    core.info(`Found SDK:\n${sdk ? JSON.stringify(sdk) : ''}`);
+    return sdk || null;
 }
 async function downloadPlatformAndSdk(platform, version) {
     const downloadDir = `${process.env.RUNNER_TEMP}/xcodes/${platform}-${version}`;
-    await execXcodeBuild(['-downloadPlatform', platform, '-buildVersion', version, '-exportPath', downloadDir]);
-    const dmgPath = await (0, utilities_1.getFirstPathWithGlob)(`${downloadDir}/**/*.dmg`);
-    if (!dmgPath) {
-        throw new Error(`Failed to find downloaded .dmg for platform ${platform} version ${version}`);
+    await execXcodeBuild(['-downloadPlatform', platform, '-exportPath', downloadDir, '-buildVersion', version]);
+    const dmgPaths = await (0, utilities_1.getPathsWithGlob)(`${downloadDir}/**/*.dmg`);
+    core.info(`Downloaded DMG paths:\n${dmgPaths.join('\n')}`);
+    for (const dmgPath of dmgPaths) {
+        await fs.promises.access(dmgPath, fs.constants.R_OK);
+        await execXcodeBuild(['-importPlatform', dmgPath]);
     }
-    await fs.promises.access(dmgPath, fs.constants.X_OK);
-    await execXcodeBuild(['-importPlatform', dmgPath]);
 }
 async function getProjectScheme(projectPath) {
     let scheme = core.getInput('scheme');
