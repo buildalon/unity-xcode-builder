@@ -625,7 +625,6 @@ async function getDefaultEntitlementsMacOS(projectRef: XcodeProject): Promise<st
         case 'app-store-connect':
             defaultEntitlements = {
                 'com.apple.security.app-sandbox': true,
-                'com.apple.security.files.user-selected.read-only': true,
             };
             break;
         default:
