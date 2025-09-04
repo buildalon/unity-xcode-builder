@@ -127,6 +127,15 @@ jobs:
           # test path exists
           if [ ! -f "$INFO_PLIST_PATH" ]; then
             echo "Info.plist not found at path: $INFO_PLIST_PATH"
+            echo "Listing top-level files and directories in: ${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}/com.test.buildalon.xcode"
+            ls -al "${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}/com.test.buildalon.xcode"
+            echo "Searching for Info.plist files..."
+            FILES=$(find "${{ env.UNITY_PROJECT_PATH }}/Builds/${{ matrix.build-target }}/com.test.buildalon.xcode" -name "Info.plist")
+            if [ -z "$FILES" ]; then
+              echo "No Info.plist files found"
+            fi
+            echo "Found Info.plist files:"
+            echo "  > $FILES"
             exit 1
           fi
           # make sure plist buddy is installed
