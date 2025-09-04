@@ -5,7 +5,8 @@ import {
     ArchiveXcodeProject,
     ExportXcodeArchive,
     ValidateApp,
-    UploadApp
+    UploadApp,
+    GetOrSetXcodeVersion
 } from './xcode';
 import {
     ImportCredentials,
@@ -20,87 +21,8 @@ const main = async () => {
         if (!IS_POST) {
             core.saveState('isPost', true);
             const credential = await ImportCredentials();
-            let xcodeVersionString = core.getInput('xcode-version');
-
-            if (xcodeVersionString) {
-                core.info(`Setting xcode version to ${xcodeVersionString}`);
-                let xcodeVersionOutput = '';
-
-                const installedExitCode = await exec.exec('xcodes', ['installed'], {
-                    listeners: {
-                        stdout: (data: Buffer) => {
-                            xcodeVersionOutput += data.toString();
-                        }
-                    }
-                });
-
-                if (installedExitCode !== 0) {
-                    throw new Error('Failed to get installed Xcode versions!');
-                }
-
-                const installedXcodeVersions = xcodeVersionOutput.split('\n').map(line => {
-                    const match = line.match(/(\d+\.\d+(\s\w+)?)/);
-                    return match ? match[1] : null;
-                }).filter(Boolean) as string[];
-
-                core.info(`Installed Xcode versions:`);
-                installedXcodeVersions.forEach(version => core.info(`  > ${version}`));
-
-                if (installedXcodeVersions.length === 0 || !xcodeVersionString.includes('latest')) {
-                    if (installedXcodeVersions.length === 0 || !installedXcodeVersions.includes(xcodeVersionString)) {
-                        throw new Error(`Xcode version ${xcodeVersionString} is not installed! You will need to install this is a step before this one.`);
-                    } else {
-                        core.info(`Selecting installed Xcode version ${xcodeVersionString}...`);
-                        const selectExitCode = await exec.exec('xcodes', ['select', xcodeVersionString]);
-
-                        if (selectExitCode !== 0) {
-                            throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
-                        }
-                    }
-                } else {
-                    // Exclude versions containing 'Beta' and select the latest version
-                    const nonBetaVersions = installedXcodeVersions.filter(v => !/Beta/i.test(v));
-
-                    if (nonBetaVersions.length === 0) {
-                        throw new Error('No Xcode versions installed!');
-                    }
-
-                    xcodeVersionString = nonBetaVersions[nonBetaVersions.length - 1];
-                    core.info(`Selecting latest installed Xcode version ${xcodeVersionString}...`);
-                    const selectExitCode = await exec.exec('xcodes', ['select', xcodeVersionString]);
-
-                    if (selectExitCode !== 0) {
-                        throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
-                    }
-                }
-            }
-
-            let xcodeVersionOutput = '';
-            await exec.exec('xcodebuild', ['-version'], {
-                listeners: {
-                    stdout: (data: Buffer) => {
-                        xcodeVersionOutput += data.toString();
-                    }
-                }
-            });
-
-            const xcodeVersionMatch = xcodeVersionOutput.match(/Xcode (?<version>\d+\.\d+)/);
-
-            if (!xcodeVersionMatch) {
-                throw new Error('Failed to get Xcode version!');
-            }
-
-            const selectedXcodeVersionString = xcodeVersionMatch.groups.version;
-
-            if (!selectedXcodeVersionString) {
-                throw new Error('Failed to parse Xcode version!');
-            }
-
-            if (xcodeVersionString !== selectedXcodeVersionString) {
-                throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
-            }
-
-            let projectRef = await GetProjectDetails(credential, semver.coerce(xcodeVersionString));
+            const xcodeVersion = await GetOrSetXcodeVersion();
+            let projectRef = await GetProjectDetails(credential, xcodeVersion);
             projectRef = await ArchiveXcodeProject(projectRef);
             projectRef = await ExportXcodeArchive(projectRef);
             const uploadInput = core.getInput('upload') || projectRef.isAppStoreUpload().toString();

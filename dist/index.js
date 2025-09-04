@@ -58455,10 +58455,10 @@ async function getFirstPathWithGlob(globPattern) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GetOrSetXcodeVersion = GetOrSetXcodeVersion;
 exports.GetProjectDetails = GetProjectDetails;
 exports.ArchiveXcodeProject = ArchiveXcodeProject;
 exports.ExportXcodeArchive = ExportXcodeArchive;
-exports.isAppBundleNotarized = isAppBundleNotarized;
 exports.ValidateApp = ValidateApp;
 exports.UploadApp = UploadApp;
 const XcodeProject_1 = __nccwpck_require__(1981);
@@ -58476,6 +58476,73 @@ const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
+async function GetOrSetXcodeVersion() {
+    let xcodeVersionString = core.getInput('xcode-version');
+    if (xcodeVersionString) {
+        core.info(`Setting xcode version to ${xcodeVersionString}`);
+        let xcodeVersionOutput = '';
+        const installedExitCode = await (0, exec_1.exec)('xcodes', ['installed'], {
+            listeners: {
+                stdout: (data) => {
+                    xcodeVersionOutput += data.toString();
+                }
+            }
+        });
+        if (installedExitCode !== 0) {
+            throw new Error('Failed to get installed Xcode versions!');
+        }
+        const installedXcodeVersions = xcodeVersionOutput.split('\n').map(line => {
+            const match = line.match(/(\d+\.\d+(\s\w+)?)/);
+            return match ? match[1] : null;
+        }).filter(Boolean);
+        core.info(`Installed Xcode versions:`);
+        installedXcodeVersions.forEach(version => core.info(`  > ${version}`));
+        if (installedXcodeVersions.length === 0 || !xcodeVersionString.includes('latest')) {
+            if (installedXcodeVersions.length === 0 || !installedXcodeVersions.includes(xcodeVersionString)) {
+                throw new Error(`Xcode version ${xcodeVersionString} is not installed! You will need to install this is a step before this one.`);
+            }
+            else {
+                core.info(`Selecting installed Xcode version ${xcodeVersionString}...`);
+                const selectExitCode = await (0, exec_1.exec)('xcodes', ['select', xcodeVersionString]);
+                if (selectExitCode !== 0) {
+                    throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
+                }
+            }
+        }
+        else {
+            const nonBetaVersions = installedXcodeVersions.filter(v => !/Beta/i.test(v));
+            if (nonBetaVersions.length === 0) {
+                throw new Error('No Xcode versions installed!');
+            }
+            xcodeVersionString = nonBetaVersions[nonBetaVersions.length - 1];
+            core.info(`Selecting latest installed Xcode version ${xcodeVersionString}...`);
+            const selectExitCode = await (0, exec_1.exec)('xcodes', ['select', xcodeVersionString]);
+            if (selectExitCode !== 0) {
+                throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
+            }
+        }
+    }
+    let xcodeVersionOutput = '';
+    await (0, exec_1.exec)('xcodebuild', ['-version'], {
+        listeners: {
+            stdout: (data) => {
+                xcodeVersionOutput += data.toString();
+            }
+        }
+    });
+    const xcodeVersionMatch = xcodeVersionOutput.match(/Xcode (?<version>\d+\.\d+)/);
+    if (!xcodeVersionMatch) {
+        throw new Error('Failed to get Xcode version!');
+    }
+    const selectedXcodeVersionString = xcodeVersionMatch.groups.version;
+    if (!selectedXcodeVersionString) {
+        throw new Error('Failed to parse Xcode version!');
+    }
+    if (xcodeVersionString !== selectedXcodeVersionString) {
+        throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
+    }
+    return semver.coerce(xcodeVersionString);
+}
 async function GetProjectDetails(credential, xcodeVersion) {
     const projectPathInput = core.getInput('project-path') || `${WORKSPACE}/**/*.xcodeproj`;
     core.info(`Project path input: ${projectPathInput}`);
@@ -58768,9 +58835,6 @@ async function getPlatformSdkVersion(buildSettingsOutput) {
     core.info(`Platform SDK version: ${platformSdkVersion}`);
     return platformSdkVersion;
 }
-async function downloadPlatform(platform) {
-    await execXcodeBuild(['-downloadPlatform', platform]);
-}
 async function isPlatformInstalled(platform) {
     const output = await execXcodeBuild(['-showsdks']);
     const sdkMap = {
@@ -58784,6 +58848,9 @@ async function isPlatformInstalled(platform) {
         return false;
     }
     return output.includes(`-sdk ${sdkString}`);
+}
+async function downloadPlatform(platform) {
+    await execXcodeBuild(['-downloadPlatform', platform]);
 }
 async function downloadPlatformSdkIfMissing(platform, version) {
     await (0, exec_1.exec)('xcodes', ['runtimes']);
@@ -61573,81 +61640,16 @@ var exports = __webpack_exports__;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __nccwpck_require__(2186);
-const exec = __nccwpck_require__(1514);
 const xcode_1 = __nccwpck_require__(9157);
 const AppleCredential_1 = __nccwpck_require__(4199);
-const semver = __nccwpck_require__(1383);
 const IS_POST = !!core.getState('isPost');
 const main = async () => {
     try {
         if (!IS_POST) {
             core.saveState('isPost', true);
             const credential = await (0, AppleCredential_1.ImportCredentials)();
-            let xcodeVersionString = core.getInput('xcode-version');
-            if (xcodeVersionString) {
-                core.info(`Setting xcode version to ${xcodeVersionString}`);
-                let xcodeVersionOutput = '';
-                const installedExitCode = await exec.exec('xcodes', ['installed'], {
-                    listeners: {
-                        stdout: (data) => {
-                            xcodeVersionOutput += data.toString();
-                        }
-                    }
-                });
-                if (installedExitCode !== 0) {
-                    throw new Error('Failed to get installed Xcode versions!');
-                }
-                const installedXcodeVersions = xcodeVersionOutput.split('\n').map(line => {
-                    const match = line.match(/(\d+\.\d+(\s\w+)?)/);
-                    return match ? match[1] : null;
-                }).filter(Boolean);
-                core.info(`Installed Xcode versions:`);
-                installedXcodeVersions.forEach(version => core.info(`  > ${version}`));
-                if (installedXcodeVersions.length === 0 || !xcodeVersionString.includes('latest')) {
-                    if (installedXcodeVersions.length === 0 || !installedXcodeVersions.includes(xcodeVersionString)) {
-                        throw new Error(`Xcode version ${xcodeVersionString} is not installed! You will need to install this is a step before this one.`);
-                    }
-                    else {
-                        core.info(`Selecting installed Xcode version ${xcodeVersionString}...`);
-                        const selectExitCode = await exec.exec('xcodes', ['select', xcodeVersionString]);
-                        if (selectExitCode !== 0) {
-                            throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
-                        }
-                    }
-                }
-                else {
-                    const nonBetaVersions = installedXcodeVersions.filter(v => !/Beta/i.test(v));
-                    if (nonBetaVersions.length === 0) {
-                        throw new Error('No Xcode versions installed!');
-                    }
-                    xcodeVersionString = nonBetaVersions[nonBetaVersions.length - 1];
-                    core.info(`Selecting latest installed Xcode version ${xcodeVersionString}...`);
-                    const selectExitCode = await exec.exec('xcodes', ['select', xcodeVersionString]);
-                    if (selectExitCode !== 0) {
-                        throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
-                    }
-                }
-            }
-            let xcodeVersionOutput = '';
-            await exec.exec('xcodebuild', ['-version'], {
-                listeners: {
-                    stdout: (data) => {
-                        xcodeVersionOutput += data.toString();
-                    }
-                }
-            });
-            const xcodeVersionMatch = xcodeVersionOutput.match(/Xcode (?<version>\d+\.\d+)/);
-            if (!xcodeVersionMatch) {
-                throw new Error('Failed to get Xcode version!');
-            }
-            const selectedXcodeVersionString = xcodeVersionMatch.groups.version;
-            if (!selectedXcodeVersionString) {
-                throw new Error('Failed to parse Xcode version!');
-            }
-            if (xcodeVersionString !== selectedXcodeVersionString) {
-                throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
-            }
-            let projectRef = await (0, xcode_1.GetProjectDetails)(credential, semver.coerce(xcodeVersionString));
+            const xcodeVersion = await (0, xcode_1.GetOrSetXcodeVersion)();
+            let projectRef = await (0, xcode_1.GetProjectDetails)(credential, xcodeVersion);
             projectRef = await (0, xcode_1.ArchiveXcodeProject)(projectRef);
             projectRef = await (0, xcode_1.ExportXcodeArchive)(projectRef);
             const uploadInput = core.getInput('upload') || projectRef.isAppStoreUpload().toString();

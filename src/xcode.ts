@@ -29,6 +29,90 @@ const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
 
+export async function GetOrSetXcodeVersion(): Promise<SemVer> {
+    let xcodeVersionString = core.getInput('xcode-version');
+
+    if (xcodeVersionString) {
+        core.info(`Setting xcode version to ${xcodeVersionString}`);
+        let xcodeVersionOutput = '';
+
+        const installedExitCode = await exec('xcodes', ['installed'], {
+            listeners: {
+                stdout: (data: Buffer) => {
+                    xcodeVersionOutput += data.toString();
+                }
+            }
+        });
+
+        if (installedExitCode !== 0) {
+            throw new Error('Failed to get installed Xcode versions!');
+        }
+
+        const installedXcodeVersions = xcodeVersionOutput.split('\n').map(line => {
+            const match = line.match(/(\d+\.\d+(\s\w+)?)/);
+            return match ? match[1] : null;
+        }).filter(Boolean) as string[];
+
+        core.info(`Installed Xcode versions:`);
+        installedXcodeVersions.forEach(version => core.info(`  > ${version}`));
+
+        if (installedXcodeVersions.length === 0 || !xcodeVersionString.includes('latest')) {
+            if (installedXcodeVersions.length === 0 || !installedXcodeVersions.includes(xcodeVersionString)) {
+                throw new Error(`Xcode version ${xcodeVersionString} is not installed! You will need to install this is a step before this one.`);
+            } else {
+                core.info(`Selecting installed Xcode version ${xcodeVersionString}...`);
+                const selectExitCode = await exec('xcodes', ['select', xcodeVersionString]);
+
+                if (selectExitCode !== 0) {
+                    throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
+                }
+            }
+        } else {
+            // Exclude versions containing 'Beta' and select the latest version
+            const nonBetaVersions = installedXcodeVersions.filter(v => !/Beta/i.test(v));
+
+            if (nonBetaVersions.length === 0) {
+                throw new Error('No Xcode versions installed!');
+            }
+
+            xcodeVersionString = nonBetaVersions[nonBetaVersions.length - 1];
+            core.info(`Selecting latest installed Xcode version ${xcodeVersionString}...`);
+            const selectExitCode = await exec('xcodes', ['select', xcodeVersionString]);
+
+            if (selectExitCode !== 0) {
+                throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
+            }
+        }
+    }
+
+    let xcodeVersionOutput = '';
+    await exec('xcodebuild', ['-version'], {
+        listeners: {
+            stdout: (data: Buffer) => {
+                xcodeVersionOutput += data.toString();
+            }
+        }
+    });
+
+    const xcodeVersionMatch = xcodeVersionOutput.match(/Xcode (?<version>\d+\.\d+)/);
+
+    if (!xcodeVersionMatch) {
+        throw new Error('Failed to get Xcode version!');
+    }
+
+    const selectedXcodeVersionString = xcodeVersionMatch.groups.version;
+
+    if (!selectedXcodeVersionString) {
+        throw new Error('Failed to parse Xcode version!');
+    }
+
+    if (xcodeVersionString !== selectedXcodeVersionString) {
+        throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
+    }
+
+    return semver.coerce(xcodeVersionString);
+}
+
 export async function GetProjectDetails(credential: AppleCredential, xcodeVersion: SemVer): Promise<XcodeProject> {
     const projectPathInput = core.getInput('project-path') || `${WORKSPACE}/**/*.xcodeproj`;
     core.info(`Project path input: ${projectPathInput}`);
@@ -386,10 +470,6 @@ async function getPlatformSdkVersion(buildSettingsOutput: string): Promise<strin
     return platformSdkVersion;
 }
 
-async function downloadPlatform(platform: string) {
-    await execXcodeBuild(['-downloadPlatform', platform]);
-}
-
 async function isPlatformInstalled(platform: string): Promise<boolean> {
     // Check if the platform SDK is available using xcodebuild -showsdks
     const output = await execXcodeBuild(['-showsdks']);
@@ -404,6 +484,10 @@ async function isPlatformInstalled(platform: string): Promise<boolean> {
     const sdkString = sdkMap[platform];
     if (!sdkString) { return false; }
     return output.includes(`-sdk ${sdkString}`);
+}
+
+async function downloadPlatform(platform: string) {
+    await execXcodeBuild(['-downloadPlatform', platform]);
 }
 
 async function downloadPlatformSdkIfMissing(platform: string, version: string | null) {
@@ -727,7 +811,7 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
     return projectRef;
 }
 
-export async function isAppBundleNotarized(appPath: string): Promise<boolean> {
+async function isAppBundleNotarized(appPath: string): Promise<boolean> {
     let output = '';
     if (!core.isDebug()) {
         core.info(`[command]stapler validate ${appPath}`);
