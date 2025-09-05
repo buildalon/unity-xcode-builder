@@ -59020,12 +59020,7 @@ async function ArchiveXcodeProject(projectRef) {
     else {
         archiveArgs.push('-verbose');
     }
-    if (core.isDebug()) {
-        await execXcodeBuild(archiveArgs);
-    }
-    else {
-        await execWithXcBeautify(archiveArgs);
-    }
+    await execXcodeBuild(archiveArgs);
     projectRef.archivePath = archivePath;
     return projectRef;
 }
@@ -59052,12 +59047,7 @@ async function ExportXcodeArchive(projectRef) {
     else {
         exportArgs.push('-verbose');
     }
-    if (core.isDebug()) {
-        await execXcodeBuild(exportArgs);
-    }
-    else {
-        await execWithXcBeautify(exportArgs);
-    }
+    await execXcodeBuild(exportArgs);
     if (platform === 'macOS') {
         if (!projectRef.isAppStoreUpload()) {
             projectRef.executablePath = await (0, utilities_1.getFirstPathWithGlob)(`${exportPath}/**/*.app`);
@@ -59495,17 +59485,30 @@ async function getWhatsNew() {
 async function execXcodeBuild(xcodeBuildArgs) {
     let exitCode = 1;
     let output = '';
-    exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
-        listeners: {
-            stdout(data) {
-                output += data.toString();
+    core.startGroup(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
+    try {
+        exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
+            listeners: {
+                stdout(data) {
+                    output += data.toString();
+                },
+                stdline(data) {
+                    core.info(data);
+                },
+                stderr(data) {
+                    output += data.toString();
+                },
+                errline(data) {
+                    core.error(data);
+                }
             },
-            stderr(data) {
-                output += data.toString();
-            }
-        },
-        ignoreReturnCode: true
-    });
+            silent: true,
+            ignoreReturnCode: true
+        });
+    }
+    finally {
+        core.endGroup();
+    }
     if (exitCode !== 0) {
         await parseBundleLog(output);
         throw new Error(`xcodebuild exited with code: ${exitCode}`);

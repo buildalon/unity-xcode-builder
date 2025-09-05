@@ -694,11 +694,11 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         archiveArgs.push('-verbose');
     }
 
-    if (core.isDebug()) {
-        await execXcodeBuild(archiveArgs);
-    } else {
-        await execWithXcBeautify(archiveArgs);
-    }
+    // if (core.isDebug()) {
+    await execXcodeBuild(archiveArgs);
+    // } else {
+    //     await execWithXcBeautify(archiveArgs);
+    // }
 
     projectRef.archivePath = archivePath
     return projectRef;
@@ -745,11 +745,11 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         exportArgs.push('-verbose');
     }
 
-    if (core.isDebug()) {
-        await execXcodeBuild(exportArgs);
-    } else {
-        await execWithXcBeautify(exportArgs);
-    }
+    //if (core.isDebug()) {
+    await execXcodeBuild(exportArgs);
+    // } else {
+    //     await execWithXcBeautify(exportArgs);
+    // }
 
     if (platform === 'macOS') {
         if (!projectRef.isAppStoreUpload()) {
@@ -1242,17 +1242,30 @@ async function execXcodeBuild(xcodeBuildArgs: string[]): Promise<string> {
     let exitCode: number = 1;
     let output: string = '';
 
-    exitCode = await exec(xcodebuild, xcodeBuildArgs, {
-        listeners: {
-            stdout(data: Buffer) {
-                output += data.toString();
+    core.startGroup(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
+    try {
+
+        exitCode = await exec(xcodebuild, xcodeBuildArgs, {
+            listeners: {
+                stdout(data: Buffer) {
+                    output += data.toString();
+                },
+                stdline(data: string) {
+                    core.info(data);
+                },
+                stderr(data: Buffer) {
+                    output += data.toString();
+                },
+                errline(data: string) {
+                    core.error(data);
+                }
             },
-            stderr(data: Buffer) {
-                output += data.toString();
-            }
-        },
-        ignoreReturnCode: true
-    });
+            silent: true,
+            ignoreReturnCode: true
+        });
+    } finally {
+        core.endGroup();
+    }
 
     if (exitCode !== 0) {
         await parseBundleLog(output);
