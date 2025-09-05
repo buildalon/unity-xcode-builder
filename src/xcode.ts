@@ -26,6 +26,7 @@ import {
     UnauthorizedError,
     GetAppId,
 } from './AppStoreConnectClient';
+import { get } from 'http';
 
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
@@ -431,7 +432,6 @@ type SdkInfo = {
 
 async function getSdkInfo(platform: string, version: string): Promise<SdkInfo | null> {
     const output = await execXcodeBuild(['-showsdks', '-json']);
-    core.debug(`Installed SDKs:\n${output}`);
     const installedSdks = JSON.parse(output) as Array<SdkInfo>;
     const platformMap = {
         'iOS': 'iphoneos',
@@ -495,9 +495,11 @@ async function getProjectScheme(projectPath: string): Promise<string> {
 async function getExportOptions(projectRef: XcodeProject): Promise<void> {
     const exportOptionPlistInput = core.getInput('export-option-plist');
     let exportOptionsPath = undefined;
+
     if (!exportOptionPlistInput) {
         const exportOption = core.getInput('export-option') || 'development';
         let method: string;
+
         if (projectRef.platform === 'macOS') {
             const archiveType = core.getInput('archive-type') || 'app';
             projectRef.archiveType = archiveType;
@@ -526,6 +528,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
         // As of Xcode 15.4, the old export methods 'app-store', 'ad-hoc', and 'development' are now deprecated.
         // The new equivalents are 'app-store-connect', 'release-testing', and 'debugging'.
         const xcodeMinVersion = semver.coerce('15.4');
+
         if (semver.gte(projectRef.xcodeVersion, xcodeMinVersion)) {
             switch (method) {
                 case 'app-store':
@@ -539,20 +542,24 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
                     break;
             }
         }
+
         const exportOptions = {
             method: method,
             signingStyle: projectRef.credential.manualSigningIdentity ? 'manual' : 'automatic',
             teamID: `${projectRef.credential.teamId}`
         };
+
         if (method === 'app-store-connect' && projectRef.autoIncrementBuildNumber) {
             exportOptions['manageAppVersionAndBuildNumber'] = true;
         }
+
         projectRef.exportOption = method;
         exportOptionsPath = `${projectRef.projectPath}/exportOptions.plist`;
         await fs.promises.writeFile(exportOptionsPath, plist.build(exportOptions));
     } else {
         exportOptionsPath = exportOptionPlistInput;
     }
+
     core.info(`Export options path: ${exportOptionsPath}`);
 
     if (!exportOptionsPath) {
@@ -566,6 +573,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
 
 async function getDefaultEntitlementsMacOS(projectRef: XcodeProject): Promise<string> {
     const entitlementsPath = `${projectRef.projectPath}/Entitlements.plist`;
+
     try {
         await fs.promises.access(entitlementsPath, fs.constants.R_OK);
         core.info(`Existing Entitlements.plist found at: ${entitlementsPath}`);
@@ -573,8 +581,10 @@ async function getDefaultEntitlementsMacOS(projectRef: XcodeProject): Promise<st
     } catch (error) {
         core.info(`Creating default entitlements at ${entitlementsPath}...`);
     }
+
     const exportOption = projectRef.exportOption;
     let defaultEntitlements = undefined;
+
     switch (exportOption) {
         case 'app-store':
         case 'app-store-connect':
@@ -593,6 +603,7 @@ async function getDefaultEntitlementsMacOS(projectRef: XcodeProject): Promise<st
             };
             break;
     }
+
     await fs.promises.writeFile(entitlementsPath, plist.build(defaultEntitlements));
     return entitlementsPath;
 }
@@ -618,6 +629,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     } = projectRef.credential;
 
     core.debug(`Archive path: ${archivePath}`);
+
     const archiveArgs = [
         'archive',
         '-project', projectPath,
@@ -629,9 +641,11 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         `-authenticationKeyPath`, appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, appStoreConnectIssuerId
     ];
+
     if (teamId) {
         archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
     }
+
     if (manualSigningIdentity) {
         archiveArgs.push(
             `CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
@@ -644,9 +658,11 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
             `EXPANDED_CODE_SIGN_IDENTITY=-`
         );
     }
+
     archiveArgs.push(
         `CODE_SIGN_STYLE=${manualProvisioningProfileUUID || manualSigningIdentity ? 'Manual' : 'Automatic'}`
     );
+
     if (manualProvisioningProfileUUID) {
         archiveArgs.push(`PROVISIONING_PROFILE=${manualProvisioningProfileUUID}`);
     } else {
@@ -655,25 +671,31 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
             `-allowProvisioningUpdates`
         );
     }
+
     if (entitlementsPath) {
         archiveArgs.push(`CODE_SIGN_ENTITLEMENTS=${entitlementsPath}`);
     }
+
     if (platform === 'iOS') {
         archiveArgs.push('COPY_PHASE_STRIP=NO');
     }
+
     if (platform === 'macOS' && !projectRef.isAppStoreUpload()) {
         archiveArgs.push('ENABLE_HARDENED_RUNTIME=YES');
     }
+
     if (!core.isDebug()) {
         archiveArgs.push('-quiet');
     } else {
         archiveArgs.push('-verbose');
     }
+
     if (core.isDebug()) {
         await execXcodeBuild(archiveArgs);
     } else {
         await execWithXcBeautify(archiveArgs);
     }
+
     projectRef.archivePath = archivePath
     return projectRef;
 }
@@ -688,6 +710,7 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         exportOptionsPath,
         exportPath
     } = projectRef;
+
     const {
         manualProvisioningProfileUUID,
         appStoreConnectIssuerId,
@@ -697,6 +720,7 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
 
     core.debug(`Export path: ${exportPath}`);
     core.setOutput('output-directory', exportPath);
+
     const exportArgs = [
         '-exportArchive',
         '-archivePath', archivePath,
@@ -706,24 +730,30 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         `-authenticationKeyPath`, appStoreConnectKeyPath,
         `-authenticationKeyIssuerID`, appStoreConnectIssuerId
     ];
+
     if (!manualProvisioningProfileUUID) {
         exportArgs.push(`-allowProvisioningUpdates`);
     }
+
     if (!core.isDebug()) {
         exportArgs.push('-quiet');
     } else {
         exportArgs.push('-verbose');
     }
+
     if (core.isDebug()) {
         await execXcodeBuild(exportArgs);
     } else {
         await execWithXcBeautify(exportArgs);
     }
+
     if (platform === 'macOS') {
         if (!projectRef.isAppStoreUpload()) {
             projectRef.executablePath = await getFirstPathWithGlob(`${exportPath}/**/*.app`);
+
             if (notarize) {
                 await signMacOSAppBundle(projectRef);
+
                 if (isSteamBuild) {
                     const isNotarized = await isAppBundleNotarized(projectRef.executablePath);
                     if (!isNotarized) {
@@ -746,11 +776,13 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
     } else {
         projectRef.executablePath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.ipa`);
     }
+
     try {
         await fs.promises.access(projectRef.executablePath, fs.constants.R_OK);
     } catch (error) {
         throw new Error(`Failed to export the archive at: ${projectRef.executablePath}`);
     }
+
     core.debug(`Exported executable: ${projectRef.executablePath}`);
     core.setOutput('executable', projectRef.executablePath);
     return projectRef;
@@ -758,9 +790,11 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
 
 async function isAppBundleNotarized(appPath: string): Promise<boolean> {
     let output = '';
+
     if (!core.isDebug()) {
         core.info(`[command]stapler validate ${appPath}`);
     }
+
     await exec('stapler', ['validate', appPath], {
         silent: !core.isDebug(),
         listeners: {
@@ -768,12 +802,15 @@ async function isAppBundleNotarized(appPath: string): Promise<boolean> {
         },
         ignoreReturnCode: true
     });
+
     if (output.includes('The validate action worked!')) {
         return true;
     }
+
     if (output.includes('does not have a ticket stapled to it')) {
         return false;
     }
+
     throw new Error(`Failed to validate the notarization ticket!\n${output}`);
 }
 
@@ -781,11 +818,14 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     const appPath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
     await fs.promises.access(appPath, fs.constants.R_OK);
     const stat = await fs.promises.stat(appPath);
+
     if (!stat.isDirectory()) {
         throw new Error(`Not a valid app bundle: ${appPath}`);
     }
+
     await exec('xattr', ['-cr', appPath]);
     let findSigningIdentityOutput = '';
+
     const findSigningIdentityExitCode = await exec('security', [
         'find-identity',
         '-p', 'codesigning',
@@ -798,19 +838,24 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
         },
         ignoreReturnCode: true
     });
+
     if (findSigningIdentityExitCode !== 0) {
         log(findSigningIdentityOutput, 'error');
         throw new Error(`Failed to find the signing identity!`);
     }
+
     const matches = findSigningIdentityOutput.matchAll(/\d\) (?<uuid>\w+) \"(?<signing_identity>[^"]+)\"$/gm);
     const signingIdentities = Array.from(matches).map(match => ({
         uuid: match.groups?.['uuid'],
         signing_identity: match.groups?.['signing_identity']
     })).filter(identity => identity.signing_identity.includes('Developer ID Application'));
+
     if (signingIdentities.length === 0) {
         throw new Error(`Failed to find the signing identity!`);
     }
+
     const developerIdApplicationSigningIdentity = signingIdentities[0].signing_identity;
+
     if (!developerIdApplicationSigningIdentity) {
         throw new Error(`Failed to find the Developer ID Application signing identity!`);
     }
@@ -818,12 +863,14 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
         if (projectRef.entitlementsPath.trim().length === 0) {
             throw new Error(`Entitlements path is empty!`);
         }
+
         if (!fs.existsSync(projectRef.entitlementsPath)) {
             throw new Error(`Entitlements file not found at: ${projectRef.entitlementsPath}`);
         }
     } else {
         throw new Error(`Entitlements path is not set! Please provide a valid entitlements plist file.`);
     }
+
     const codesignArgs = [
         '--force',
         '--verify',
@@ -833,25 +880,30 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
         '--sign', developerIdApplicationSigningIdentity,
         '--entitlements', projectRef.entitlementsPath,
     ];
+
     if (core.isDebug()) {
         codesignArgs.unshift('--verbose');
     }
+
     await exec('find', [
         appPath,
         '-name', '*.bundle',
         '-exec', 'find', '{}', '-name', '*.meta', '-delete', ';',
         '-exec', 'codesign', ...codesignArgs, '{}', ';'
     ]);
+
     await exec('find', [
         appPath,
         '-name', '*.dylib',
         '-exec', 'codesign', ...codesignArgs, '{}', ';'
     ]);
+
     await exec('codesign', [
         '--deep',
         ...codesignArgs,
         appPath
     ]);
+
     const verifyExitCode = await exec('codesign', [
         '--verify',
         '--deep',
@@ -860,10 +912,13 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
         '--keychain', projectRef.credential.keychainPath,
         appPath
     ], { ignoreReturnCode: true });
+
     if (verifyExitCode !== 0) {
         throw new Error('App bundle codesign verification failed!');
     }
+
     let entitlementsOutput = '';
+
     const entitlementsExitCode = await exec('codesign', [
         '--display',
         '--entitlements', '-', '--xml',
@@ -876,16 +931,21 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
         },
         ignoreReturnCode: true
     });
+
     if (entitlementsExitCode !== 0) {
         log(entitlementsOutput, 'error');
         throw new Error('Failed to display signed entitlements!');
     }
+
     const expectedEntitlementsContent = await fs.promises.readFile(projectRef.entitlementsPath, 'utf8');
     const expectedEntitlements = plist.parse(expectedEntitlementsContent);
+
     if (!entitlementsOutput.trim()) {
         throw new Error('Signed entitlements output is empty!');
     }
+
     const signedEntitlements = plist.parse(entitlementsOutput);
+
     if (!DeepEqual(expectedEntitlements, signedEntitlements)) {
         throw new Error('Signed entitlements do not match the expected entitlements!');
     }
@@ -896,6 +956,7 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
     let output = '';
     const pkgPath = `${projectRef.exportPath}/${projectRef.projectName}.pkg`;
     const appPath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
+
     const productBuildExitCode = await exec('xcrun', [
         'productbuild',
         '--component',
@@ -909,16 +970,20 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
         },
         ignoreReturnCode: true
     });
+
     if (productBuildExitCode !== 0) {
         log(output, 'error');
         throw new Error(`Failed to create the pkg!`);
     }
+
     try {
         await fs.promises.access(pkgPath, fs.constants.R_OK);
     } catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
+
     let findSigningIdentityOutput = '';
+
     const findSigningIdentityExitCode = await exec('security', [
         'find-identity',
         '-v', projectRef.credential.keychainPath
@@ -930,23 +995,30 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
         },
         ignoreReturnCode: true
     });
+
     if (findSigningIdentityExitCode !== 0) {
         log(findSigningIdentityOutput, 'error');
         throw new Error(`Failed to get the signing identity!`);
     }
+
     const matches = findSigningIdentityOutput.matchAll(/\d\) (?<uuid>\w+) \"(?<signing_identity>[^"]+)\"$/gm);
     const signingIdentities = Array.from(matches).map(match => ({
         uuid: match.groups?.['uuid'],
         signing_identity: match.groups?.['signing_identity']
     })).filter(identity => identity.signing_identity.includes('Developer ID Installer'));
+
     if (signingIdentities.length === 0) {
         throw new Error(`Failed to find the signing identity!`);
     }
+
     const developerIdInstallerSigningIdentity = signingIdentities[0].signing_identity;
+
     if (!developerIdInstallerSigningIdentity) {
         throw new Error(`Failed to find the Developer ID Installer signing identity!`);
     }
+
     const signedPkgPath = pkgPath.replace('.pkg', '-signed.pkg');
+
     await exec('xcrun', [
         'productsign',
         '--sign', developerIdInstallerSigningIdentity,
@@ -954,6 +1026,7 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
         pkgPath,
         signedPkgPath
     ]);
+
     await exec('pkgutil', ['--check-signature', signedPkgPath]);
     await fs.promises.unlink(pkgPath);
     await fs.promises.rename(signedPkgPath, pkgPath);
@@ -973,67 +1046,81 @@ async function notarizeArchive(projectRef: XcodeProject, archivePath: string, st
         '--no-progress',
         '--output-format', 'json',
     ];
-    if (core.isDebug()) {
-        notarizeArgs.push('--verbose');
-    } else {
+
+    if (!core.isDebug()) {
         core.info(`[command]${xcrun} ${notarizeArgs.join(' ')} ${archivePath}`);
+    } else {
+        notarizeArgs.push('--verbose');
     }
+
     let notarizeOutput = '';
     const notarizeExitCode = await exec(xcrun, [...notarizeArgs, archivePath], {
-        silent: !core.isDebug(),
         listeners: {
             stdout: (data: Buffer) => {
                 notarizeOutput += data.toString();
             }
         },
+        silent: !core.isDebug(),
         ignoreReturnCode: true
     });
+
     if (notarizeExitCode !== 0) {
         log(notarizeOutput, 'error');
         throw new Error(`Failed to notarize the app!`);
     }
+
     log(notarizeOutput);
+
     const notaryResult = JSON.parse(notarizeOutput);
+
     if (notaryResult.status !== 'Accepted') {
         const notaryLogs = await getNotarizationLog(projectRef, notaryResult.id);
         throw new Error(`Notarization failed! Status: ${notaryResult.status}\n${notaryLogs}`);
     }
+
     const stapleArgs = [
         'stapler',
         'staple',
         staplePath,
     ];
-    if (core.isDebug()) {
-        stapleArgs.push('--verbose');
-    } else {
+
+    if (!core.isDebug()) {
         core.info(`[command]${xcrun} ${stapleArgs.join(' ')}`);
+    } else {
+        stapleArgs.push('--verbose');
     }
+
     let stapleOutput = '';
+
     const stapleExitCode = await exec(xcrun, stapleArgs, {
-        silent: !core.isDebug(),
         listeners: {
             stdout: (data: Buffer) => {
                 stapleOutput += data.toString();
             }
         },
+        silent: !core.isDebug(),
         ignoreReturnCode: true
     });
+
     if (stapleExitCode !== 0) {
         log(stapleOutput, 'error');
         throw new Error(`Failed to staple the notarization ticket!`);
     }
+
     log(stapleOutput);
+
     if (!stapleOutput.includes('The staple and validate action worked!')) {
         throw new Error(`Failed to staple the notarization ticket!\n${stapleOutput}`);
     }
+
     const notarization = await isAppBundleNotarized(staplePath);
+
     if (!notarization) {
         throw new Error(`Failed to notarize the app bundle!`);
     }
 }
 
 async function getNotarizationLog(projectRef: XcodeProject, id: string): Promise<void> {
-    let output = '';
     const notaryLogArgs = [
         'notarytool',
         'log', id,
@@ -1042,62 +1129,188 @@ async function getNotarizationLog(projectRef: XcodeProject, id: string): Promise
         '--issuer', projectRef.credential.appStoreConnectIssuerId,
         '--team-id', projectRef.credential.teamId,
     ];
+
     if (core.isDebug()) {
         notaryLogArgs.push('--verbose');
     }
+
     const logExitCode = await exec(xcrun, notaryLogArgs, {
+        ignoreReturnCode: true
+    });
+
+    if (logExitCode !== 0) {
+        throw new Error(`Failed to get notarization log!`);
+    }
+}
+
+async function parseBundleLog(errorOutput: string) {
+    const logFilePathMatch = errorOutput.match(/_createLoggingBundleAtPath:.*Created bundle at path "([^"]+)"/);
+    if (!logFilePathMatch) { return; }
+    const logFilePath = logFilePathMatch[1];
+    log(`Log file path: ${logFilePath}`, 'info');
+    try {
+        await fs.promises.access(logFilePath, fs.constants.R_OK);
+        const isDirectory = (await fs.promises.stat(logFilePath)).isDirectory();
+
+        if (isDirectory) {
+            // list all files in the directory
+            const files = await fs.promises.readdir(logFilePath);
+            log(`Log file is a directory. Files: ${files.join(', ')}`, 'info');
+            return;
+        }
+
+        await getFileContents(logFilePath);
+    } catch (error) {
+        log(`Error reading log file:\n${error}`, 'error');
+    }
+}
+
+export async function ValidateApp(projectRef: XcodeProject) {
+    const platforms = {
+        'iOS': 'ios',
+        'macOS': 'macos',
+        'tvOS': 'appletvos',
+        'visionOS': 'xros'
+    };
+
+    try {
+        await fs.promises.access(projectRef.executablePath, fs.constants.R_OK);
+    } catch (error) {
+        throw new Error(`Failed to access the executable at: ${projectRef.executablePath}`);
+    }
+
+    const validateArgs = [
+        'altool',
+        '--validate-app',
+        '--bundle-id', projectRef.bundleId,
+        '--file', projectRef.executablePath,
+        '--type', platforms[projectRef.platform],
+        '--apiKey', projectRef.credential.appStoreConnectKeyId,
+        '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
+        '--output-format', 'json'
+    ];
+
+    if (!core.isDebug()) {
+        core.info(`[command]${xcrun} ${validateArgs.join(' ')}`);
+    } else {
+        validateArgs.push('--verbose');
+    }
+
+    let output = '';
+    const exitCode = await exec(xcrun, validateArgs, {
         listeners: {
             stdout: (data: Buffer) => {
                 output += data.toString();
             }
         },
+        silent: !core.isDebug(),
         ignoreReturnCode: true
     });
-    if (logExitCode !== 0) {
-        throw new Error(`Failed to get notarization log!`);
+
+    if (exitCode > 0) {
+        throw new Error(`Failed to validate app: ${JSON.stringify(JSON.parse(output), null, 2)}`);
     }
+}
+
+export async function UploadApp(projectRef: XcodeProject) {
+    const platforms = {
+        'iOS': 'ios',
+        'macOS': 'macos',
+        'tvOS': 'appletvos',
+        'visionOS': 'xros'
+    };
+
+    const uploadArgs = [
+        'altool',
+        '--upload-package', projectRef.executablePath,
+        '--type', platforms[projectRef.platform],
+        '--apple-id', projectRef.appId,
+        '--bundle-id', projectRef.bundleId,
+        '--bundle-version', projectRef.bundleVersion,
+        '--bundle-short-version-string', projectRef.versionString,
+        '--apiKey', projectRef.credential.appStoreConnectKeyId,
+        '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
+        '--output-format', 'json'
+    ];
+
+    let output: string = '';
+    let outputJson: string = '';
+
+    try {
+        output = await execXcRun(uploadArgs);
+    } catch (error) {
+        outputJson = JSON.stringify(JSON.parse(output), null, 2);
+        log(outputJson, 'error');
+        throw new Error(`Failed to upload app: ${error}`);
+    }
+
+    outputJson = JSON.stringify(JSON.parse(output), null, 2);
+    core.debug(outputJson);
+
+    try {
+        const whatsNew = await getWhatsNew();
+        core.info(`\n--------------- what's new ---------------\n${whatsNew}\n------------------------------------------\n`);
+        await UpdateTestDetails(projectRef, whatsNew);
+    } catch (error) {
+        log(`Failed to update test details!\n${error}`, 'error');
+    }
+}
+
+async function getWhatsNew(): Promise<string> {
+    let whatsNew = core.getInput('whats-new');
+    if (!whatsNew || whatsNew.length === 0) {
+        const head = github.context.eventName === 'pull_request'
+            ? github.context.payload.pull_request?.head.sha
+            : github.context.sha || 'HEAD';
+        await execGit(['fetch', 'origin', head, '--depth=1']);
+        const commitSha = await execGit(['log', head, '-1', '--format=%h']);
+        const branchNameDetails = await execGit(['log', head, '-1', '--format=%d']);
+        const branchNameMatch = branchNameDetails.match(/\((?<branch>.+)\)/);
+        let branchName = '';
+        if (branchNameMatch && branchNameMatch.groups) {
+            branchName = branchNameMatch.groups.branch;
+            if (branchName.includes(' -> ')) {
+                branchName = branchName.split(' -> ')[1];
+            }
+            if (branchName.includes(',')) {
+                branchName = branchName.split(',')[1];
+            }
+        }
+        let pullRequestInfo = '';
+        if (github.context.eventName === 'pull_request') {
+            const prTitle = github.context.payload.pull_request?.title;
+            pullRequestInfo = `PR #${github.context.payload.pull_request?.number} ${prTitle}`;
+        }
+        const commitMessage = await execGit(['log', head, '-1', '--format=%B']);
+        whatsNew = `[${commitSha.trim()}] ${branchName.trim()}\n${pullRequestInfo}\n${commitMessage.trim()}`;
+        if (whatsNew.length > 4000) {
+            whatsNew = `${whatsNew.substring(0, 3997)}...`;
+        }
+    }
+    if (whatsNew.length === 0) {
+        throw new Error('Test details empty!');
+    }
+    return whatsNew;
 }
 
 async function execXcodeBuild(xcodeBuildArgs: string[]): Promise<string> {
     let exitCode: number = 1;
     let output: string = '';
 
-    if (!core.isDebug()) {
-        core.startGroup(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
-    }
-
-    try {
-        exitCode = await exec(xcodebuild, xcodeBuildArgs, {
-            listeners: {
-                stdline(data: string) {
-                    output += data + '\n';
-
-                    if (!core.isDebug()) {
-                        core.info(data);
-                    }
-                },
-                errline(data: string) {
-                    output += data + '\n';
-
-                    if (!core.isDebug()) {
-                        core.error(data);
-                    }
-                }
+    exitCode = await exec(xcodebuild, xcodeBuildArgs, {
+        listeners: {
+            stdout(data: Buffer) {
+                output += data.toString();
             },
-            silent: !core.isDebug(),
-            ignoreReturnCode: true
-        });
-
-        // if (!core.isDebug()) {
-        //     core.info(output);
-        // }
-
-        await parseBundleLog(output);
-    } finally {
-        core.endGroup();
-    }
+            stderr(data: Buffer) {
+                output += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
 
     if (exitCode !== 0) {
+        await parseBundleLog(output);
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
     }
 
@@ -1149,171 +1362,77 @@ async function execWithXcBeautify(xcodeBuildArgs: string[]) {
     }
 }
 
-async function parseBundleLog(errorOutput: string) {
-    const logFilePathMatch = errorOutput.match(/_createLoggingBundleAtPath:.*Created bundle at path "([^"]+)"/);
-    if (!logFilePathMatch) { return; }
-    const logFilePath = logFilePathMatch[1];
-    log(`Log file path: ${logFilePath}`, 'info');
-    try {
-        await fs.promises.access(logFilePath, fs.constants.R_OK);
-        const isDirectory = (await fs.promises.stat(logFilePath)).isDirectory();
-        if (isDirectory) {
-            // list all files in the directory
-            const files = await fs.promises.readdir(logFilePath);
-            log(`Log file is a directory. Files: ${files.join(', ')}`, 'info');
-            return;
-        }
-        const logFileContent = await fs.promises.readFile(logFilePath, 'utf8');
-        log(`----- Log content: -----\n${logFileContent}\n-----------------------------------`, 'info');
-    } catch (error) {
-        log(`Error reading log file: ${error.message}`, 'error');
-    }
-}
+async function execXcRun(args: string[]): Promise<string> {
+    let exitCode: number = 1;
+    let output: string = '';
 
-export async function ValidateApp(projectRef: XcodeProject) {
-    const platforms = {
-        'iOS': 'ios',
-        'macOS': 'macos',
-        'tvOS': 'appletvos',
-        'visionOS': 'xros'
-    };
-    try {
-        await fs.promises.access(projectRef.executablePath, fs.constants.R_OK);
-    } catch (error) {
-        throw new Error(`Failed to access the executable at: ${projectRef.executablePath}`);
-    }
-    const validateArgs = [
-        'altool',
-        '--validate-app',
-        '--bundle-id', projectRef.bundleId,
-        '--file', projectRef.executablePath,
-        '--type', platforms[projectRef.platform],
-        '--apiKey', projectRef.credential.appStoreConnectKeyId,
-        '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
-        '--output-format', 'json'
-    ];
     if (!core.isDebug()) {
-        core.info(`[command]${xcrun} ${validateArgs.join(' ')}`);
+        core.startGroup(`[command]${xcrun} ${args.join(' ')}`);
     } else {
-        validateArgs.push('--verbose');
+        args.push('--verbose');
     }
-    let output = '';
-    const exitCode = await exec(xcrun, validateArgs, {
-        listeners: {
-            stdout: (data: Buffer) => {
-                output += data.toString();
-            }
-        },
-        silent: !core.isDebug(),
-        ignoreReturnCode: true
-    });
-    if (exitCode > 0) {
-        throw new Error(`Failed to validate app: ${JSON.stringify(JSON.parse(output), null, 2)}`);
-    }
-}
 
-export async function UploadApp(projectRef: XcodeProject) {
-    const platforms = {
-        'iOS': 'ios',
-        'macOS': 'macos',
-        'tvOS': 'appletvos',
-        'visionOS': 'xros'
-    };
-    const uploadArgs = [
-        'altool',
-        '--upload-package', projectRef.executablePath,
-        '--type', platforms[projectRef.platform],
-        '--apple-id', projectRef.appId,
-        '--bundle-id', projectRef.bundleId,
-        '--bundle-version', projectRef.bundleVersion,
-        '--bundle-short-version-string', projectRef.versionString,
-        '--apiKey', projectRef.credential.appStoreConnectKeyId,
-        '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
-        '--output-format', 'json'
-    ];
-    if (!core.isDebug()) {
-        core.info(`[command]${xcrun} ${uploadArgs.join(' ')}`);
-    } else {
-        uploadArgs.push('--verbose');
-    }
-    let output = '';
-    const exitCode = await exec(xcrun, uploadArgs, {
-        listeners: {
-            stdout: (data: Buffer) => {
-                output += data.toString();
-            }
-        },
-        silent: !core.isDebug(),
-        ignoreReturnCode: true
-    });
-    const outputJson = JSON.stringify(JSON.parse(output), null, 2);
-    if (exitCode !== 0) {
-        log(outputJson, 'error');
-        throw new Error(`Failed to upload app!`);
-    }
-    core.debug(outputJson);
     try {
-        const whatsNew = await getWhatsNew();
-        core.info(`\n--------------- what's new ---------------\n${whatsNew}\n------------------------------------------\n`);
-        await UpdateTestDetails(projectRef, whatsNew);
-    } catch (error) {
-        log(`Failed to update test details!\n${error}`, 'error');
-    }
-}
+        exitCode = await exec(xcrun, args, {
+            listeners: {
+                stdline(data: string) {
+                    output += `${data}\n`;
 
-async function getWhatsNew(): Promise<string> {
-    let whatsNew = core.getInput('whats-new');
-    if (!whatsNew || whatsNew.length === 0) {
-        const head = github.context.eventName === 'pull_request'
-            ? github.context.payload.pull_request?.head.sha
-            : github.context.sha || 'HEAD';
-        await execGit(['fetch', 'origin', head, '--depth=1']);
-        const commitSha = await execGit(['log', head, '-1', '--format=%h']);
-        const branchNameDetails = await execGit(['log', head, '-1', '--format=%d']);
-        const branchNameMatch = branchNameDetails.match(/\((?<branch>.+)\)/);
-        let branchName = '';
-        if (branchNameMatch && branchNameMatch.groups) {
-            branchName = branchNameMatch.groups.branch;
-            if (branchName.includes(' -> ')) {
-                branchName = branchName.split(' -> ')[1];
-            }
-            if (branchName.includes(',')) {
-                branchName = branchName.split(',')[1];
-            }
+                    if (!core.isDebug()) {
+                        core.info(data);
+                    }
+                }
+            },
+            ignoreReturnCode: true,
+            silent: !core.isDebug()
+        });
+
+        if (exitCode !== 0) {
+            throw new Error(`xcrun exited with code: ${exitCode}`);
         }
-        let pullRequestInfo = '';
-        if (github.context.eventName === 'pull_request') {
-            const prTitle = github.context.payload.pull_request?.title;
-            pullRequestInfo = `PR #${github.context.payload.pull_request?.number} ${prTitle}`;
-        }
-        const commitMessage = await execGit(['log', head, '-1', '--format=%B']);
-        whatsNew = `[${commitSha.trim()}] ${branchName.trim()}\n${pullRequestInfo}\n${commitMessage.trim()}`;
-        if (whatsNew.length > 4000) {
-            whatsNew = `${whatsNew.substring(0, 3997)}...`;
+    } finally {
+        if (!core.isDebug()) {
+            core.endGroup();
         }
     }
-    if (whatsNew.length === 0) {
-        throw new Error('Test details empty!');
-    }
-    return whatsNew;
+
+    return output;
 }
 
 async function execGit(args: string[]): Promise<string> {
-    let output = '';
-    if (!core.isDebug()) {
-        core.info(`[command]git ${args.join(' ')}`);
+    let exitCode: number = 1;
+    let output: string = '';
+
+    try {
+
+        if (!core.isDebug()) {
+            core.startGroup(`[command]git ${args.join(' ')}`);
+        }
+
+        exitCode = await exec('git', args, {
+            listeners: {
+                stdout: (data: Buffer) => {
+                    output += data.toString();
+                },
+                stdline(data: string) {
+                    if (!core.isDebug()) {
+                        core.info(data);
+                    }
+                }
+            },
+            silent: !core.isDebug(),
+            ignoreReturnCode: true
+        });
+
+        if (exitCode > 0) {
+            log(output, 'error');
+            throw new Error(`Git failed with exit code: ${exitCode}`);
+        }
+    } finally {
+        if (!core.isDebug()) {
+            core.endGroup();
+        }
     }
-    const exitCode = await exec('git', args, {
-        listeners: {
-            stdout: (data: Buffer) => {
-                output += data.toString();
-            }
-        },
-        silent: !core.isDebug()
-    });
-    if (exitCode > 0) {
-        log(output, 'error');
-        throw new Error(`Git failed with exit code: ${exitCode}`);
-    }
+
     return output;
 }

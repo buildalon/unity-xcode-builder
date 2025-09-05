@@ -58820,7 +58820,6 @@ async function getPlatformSdkVersion(buildSettingsOutput) {
 }
 async function getSdkInfo(platform, version) {
     const output = await execXcodeBuild(['-showsdks', '-json']);
-    core.debug(`Installed SDKs:\n${output}`);
     const installedSdks = JSON.parse(output);
     const platformMap = {
         'iOS': 'iphoneos',
@@ -59319,20 +59318,20 @@ async function notarizeArchive(projectRef, archivePath, staplePath) {
         '--no-progress',
         '--output-format', 'json',
     ];
-    if (core.isDebug()) {
-        notarizeArgs.push('--verbose');
+    if (!core.isDebug()) {
+        core.info(`[command]${xcrun} ${notarizeArgs.join(' ')} ${archivePath}`);
     }
     else {
-        core.info(`[command]${xcrun} ${notarizeArgs.join(' ')} ${archivePath}`);
+        notarizeArgs.push('--verbose');
     }
     let notarizeOutput = '';
     const notarizeExitCode = await (0, exec_1.exec)(xcrun, [...notarizeArgs, archivePath], {
-        silent: !core.isDebug(),
         listeners: {
             stdout: (data) => {
                 notarizeOutput += data.toString();
             }
         },
+        silent: !core.isDebug(),
         ignoreReturnCode: true
     });
     if (notarizeExitCode !== 0) {
@@ -59350,20 +59349,20 @@ async function notarizeArchive(projectRef, archivePath, staplePath) {
         'staple',
         staplePath,
     ];
-    if (core.isDebug()) {
-        stapleArgs.push('--verbose');
+    if (!core.isDebug()) {
+        core.info(`[command]${xcrun} ${stapleArgs.join(' ')}`);
     }
     else {
-        core.info(`[command]${xcrun} ${stapleArgs.join(' ')}`);
+        stapleArgs.push('--verbose');
     }
     let stapleOutput = '';
     const stapleExitCode = await (0, exec_1.exec)(xcrun, stapleArgs, {
-        silent: !core.isDebug(),
         listeners: {
             stdout: (data) => {
                 stapleOutput += data.toString();
             }
         },
+        silent: !core.isDebug(),
         ignoreReturnCode: true
     });
     if (stapleExitCode !== 0) {
@@ -59380,7 +59379,6 @@ async function notarizeArchive(projectRef, archivePath, staplePath) {
     }
 }
 async function getNotarizationLog(projectRef, id) {
-    let output = '';
     const notaryLogArgs = [
         'notarytool',
         'log', id,
@@ -59393,96 +59391,10 @@ async function getNotarizationLog(projectRef, id) {
         notaryLogArgs.push('--verbose');
     }
     const logExitCode = await (0, exec_1.exec)(xcrun, notaryLogArgs, {
-        listeners: {
-            stdout: (data) => {
-                output += data.toString();
-            }
-        },
         ignoreReturnCode: true
     });
     if (logExitCode !== 0) {
         throw new Error(`Failed to get notarization log!`);
-    }
-}
-async function execXcodeBuild(xcodeBuildArgs) {
-    let exitCode = 1;
-    let output = '';
-    if (!core.isDebug()) {
-        core.startGroup(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
-    }
-    try {
-        exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
-            listeners: {
-                stdline(data) {
-                    output += data + '\n';
-                    if (!core.isDebug()) {
-                        core.info(data);
-                    }
-                },
-                errline(data) {
-                    output += data + '\n';
-                    if (!core.isDebug()) {
-                        core.error(data);
-                    }
-                }
-            },
-            silent: !core.isDebug(),
-            ignoreReturnCode: true
-        });
-        await parseBundleLog(output);
-    }
-    finally {
-        core.endGroup();
-    }
-    if (exitCode !== 0) {
-        throw new Error(`xcodebuild exited with code: ${exitCode}`);
-    }
-    return output;
-}
-async function execWithXcBeautify(xcodeBuildArgs) {
-    try {
-        await (0, exec_1.exec)('xcbeautify', ['--version'], { silent: true });
-    }
-    catch (error) {
-        core.debug('Installing xcbeautify...');
-        await (0, exec_1.exec)('brew', ['install', 'xcbeautify']);
-    }
-    const beautifyArgs = ['--quiet', '--is-ci', '--disable-logging'];
-    const xcBeautifyProcess = (0, child_process_1.spawn)('xcbeautify', beautifyArgs, {
-        stdio: ['pipe', process.stdout, process.stderr]
-    });
-    core.info(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
-    let errorOutput = '';
-    const exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
-        listeners: {
-            stdout: (data) => {
-                xcBeautifyProcess.stdin.write(data);
-            },
-            stderr: (data) => {
-                xcBeautifyProcess.stdin.write(data);
-                errorOutput += data.toString();
-            }
-        },
-        silent: true,
-        ignoreReturnCode: true
-    });
-    xcBeautifyProcess.stdin.end();
-    await new Promise((resolve, reject) => {
-        xcBeautifyProcess.stdin.on('finish', () => {
-            xcBeautifyProcess.on('close', (code) => {
-                if (code !== 0) {
-                    reject(new Error(`xcbeautify exited with code ${code}`));
-                }
-                else {
-                    resolve();
-                }
-            });
-        });
-    });
-    if (exitCode !== 0) {
-        (0, utilities_1.log)(`xcodebuild error: ${errorOutput}`, 'error');
-        await parseBundleLog(errorOutput);
-        throw new Error(`xcodebuild exited with code: ${exitCode}`);
     }
 }
 async function parseBundleLog(errorOutput) {
@@ -59500,11 +59412,10 @@ async function parseBundleLog(errorOutput) {
             (0, utilities_1.log)(`Log file is a directory. Files: ${files.join(', ')}`, 'info');
             return;
         }
-        const logFileContent = await fs.promises.readFile(logFilePath, 'utf8');
-        (0, utilities_1.log)(`----- Log content: -----\n${logFileContent}\n-----------------------------------`, 'info');
+        await (0, utilities_1.getFileContents)(logFilePath);
     }
     catch (error) {
-        (0, utilities_1.log)(`Error reading log file: ${error.message}`, 'error');
+        (0, utilities_1.log)(`Error reading log file:\n${error}`, 'error');
     }
 }
 async function ValidateApp(projectRef) {
@@ -59569,27 +59480,17 @@ async function UploadApp(projectRef) {
         '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
         '--output-format', 'json'
     ];
-    if (!core.isDebug()) {
-        core.info(`[command]${xcrun} ${uploadArgs.join(' ')}`);
-    }
-    else {
-        uploadArgs.push('--verbose');
-    }
     let output = '';
-    const exitCode = await (0, exec_1.exec)(xcrun, uploadArgs, {
-        listeners: {
-            stdout: (data) => {
-                output += data.toString();
-            }
-        },
-        silent: !core.isDebug(),
-        ignoreReturnCode: true
-    });
-    const outputJson = JSON.stringify(JSON.parse(output), null, 2);
-    if (exitCode !== 0) {
-        (0, utilities_1.log)(outputJson, 'error');
-        throw new Error(`Failed to upload app!`);
+    let outputJson = '';
+    try {
+        output = await execXcRun(uploadArgs);
     }
+    catch (error) {
+        outputJson = JSON.stringify(JSON.parse(output), null, 2);
+        (0, utilities_1.log)(outputJson, 'error');
+        throw new Error(`Failed to upload app: ${error}`);
+    }
+    outputJson = JSON.stringify(JSON.parse(output), null, 2);
     core.debug(outputJson);
     try {
         const whatsNew = await getWhatsNew();
@@ -59637,22 +59538,135 @@ async function getWhatsNew() {
     }
     return whatsNew;
 }
-async function execGit(args) {
+async function execXcodeBuild(xcodeBuildArgs) {
+    let exitCode = 1;
     let output = '';
-    if (!core.isDebug()) {
-        core.info(`[command]git ${args.join(' ')}`);
-    }
-    const exitCode = await (0, exec_1.exec)('git', args, {
+    exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
         listeners: {
-            stdout: (data) => {
+            stdout(data) {
+                output += data.toString();
+            },
+            stderr(data) {
                 output += data.toString();
             }
         },
-        silent: !core.isDebug()
+        ignoreReturnCode: true
     });
-    if (exitCode > 0) {
-        (0, utilities_1.log)(output, 'error');
-        throw new Error(`Git failed with exit code: ${exitCode}`);
+    if (exitCode !== 0) {
+        await parseBundleLog(output);
+        throw new Error(`xcodebuild exited with code: ${exitCode}`);
+    }
+    return output;
+}
+async function execWithXcBeautify(xcodeBuildArgs) {
+    try {
+        await (0, exec_1.exec)('xcbeautify', ['--version'], { silent: true });
+    }
+    catch (error) {
+        core.debug('Installing xcbeautify...');
+        await (0, exec_1.exec)('brew', ['install', 'xcbeautify']);
+    }
+    const beautifyArgs = ['--quiet', '--is-ci', '--disable-logging'];
+    const xcBeautifyProcess = (0, child_process_1.spawn)('xcbeautify', beautifyArgs, {
+        stdio: ['pipe', process.stdout, process.stderr]
+    });
+    core.info(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
+    let errorOutput = '';
+    const exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
+        listeners: {
+            stdout: (data) => {
+                xcBeautifyProcess.stdin.write(data);
+            },
+            stderr: (data) => {
+                xcBeautifyProcess.stdin.write(data);
+                errorOutput += data.toString();
+            }
+        },
+        silent: true,
+        ignoreReturnCode: true
+    });
+    xcBeautifyProcess.stdin.end();
+    await new Promise((resolve, reject) => {
+        xcBeautifyProcess.stdin.on('finish', () => {
+            xcBeautifyProcess.on('close', (code) => {
+                if (code !== 0) {
+                    reject(new Error(`xcbeautify exited with code ${code}`));
+                }
+                else {
+                    resolve();
+                }
+            });
+        });
+    });
+    if (exitCode !== 0) {
+        (0, utilities_1.log)(`xcodebuild error: ${errorOutput}`, 'error');
+        await parseBundleLog(errorOutput);
+        throw new Error(`xcodebuild exited with code: ${exitCode}`);
+    }
+}
+async function execXcRun(args) {
+    let exitCode = 1;
+    let output = '';
+    if (!core.isDebug()) {
+        core.startGroup(`[command]${xcrun} ${args.join(' ')}`);
+    }
+    else {
+        args.push('--verbose');
+    }
+    try {
+        exitCode = await (0, exec_1.exec)(xcrun, args, {
+            listeners: {
+                stdline(data) {
+                    output += `${data}\n`;
+                    if (!core.isDebug()) {
+                        core.info(data);
+                    }
+                }
+            },
+            ignoreReturnCode: true,
+            silent: !core.isDebug()
+        });
+        if (exitCode !== 0) {
+            throw new Error(`xcrun exited with code: ${exitCode}`);
+        }
+    }
+    finally {
+        if (!core.isDebug()) {
+            core.endGroup();
+        }
+    }
+    return output;
+}
+async function execGit(args) {
+    let exitCode = 1;
+    let output = '';
+    try {
+        if (!core.isDebug()) {
+            core.startGroup(`[command]git ${args.join(' ')}`);
+        }
+        exitCode = await (0, exec_1.exec)('git', args, {
+            listeners: {
+                stdout: (data) => {
+                    output += data.toString();
+                },
+                stdline(data) {
+                    if (!core.isDebug()) {
+                        core.info(data);
+                    }
+                }
+            },
+            silent: !core.isDebug(),
+            ignoreReturnCode: true
+        });
+        if (exitCode > 0) {
+            (0, utilities_1.log)(output, 'error');
+            throw new Error(`Git failed with exit code: ${exitCode}`);
+        }
+    }
+    finally {
+        if (!core.isDebug()) {
+            core.endGroup();
+        }
     }
     return output;
 }
