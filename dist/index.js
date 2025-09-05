@@ -58609,10 +58609,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`Platform: ${platform}`);
     if (platform !== 'macOS') {
         const platformSdkVersion = await getPlatformSdkVersion(buildSettings);
-        const sdkInfo = await getSdkInfo(platform, platformSdkVersion);
-        if (!sdkInfo) {
-            await downloadPlatformAndSdk(platform, platformSdkVersion);
-        }
+        await downloadPlatformSdk(platform, platformSdkVersion);
     }
     const configuration = core.getInput('configuration') || 'Release';
     core.info(`Configuration: ${configuration}`);
@@ -58837,15 +58834,8 @@ async function getSdkInfo(platform, version) {
     core.info(`Found SDK:\n${sdk ? JSON.stringify(sdk, null, 2) : ''}`);
     return sdk || null;
 }
-async function downloadPlatformAndSdk(platform, version) {
-    const downloadDir = `${process.env.RUNNER_TEMP}/xcodes/${platform}-${version}`;
-    await execXcodeBuild(['-downloadPlatform', platform, '-exportPath', downloadDir, '-buildVersion', version]);
-    const dmgPaths = await (0, utilities_1.getPathsWithGlob)(`${downloadDir}/**/*.dmg`);
-    core.info(`Downloaded DMG paths:\n${dmgPaths.join('\n')}`);
-    for (const dmgPath of dmgPaths) {
-        await fs.promises.access(dmgPath, fs.constants.R_OK);
-        await execXcodeBuild(['-importPlatform', dmgPath]);
-    }
+async function downloadPlatformSdk(platform, version) {
+    await execXcodeBuild(['-downloadPlatform', platform, '-buildVersion', version]);
 }
 async function getProjectScheme(projectPath) {
     let scheme = core.getInput('scheme');

@@ -161,11 +161,8 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 
     if (platform !== 'macOS') {
         const platformSdkVersion = await getPlatformSdkVersion(buildSettings);
-        const sdkInfo = await getSdkInfo(platform, platformSdkVersion);
-
-        if (!sdkInfo) {
-            await downloadPlatformAndSdk(platform, platformSdkVersion);
-        }
+        // await getSdkInfo(platform, platformSdkVersion);
+        await downloadPlatformSdk(platform, platformSdkVersion);
     }
 
     const configuration = core.getInput('configuration') || 'Release';
@@ -452,17 +449,8 @@ async function getSdkInfo(platform: string, version: string): Promise<SdkInfo | 
     return sdk || null;
 }
 
-async function downloadPlatformAndSdk(platform: string, version: string): Promise<void> {
-    const downloadDir = `${process.env.RUNNER_TEMP}/xcodes/${platform}-${version}`;
-    await execXcodeBuild(['-downloadPlatform', platform, '-exportPath', downloadDir, '-buildVersion', version]);
-    const dmgPaths = await getPathsWithGlob(`${downloadDir}/**/*.dmg`);
-
-    core.info(`Downloaded DMG paths:\n${dmgPaths.join('\n')}`);
-
-    for (const dmgPath of dmgPaths) {
-        await fs.promises.access(dmgPath, fs.constants.R_OK);
-        await execXcodeBuild(['-importPlatform', dmgPath]);
-    }
+async function downloadPlatformSdk(platform: string, version: string): Promise<void> {
+    await execXcodeBuild(['-downloadPlatform', platform, '-buildVersion', version]);
 }
 
 async function getProjectScheme(projectPath: string): Promise<string> {
