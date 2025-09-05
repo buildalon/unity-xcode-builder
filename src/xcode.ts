@@ -156,11 +156,8 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 
     if (platform !== 'macOS') {
         const platformSdkVersion = await getPlatformSdkVersion(buildSettings);
-        const platformSdk = await getSdkInfo(platform, platformSdkVersion);
-
-        if (!platformSdk) {
-            await downloadPlatformAndSdk(platform, platformSdkVersion);
-        }
+        await downloadPlatformAndSdk(platform, platformSdkVersion);
+        await getSdkInfo(platform, platformSdkVersion);
     }
 
     const configuration = core.getInput('configuration') || 'Release';
@@ -433,7 +430,6 @@ type SdkInfo = {
 }
 
 async function getSdkInfo(platform: string, version: string): Promise<SdkInfo | null> {
-    // Check if the platform SDK is available using xcodebuild -showsdks
     const output = await execXcodeBuild(['-showsdks', '-json']);
     core.debug(`Installed SDKs:\n${output}`);
     const installedSdks = JSON.parse(output) as Array<SdkInfo>;
@@ -445,7 +441,7 @@ async function getSdkInfo(platform: string, version: string): Promise<SdkInfo | 
         'visionOS': 'xros'
     };
     const sdk = installedSdks.find(sdk => sdk.platform.toLowerCase() === platformMap[platform] && sdk.sdkVersion.toString() === version);
-    core.info(`Found SDK:\n${sdk ? JSON.stringify(sdk) : ''}`);
+    core.info(`Found SDK:\n${sdk ? JSON.stringify(sdk, null, 2) : ''}`);
     return sdk || null;
 }
 
@@ -1073,20 +1069,18 @@ async function execXcodeBuild(xcodeBuildArgs: string[]): Promise<string> {
     try {
         exitCode = await exec(xcodebuild, xcodeBuildArgs, {
             listeners: {
-                stdout: (data: Buffer) => {
-                    const chunk = data.toString();
-                    output += chunk;
+                stdline(data: string) {
+                    output += data + '\n';
 
                     if (!core.isDebug()) {
-                        core.info(chunk);
+                        core.info(data);
                     }
                 },
-                stderr: (data: Buffer) => {
-                    const chunk = data.toString();
-                    output += chunk;
+                errline(data: string) {
+                    output += data + '\n';
 
                     if (!core.isDebug()) {
-                        core.info(chunk);
+                        core.error(data);
                     }
                 }
             },
@@ -1094,8 +1088,11 @@ async function execXcodeBuild(xcodeBuildArgs: string[]): Promise<string> {
             ignoreReturnCode: true
         });
 
-        await parseBundleLog(output);
+        // if (!core.isDebug()) {
+        //     core.info(output);
+        // }
 
+        await parseBundleLog(output);
     } finally {
         core.endGroup();
     }

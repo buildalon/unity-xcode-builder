@@ -58606,10 +58606,8 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`Platform: ${platform}`);
     if (platform !== 'macOS') {
         const platformSdkVersion = await getPlatformSdkVersion(buildSettings);
-        const platformSdk = await getSdkInfo(platform, platformSdkVersion);
-        if (!platformSdk) {
-            await downloadPlatformAndSdk(platform, platformSdkVersion);
-        }
+        await downloadPlatformAndSdk(platform, platformSdkVersion);
+        await getSdkInfo(platform, platformSdkVersion);
     }
     const configuration = core.getInput('configuration') || 'Release';
     core.info(`Configuration: ${configuration}`);
@@ -58832,7 +58830,7 @@ async function getSdkInfo(platform, version) {
         'visionOS': 'xros'
     };
     const sdk = installedSdks.find(sdk => sdk.platform.toLowerCase() === platformMap[platform] && sdk.sdkVersion.toString() === version);
-    core.info(`Found SDK:\n${sdk ? JSON.stringify(sdk) : ''}`);
+    core.info(`Found SDK:\n${sdk ? JSON.stringify(sdk, null, 2) : ''}`);
     return sdk || null;
 }
 async function downloadPlatformAndSdk(platform, version) {
@@ -59415,18 +59413,16 @@ async function execXcodeBuild(xcodeBuildArgs) {
     try {
         exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
             listeners: {
-                stdout: (data) => {
-                    const chunk = data.toString();
-                    output += chunk;
+                stdline(data) {
+                    output += data + '\n';
                     if (!core.isDebug()) {
-                        core.info(chunk);
+                        core.info(data);
                     }
                 },
-                stderr: (data) => {
-                    const chunk = data.toString();
-                    output += chunk;
+                errline(data) {
+                    output += data + '\n';
                     if (!core.isDebug()) {
-                        core.info(chunk);
+                        core.error(data);
                     }
                 }
             },
