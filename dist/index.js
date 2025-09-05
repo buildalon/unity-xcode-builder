@@ -58609,7 +58609,11 @@ async function GetProjectDetails(credential, xcodeVersion) {
     core.info(`Platform: ${platform}`);
     if (platform !== 'macOS') {
         const platformSdkVersion = await getPlatformSdkVersion(buildSettings);
-        await downloadPlatformSdk(platform, platformSdkVersion);
+        await execXcRun(['simctl', 'list']);
+        const sdkInfo = await getSdkInfo(platform, platformSdkVersion);
+        if (!sdkInfo) {
+            await downloadPlatformSdk(platform, platformSdkVersion);
+        }
     }
     const configuration = core.getInput('configuration') || 'Release';
     core.info(`Configuration: ${configuration}`);

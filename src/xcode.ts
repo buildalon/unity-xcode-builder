@@ -12,8 +12,7 @@ import {
     log,
     matchRegexPattern,
     getFirstPathWithGlob,
-    getFileContents,
-    getPathsWithGlob
+    getFileContents
 } from './utilities';
 import { SemVer } from 'semver';
 import core = require('@actions/core');
@@ -161,8 +160,12 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 
     if (platform !== 'macOS') {
         const platformSdkVersion = await getPlatformSdkVersion(buildSettings);
-        // await getSdkInfo(platform, platformSdkVersion);
-        await downloadPlatformSdk(platform, platformSdkVersion);
+        await execXcRun(['simctl', 'list']);
+        const sdkInfo = await getSdkInfo(platform, platformSdkVersion);
+
+        if (!sdkInfo) {
+            await downloadPlatformSdk(platform, platformSdkVersion);
+        }
     }
 
     const configuration = core.getInput('configuration') || 'Release';
