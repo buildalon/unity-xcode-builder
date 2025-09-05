@@ -1242,30 +1242,17 @@ async function execXcodeBuild(xcodeBuildArgs: string[]): Promise<string> {
     let exitCode: number = 1;
     let output: string = '';
 
-    core.startGroup(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
-    try {
-
-        exitCode = await exec(xcodebuild, xcodeBuildArgs, {
-            listeners: {
-                stdout(data: Buffer) {
-                    output += data.toString();
-                },
-                stdline(data: string) {
-                    core.info(data);
-                },
-                stderr(data: Buffer) {
-                    output += data.toString();
-                },
-                errline(data: string) {
-                    core.error(data);
-                }
+    exitCode = await exec(xcodebuild, xcodeBuildArgs, {
+        listeners: {
+            stdout: (data: Buffer) => {
+                output += data.toString();
             },
-            silent: true,
-            ignoreReturnCode: true
-        });
-    } finally {
-        core.endGroup();
-    }
+            stderr: (data: Buffer) => {
+                output += data.toString();
+            },
+        },
+        ignoreReturnCode: true
+    });
 
     if (exitCode !== 0) {
         await parseBundleLog(output);

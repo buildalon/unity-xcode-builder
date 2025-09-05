@@ -59485,30 +59485,17 @@ async function getWhatsNew() {
 async function execXcodeBuild(xcodeBuildArgs) {
     let exitCode = 1;
     let output = '';
-    core.startGroup(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
-    try {
-        exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
-            listeners: {
-                stdout(data) {
-                    output += data.toString();
-                },
-                stdline(data) {
-                    core.info(data);
-                },
-                stderr(data) {
-                    output += data.toString();
-                },
-                errline(data) {
-                    core.error(data);
-                }
+    exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
             },
-            silent: true,
-            ignoreReturnCode: true
-        });
-    }
-    finally {
-        core.endGroup();
-    }
+            stderr: (data) => {
+                output += data.toString();
+            },
+        },
+        ignoreReturnCode: true
+    });
     if (exitCode !== 0) {
         await parseBundleLog(output);
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
