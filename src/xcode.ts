@@ -200,7 +200,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             infoPlist['CFBundleShortVersionString'] = cFBundleShortVersionString.toString();
 
             try {
-                core.info(`Updating Info.plist with CFBundleShortVersionString: ${cFBundleShortVersionString}`);
+                core.debug(`Updating Info.plist`);
                 await fs.promises.writeFile(infoPlistPath, plist.build(infoPlist));
             } catch (error) {
                 throw new Error(`Failed to update Info.plist!\n${error}`);
@@ -435,11 +435,16 @@ type SdkInfo = {
 async function getSdkInfo(platform: string, version: string): Promise<SdkInfo | null> {
     // Check if the platform SDK is available using xcodebuild -showsdks
     const output = await execXcodeBuild(['-showsdks', '-json']);
-
-    core.info(`Installed SDKs:\n${output}`);
-
+    core.debug(`Installed SDKs:\n${output}`);
     const installedSdks = JSON.parse(output) as Array<SdkInfo>;
-    const sdk = installedSdks.find(sdk => sdk.platform.toLowerCase() === platform.toLowerCase() && sdk.sdkVersion.toString() === version);
+    const platformMap = {
+        'iOS': 'iphoneos',
+        'macOS': 'macosx',
+        'tvOS': 'appletvos',
+        'watchOS': 'watchos',
+        'visionOS': 'xros'
+    };
+    const sdk = installedSdks.find(sdk => sdk.platform.toLowerCase() === platformMap[platform] && sdk.sdkVersion.toString() === version);
     core.info(`Found SDK:\n${sdk ? JSON.stringify(sdk) : ''}`);
     return sdk || null;
 }
