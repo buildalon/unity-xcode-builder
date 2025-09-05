@@ -50,8 +50,8 @@ jobs:
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
-          # if the unity-version is 6000.1.x then set export option to app-store-connect otherwise set it to development
-          if [[ "${{ matrix.unity-version }}" == "6000.1.x" ]]; then
+          # Only set export option to app-store-connect if unity-version is 6000.2.x AND xcode-version is 16.4
+          if [[ "${{ matrix.unity-version }}" == "6000.2.x" && "${{ matrix.xcode-version }}" == "16.4" ]]; then
             echo "EXPORT_OPTION=app-store-connect" >> "$GITHUB_ENV"
           else
             if [[ "${{ matrix.build-target }}" == "StandaloneOSX" ]]; then
@@ -155,7 +155,7 @@ jobs:
           app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           team-id: ${{ secrets.APPLE_TEAM_ID }}
           export-option: ${{ env.EXPORT_OPTION }}
-          notarize: ${{ matrix.unity-version != '6000.1.x' }}
+          notarize: ${{ env.EXPORT_OPTION != 'app-store-connect' }}
           archive-type: pkg
           test-groups: Beta
           developer-id-application-certificate: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT }}
