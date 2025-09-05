@@ -26,7 +26,6 @@ import {
     UnauthorizedError,
     GetAppId,
 } from './AppStoreConnectClient';
-import { get } from 'http';
 
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
@@ -81,6 +80,8 @@ export async function GetOrSetXcodeVersion(): Promise<SemVer> {
             throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
         }
     }
+
+    await exec('xcodes', ['installed']);
 
     let xcodeVersionOutput = '';
     await exec('xcodebuild', ['-version'], {
@@ -157,8 +158,11 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 
     if (platform !== 'macOS') {
         const platformSdkVersion = await getPlatformSdkVersion(buildSettings);
-        await downloadPlatformAndSdk(platform, platformSdkVersion);
-        await getSdkInfo(platform, platformSdkVersion);
+        const sdkInfo = await getSdkInfo(platform, platformSdkVersion);
+
+        if (!sdkInfo) {
+            await downloadPlatformAndSdk(platform, platformSdkVersion);
+        }
     }
 
     const configuration = core.getInput('configuration') || 'Release';
@@ -957,7 +961,7 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
     const pkgPath = `${projectRef.exportPath}/${projectRef.projectName}.pkg`;
     const appPath = await getFirstPathWithGlob(`${projectRef.exportPath}/**/*.app`);
 
-    const productBuildExitCode = await exec('xcrun', [
+    const productBuildExitCode = await exec(xcrun, [
         'productbuild',
         '--component',
         appPath, '/Applications',
@@ -1019,7 +1023,7 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
 
     const signedPkgPath = pkgPath.replace('.pkg', '-signed.pkg');
 
-    await exec('xcrun', [
+    await exec(xcrun, [
         'productsign',
         '--sign', developerIdInstallerSigningIdentity,
         '--keychain', projectRef.credential.keychainPath,
@@ -1047,29 +1051,12 @@ async function notarizeArchive(projectRef: XcodeProject, archivePath: string, st
         '--output-format', 'json',
     ];
 
-    if (!core.isDebug()) {
-        core.info(`[command]${xcrun} ${notarizeArgs.join(' ')} ${archivePath}`);
-    } else {
-        notarizeArgs.push('--verbose');
-    }
-
     let notarizeOutput = '';
-    const notarizeExitCode = await exec(xcrun, [...notarizeArgs, archivePath], {
-        listeners: {
-            stdout: (data: Buffer) => {
-                notarizeOutput += data.toString();
-            }
-        },
-        silent: !core.isDebug(),
-        ignoreReturnCode: true
-    });
-
-    if (notarizeExitCode !== 0) {
-        log(notarizeOutput, 'error');
-        throw new Error(`Failed to notarize the app!`);
+    try {
+        notarizeOutput = await execXcRun([...notarizeArgs, archivePath]);
+    } catch (error) {
+        throw new Error(`Failed to notarize the app:\n${error}`);
     }
-
-    log(notarizeOutput);
 
     const notaryResult = JSON.parse(notarizeOutput);
 
@@ -1084,30 +1071,12 @@ async function notarizeArchive(projectRef: XcodeProject, archivePath: string, st
         staplePath,
     ];
 
-    if (!core.isDebug()) {
-        core.info(`[command]${xcrun} ${stapleArgs.join(' ')}`);
-    } else {
-        stapleArgs.push('--verbose');
-    }
-
     let stapleOutput = '';
-
-    const stapleExitCode = await exec(xcrun, stapleArgs, {
-        listeners: {
-            stdout: (data: Buffer) => {
-                stapleOutput += data.toString();
-            }
-        },
-        silent: !core.isDebug(),
-        ignoreReturnCode: true
-    });
-
-    if (stapleExitCode !== 0) {
-        log(stapleOutput, 'error');
-        throw new Error(`Failed to staple the notarization ticket!`);
+    try {
+        stapleOutput = await execXcRun(stapleArgs);
+    } catch (error) {
+        throw new Error(`Failed to staple the notarization ticket:\n${error}`);
     }
-
-    log(stapleOutput);
 
     if (!stapleOutput.includes('The staple and validate action worked!')) {
         throw new Error(`Failed to staple the notarization ticket!\n${stapleOutput}`);
@@ -1130,24 +1099,21 @@ async function getNotarizationLog(projectRef: XcodeProject, id: string): Promise
         '--team-id', projectRef.credential.teamId,
     ];
 
-    if (core.isDebug()) {
-        notaryLogArgs.push('--verbose');
-    }
-
-    const logExitCode = await exec(xcrun, notaryLogArgs, {
-        ignoreReturnCode: true
-    });
-
-    if (logExitCode !== 0) {
-        throw new Error(`Failed to get notarization log!`);
+    try {
+        await execXcRun(notaryLogArgs);
+    } catch (error) {
+        throw new Error(`Failed to get notarization log:\n${error}`);
     }
 }
 
 async function parseBundleLog(errorOutput: string) {
     const logFilePathMatch = errorOutput.match(/_createLoggingBundleAtPath:.*Created bundle at path "([^"]+)"/);
+
     if (!logFilePathMatch) { return; }
+
     const logFilePath = logFilePathMatch[1];
     log(`Log file path: ${logFilePath}`, 'info');
+
     try {
         await fs.promises.access(logFilePath, fs.constants.R_OK);
         const isDirectory = (await fs.promises.stat(logFilePath)).isDirectory();
@@ -1190,25 +1156,10 @@ export async function ValidateApp(projectRef: XcodeProject) {
         '--output-format', 'json'
     ];
 
-    if (!core.isDebug()) {
-        core.info(`[command]${xcrun} ${validateArgs.join(' ')}`);
-    } else {
-        validateArgs.push('--verbose');
-    }
-
-    let output = '';
-    const exitCode = await exec(xcrun, validateArgs, {
-        listeners: {
-            stdout: (data: Buffer) => {
-                output += data.toString();
-            }
-        },
-        silent: !core.isDebug(),
-        ignoreReturnCode: true
-    });
-
-    if (exitCode > 0) {
-        throw new Error(`Failed to validate app: ${JSON.stringify(JSON.parse(output), null, 2)}`);
+    try {
+        await execXcRun(validateArgs);
+    } catch (error) {
+        throw new Error(`Failed to validate app:\n${error}`);
     }
 }
 
@@ -1234,18 +1185,12 @@ export async function UploadApp(projectRef: XcodeProject) {
     ];
 
     let output: string = '';
-    let outputJson: string = '';
 
     try {
         output = await execXcRun(uploadArgs);
     } catch (error) {
-        outputJson = JSON.stringify(JSON.parse(output), null, 2);
-        log(outputJson, 'error');
-        throw new Error(`Failed to upload app: ${error}`);
+        throw new Error(`Failed to upload app:\n${error}`);
     }
-
-    outputJson = JSON.stringify(JSON.parse(output), null, 2);
-    core.debug(outputJson);
 
     try {
         const whatsNew = await getWhatsNew();
@@ -1321,14 +1266,16 @@ async function execWithXcBeautify(xcodeBuildArgs: string[]) {
     try {
         await exec('xcbeautify', ['--version'], { silent: true });
     } catch (error) {
-        core.debug('Installing xcbeautify...');
+        core.info('Installing xcbeautify...');
         await exec('brew', ['install', 'xcbeautify']);
     }
-    const beautifyArgs = ['--quiet', '--is-ci', '--disable-logging'];
-    const xcBeautifyProcess = spawn('xcbeautify', beautifyArgs, {
+
+    const xcBeautifyProcess = spawn('xcbeautify', ['--quiet', '--is-ci', '--disable-logging'], {
         stdio: ['pipe', process.stdout, process.stderr]
     });
+
     core.info(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
+
     let errorOutput = '';
     const exitCode = await exec(xcodebuild, xcodeBuildArgs, {
         listeners: {
@@ -1343,7 +1290,9 @@ async function execWithXcBeautify(xcodeBuildArgs: string[]) {
         silent: true,
         ignoreReturnCode: true
     });
+
     xcBeautifyProcess.stdin.end();
+
     await new Promise<void>((resolve, reject) => {
         xcBeautifyProcess.stdin.on('finish', () => {
             xcBeautifyProcess.on('close', (code) => {
@@ -1355,8 +1304,8 @@ async function execWithXcBeautify(xcodeBuildArgs: string[]) {
             });
         });
     });
+
     if (exitCode !== 0) {
-        log(`xcodebuild error: ${errorOutput}`, 'error');
         await parseBundleLog(errorOutput);
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
     }
@@ -1365,6 +1314,7 @@ async function execWithXcBeautify(xcodeBuildArgs: string[]) {
 async function execXcRun(args: string[]): Promise<string> {
     let exitCode: number = 1;
     let output: string = '';
+    let isJsonOutput = args.includes('--output-format') && args.includes('json');
 
     if (!core.isDebug()) {
         core.startGroup(`[command]${xcrun} ${args.join(' ')}`);
@@ -1387,8 +1337,13 @@ async function execXcRun(args: string[]): Promise<string> {
             silent: !core.isDebug()
         });
 
-        if (exitCode !== 0) {
-            throw new Error(`xcrun exited with code: ${exitCode}`);
+
+        if (isJsonOutput) { // pretty print json output
+            output = JSON.stringify(JSON.parse(output), null, 2);
+        }
+
+        if (exitCode > 0) {
+            throw new Error(output);
         }
     } finally {
         if (!core.isDebug()) {
