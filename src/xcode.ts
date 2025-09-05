@@ -108,6 +108,9 @@ export async function GetOrSetXcodeVersion(): Promise<SemVer> {
         throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
     }
 
+    await exec('sudo', ['xcodebuild', '-license', 'accept']);
+    await exec('sudo', ['xcodebuild', '-runFirstLaunch']);
+
     return semver.coerce(xcodeVersionString);
 }
 

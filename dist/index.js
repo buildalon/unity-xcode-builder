@@ -58564,6 +58564,8 @@ async function GetOrSetXcodeVersion() {
     if (xcodeVersionString !== selectedXcodeVersionString) {
         throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
     }
+    await (0, exec_1.exec)('sudo', ['xcodebuild', '-license', 'accept']);
+    await (0, exec_1.exec)('sudo', ['xcodebuild', '-runFirstLaunch']);
     return semver.coerce(xcodeVersionString);
 }
 async function GetProjectDetails(credential, xcodeVersion) {
