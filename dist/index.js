@@ -59559,7 +59559,7 @@ async function execXcRun(args) {
     try {
         exitCode = await (0, exec_1.exec)(xcrun, args, {
             listeners: {
-                stdline(data) {
+                stdline: (data) => {
                     output += `${data}\n`;
                     if (!core.isDebug()) {
                         core.info(data);
@@ -59595,7 +59595,7 @@ async function execGit(args) {
                 stdout: (data) => {
                     output += data.toString();
                 },
-                stdline(data) {
+                stdline: (data) => {
                     if (!core.isDebug()) {
                         core.info(data);
                     }

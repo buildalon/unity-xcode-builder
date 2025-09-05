@@ -1325,7 +1325,7 @@ async function execXcRun(args: string[]): Promise<string> {
     try {
         exitCode = await exec(xcrun, args, {
             listeners: {
-                stdline(data: string) {
+                stdline: (data: string) => {
                     output += `${data}\n`;
 
                     if (!core.isDebug()) {
@@ -1369,7 +1369,7 @@ async function execGit(args: string[]): Promise<string> {
                 stdout: (data: Buffer) => {
                     output += data.toString();
                 },
-                stdline(data: string) {
+                stdline: (data: string) => {
                     if (!core.isDebug()) {
                         core.info(data);
                     }
