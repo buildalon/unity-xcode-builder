@@ -15,7 +15,7 @@
     "VisionOS"
   ],
   "xcode-version": [
-    "16.0",
+    "15.1",
     "16.2"
   ],
   "exclude": [
