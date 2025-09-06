@@ -107,7 +107,7 @@ export async function GetOrSetXcodeVersion(): Promise<SemVer> {
         throw new Error(`Selected Xcode version ${selectedXcodeVersionString} does not match requested version ${xcodeVersionString}!`);
     }
 
-    await exec('sudo', ['xcodebuild', '-license', 'accept']);
+    await exec('sudo', ['xcodebuild', '-license', 'accept'], { ignoreReturnCode: true });
     await exec('sudo', ['xcodebuild', '-runFirstLaunch']);
 
     return semver.coerce(xcodeVersionString);
@@ -160,12 +160,13 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 
     if (platform !== 'macOS') {
         const platformSdkVersion = await getPlatformSdkVersion(buildSettings);
-        await execXcRun(['simctl', 'list']);
-        const sdkInfo = await getSdkInfo(platform, platformSdkVersion);
+        /* const sdkInfo = */ await getSdkInfo(platform, platformSdkVersion);
 
-        if (!sdkInfo) {
-            await downloadPlatformSdk(platform, platformSdkVersion);
-        }
+        // if (!sdkInfo) {
+        await downloadPlatformSdk(platform, platformSdkVersion);
+        // }
+
+        await execXcRun(['simctl', 'list', 'runtimes']);
     }
 
     const configuration = core.getInput('configuration') || 'Release';
