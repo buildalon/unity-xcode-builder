@@ -51,7 +51,7 @@ jobs:
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
           # Only set export option to app-store-connect if unity-version is 6000.2.x AND xcode-version is 16.4
-          if [[ "${{ matrix.unity-version }}" == "6000.2.x" && "${{ matrix.xcode-version }}" == "16.4" ]]; then
+          if [[ "${{ matrix.unity-version }}" == "6000.2.x" && "${{ matrix.xcode-version }}" == "16.2" ]]; then
             echo "EXPORT_OPTION=app-store-connect" >> "$GITHUB_ENV"
           else
             if [[ "${{ matrix.build-target }}" == "StandaloneOSX" ]]; then
