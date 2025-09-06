@@ -1311,25 +1311,21 @@ async function execXcRun(args: string[]): Promise<string> {
     let output: string = '';
     let isJsonOutput = args.includes('--output-format') && args.includes('json');
 
-    if (!core.isDebug()) {
-        core.startGroup(`[command]${xcrun} ${args.join(' ')}`);
-    } else {
+    if (core.isDebug()) {
         args.push('--verbose');
     }
 
     try {
         exitCode = await exec(xcrun, args, {
             listeners: {
-                stdline: (data: string) => {
-                    output += `${data}\n`;
-
-                    if (!core.isDebug()) {
-                        core.info(data);
-                    }
+                stdout: (data: Buffer) => {
+                    output += data.toString();
+                },
+                stderr: (data: Buffer) => {
+                    output += data.toString();
                 }
             },
-            ignoreReturnCode: true,
-            silent: !core.isDebug()
+            ignoreReturnCode: true
         });
 
 

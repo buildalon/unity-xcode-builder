@@ -59546,24 +59546,20 @@ async function execXcRun(args) {
     let exitCode = 1;
     let output = '';
     let isJsonOutput = args.includes('--output-format') && args.includes('json');
-    if (!core.isDebug()) {
-        core.startGroup(`[command]${xcrun} ${args.join(' ')}`);
-    }
-    else {
+    if (core.isDebug()) {
         args.push('--verbose');
     }
     try {
         exitCode = await (0, exec_1.exec)(xcrun, args, {
             listeners: {
-                stdline: (data) => {
-                    output += `${data}\n`;
-                    if (!core.isDebug()) {
-                        core.info(data);
-                    }
+                stdout: (data) => {
+                    output += data.toString();
+                },
+                stderr: (data) => {
+                    output += data.toString();
                 }
             },
-            ignoreReturnCode: true,
-            silent: !core.isDebug()
+            ignoreReturnCode: true
         });
         if (isJsonOutput) {
             output = JSON.stringify(JSON.parse(output), null, 2);
