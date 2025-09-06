@@ -59562,7 +59562,14 @@ async function execXcRun(args) {
             ignoreReturnCode: true
         });
         if (isJsonOutput) {
-            output = JSON.stringify(JSON.parse(output), null, 2);
+            const jsonMatch = output.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    output = JSON.stringify(JSON.parse(jsonMatch[0]), null, 2);
+                }
+                catch (error) {
+                }
+            }
         }
         if (exitCode > 0) {
             throw new Error(output);

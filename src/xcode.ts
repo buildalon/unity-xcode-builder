@@ -1328,9 +1328,17 @@ async function execXcRun(args: string[]): Promise<string> {
             ignoreReturnCode: true
         });
 
-
         if (isJsonOutput) { // pretty print json output
-            output = JSON.stringify(JSON.parse(output), null, 2);
+            // Use regex to extract the first JSON object from the output
+            const jsonMatch = output.match(/\{[\s\S]*\}/);
+
+            if (jsonMatch) {
+                try {
+                    output = JSON.stringify(JSON.parse(jsonMatch[0]), null, 2);
+                } catch (error) {
+                    // If JSON parsing fails, keep the original output
+                }
+            }
         }
 
         if (exitCode > 0) {
