@@ -160,11 +160,11 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 
     if (platform !== 'macOS') {
         const platformSdkVersion = await getPlatformSdkVersion(buildSettings);
-        /* const sdkInfo = */ await getSdkInfo(platform, platformSdkVersion);
+        const sdkInfo = await getSdkInfo(platform, platformSdkVersion);
 
-        // if (!sdkInfo) {
-        await downloadPlatformSdk(platform, platformSdkVersion);
-        // }
+        if (!sdkInfo) {
+            await downloadPlatformSdk(platform, platformSdkVersion);
+        }
 
         await execXcRun(['simctl', 'list', 'runtimes']);
     }
