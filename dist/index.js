@@ -58616,7 +58616,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
         if (!sdkInfo) {
             await downloadPlatformSdk(platform, platformSdkVersion);
         }
-        await execXcRun(['simctl', 'list', 'runtimes', '--json']);
+        await execXcRun(['simctl', 'list', 'runtimes', '--json'], true);
     }
     const configuration = core.getInput('configuration') || 'Release';
     core.info(`Configuration: ${configuration}`);
@@ -59552,13 +59552,16 @@ async function execWithXcBeautify(xcodeBuildArgs) {
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
     }
 }
-async function execXcRun(args) {
+async function execXcRun(args, silence = false) {
     let exitCode = 1;
     let output = '';
     let errorOutput = '';
     let isJsonOutput = args.includes('--output-format') && args.includes('json') || args.includes('-j') || args.includes('--json');
     if (core.isDebug()) {
-        args.push('-verbose');
+        silence = false;
+    }
+    if (silence) {
+        core.info(`[command]${xcrun} ${args.join(' ')}`);
     }
     try {
         exitCode = await (0, exec_1.exec)(xcrun, args, {
@@ -59570,6 +59573,7 @@ async function execXcRun(args) {
                     errorOutput += data.toString();
                 }
             },
+            silent: silence,
             ignoreReturnCode: true
         });
     }

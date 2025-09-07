@@ -173,7 +173,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             await downloadPlatformSdk(platform, platformSdkVersion);
         }
 
-        await execXcRun(['simctl', 'list', 'runtimes', '--json']);
+        await execXcRun(['simctl', 'list', 'runtimes', '--json'], true);
     }
 
     const configuration = core.getInput('configuration') || 'Release';
@@ -1307,14 +1307,18 @@ async function execWithXcBeautify(xcodeBuildArgs: string[]) {
     }
 }
 
-async function execXcRun(args: string[]): Promise<string> {
+async function execXcRun(args: string[], silence: boolean = false): Promise<string> {
     let exitCode: number = 1;
     let output: string = '';
     let errorOutput: string = '';
     let isJsonOutput = args.includes('--output-format') && args.includes('json') || args.includes('-j') || args.includes('--json');
 
     if (core.isDebug()) {
-        args.push('-verbose');
+        silence = false;
+    }
+
+    if (silence) {
+        core.info(`[command]${xcrun} ${args.join(' ')}`);
     }
 
     try {
@@ -1327,6 +1331,7 @@ async function execXcRun(args: string[]): Promise<string> {
                     errorOutput += data.toString();
                 }
             },
+            silent: silence,
             ignoreReturnCode: true
         });
     } finally {
