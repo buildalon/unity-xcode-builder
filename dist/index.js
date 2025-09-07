@@ -59482,23 +59482,17 @@ async function getWhatsNew() {
 async function execXcodeBuild(xcodeBuildArgs) {
     let exitCode = 1;
     let output = '';
-    core.startGroup(`${blue}xcodebuild ${xcodeBuildArgs.join(' ')}${reset}`);
-    try {
-        exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
-            listeners: {
-                stdout: (data) => {
-                    output += data.toString();
-                },
-                stderr: (data) => {
-                    output += data.toString();
-                },
+    exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
             },
-            ignoreReturnCode: true
-        });
-    }
-    finally {
-        core.endGroup();
-    }
+            stderr: (data) => {
+                output += data.toString();
+            },
+        },
+        ignoreReturnCode: true
+    });
     if (exitCode !== 0) {
         await parseBundleLog(output);
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
@@ -59516,28 +59510,22 @@ async function execWithXcBeautify(xcodeBuildArgs) {
     const xcBeautifyProcess = (0, child_process_1.spawn)('xcbeautify', ['--quiet', '--is-ci', '--disable-logging'], {
         stdio: ['pipe', process.stdout, process.stderr]
     });
-    core.startGroup(`${blue}${xcodebuild} ${xcodeBuildArgs.join(' ')}${reset}`);
+    core.info(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
     let errorOutput = '';
-    let exitCode = 1;
-    try {
-        exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
-            listeners: {
-                stdout: (data) => {
-                    xcBeautifyProcess.stdin.write(data);
-                },
-                stderr: (data) => {
-                    xcBeautifyProcess.stdin.write(data);
-                    errorOutput += data.toString();
-                }
+    const exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
+        listeners: {
+            stdout: (data) => {
+                xcBeautifyProcess.stdin.write(data);
             },
-            silent: true,
-            ignoreReturnCode: true
-        });
-    }
-    finally {
-        xcBeautifyProcess.stdin.end();
-        core.endGroup();
-    }
+            stderr: (data) => {
+                xcBeautifyProcess.stdin.write(data);
+                errorOutput += data.toString();
+            }
+        },
+        silent: true,
+        ignoreReturnCode: true
+    });
+    xcBeautifyProcess.stdin.end();
     await new Promise((resolve, reject) => {
         xcBeautifyProcess.stdin.on('finish', () => {
             xcBeautifyProcess.on('close', (code) => {
@@ -59563,7 +59551,6 @@ async function execXcRun(args) {
     if (core.isDebug()) {
         args.push('-verbose');
     }
-    core.startGroup(`${blue}xcrun ${args.join(' ')}${reset}`);
     try {
         exitCode = await (0, exec_1.exec)(xcrun, args, {
             listeners: {
@@ -59578,7 +59565,6 @@ async function execXcRun(args) {
         });
     }
     finally {
-        core.endGroup();
         if (isJsonOutput) {
             const jsonMatch = output.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
@@ -59599,20 +59585,14 @@ async function execXcRun(args) {
 async function execGit(args) {
     let exitCode = 1;
     let output = '';
-    core.startGroup(`${blue}git ${args.join(' ')}${reset}`);
-    try {
-        exitCode = await (0, exec_1.exec)('git', args, {
-            listeners: {
-                stdout: (data) => {
-                    output += data.toString();
-                }
-            },
-            ignoreReturnCode: true
-        });
-    }
-    finally {
-        core.endGroup();
-    }
+    exitCode = await (0, exec_1.exec)('git', args, {
+        listeners: {
+            stdout: (data) => {
+                output += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
     if (exitCode > 0) {
         (0, utilities_1.log)(output, 'error');
         throw new Error(`Git failed with exit code: ${exitCode}`);

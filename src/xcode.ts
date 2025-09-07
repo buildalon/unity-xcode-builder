@@ -1227,23 +1227,17 @@ async function execXcodeBuild(xcodeBuildArgs: string[]): Promise<string> {
     let exitCode: number = 1;
     let output: string = '';
 
-    core.startGroup(`${blue}xcodebuild ${xcodeBuildArgs.join(' ')}${reset}`);
-
-    try {
-        exitCode = await exec(xcodebuild, xcodeBuildArgs, {
-            listeners: {
-                stdout: (data: Buffer) => {
-                    output += data.toString();
-                },
-                stderr: (data: Buffer) => {
-                    output += data.toString();
-                },
+    exitCode = await exec(xcodebuild, xcodeBuildArgs, {
+        listeners: {
+            stdout: (data: Buffer) => {
+                output += data.toString();
             },
-            ignoreReturnCode: true
-        });
-    } finally {
-        core.endGroup();
-    }
+            stderr: (data: Buffer) => {
+                output += data.toString();
+            },
+        },
+        ignoreReturnCode: true
+    });
 
     if (exitCode !== 0) {
         await parseBundleLog(output);
@@ -1265,28 +1259,24 @@ async function execWithXcBeautify(xcodeBuildArgs: string[]) {
         stdio: ['pipe', process.stdout, process.stderr]
     });
 
-    core.startGroup(`${blue}${xcodebuild} ${xcodeBuildArgs.join(' ')}${reset}`);
-    let errorOutput: string = '';
-    let exitCode: number = 1;
+    core.info(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
 
-    try {
-        exitCode = await exec(xcodebuild, xcodeBuildArgs, {
-            listeners: {
-                stdout: (data: Buffer) => {
-                    xcBeautifyProcess.stdin.write(data);
-                },
-                stderr: (data: Buffer) => {
-                    xcBeautifyProcess.stdin.write(data);
-                    errorOutput += data.toString();
-                }
+    let errorOutput = '';
+    const exitCode = await exec(xcodebuild, xcodeBuildArgs, {
+        listeners: {
+            stdout: (data: Buffer) => {
+                xcBeautifyProcess.stdin.write(data);
             },
-            silent: true,
-            ignoreReturnCode: true
-        });
-    } finally {
-        xcBeautifyProcess.stdin.end();
-        core.endGroup();
-    }
+            stderr: (data: Buffer) => {
+                xcBeautifyProcess.stdin.write(data);
+                errorOutput += data.toString();
+            }
+        },
+        silent: true,
+        ignoreReturnCode: true
+    });
+
+    xcBeautifyProcess.stdin.end();
 
     await new Promise<void>((resolve, reject) => {
         xcBeautifyProcess.stdin.on('finish', () => {
@@ -1316,8 +1306,6 @@ async function execXcRun(args: string[]): Promise<string> {
         args.push('-verbose');
     }
 
-    core.startGroup(`${blue}xcrun ${args.join(' ')}${reset}`);
-
     try {
         exitCode = await exec(xcrun, args, {
             listeners: {
@@ -1331,8 +1319,6 @@ async function execXcRun(args: string[]): Promise<string> {
             ignoreReturnCode: true
         });
     } finally {
-        core.endGroup();
-
         if (isJsonOutput) { // pretty print json output
             // Use regex to extract the first JSON object from the output
             const jsonMatch = output.match(/\{[\s\S]*\}/);
@@ -1359,20 +1345,14 @@ async function execGit(args: string[]): Promise<string> {
     let exitCode: number = 1;
     let output: string = '';
 
-    core.startGroup(`${blue}git ${args.join(' ')}${reset}`);
-
-    try {
-        exitCode = await exec('git', args, {
-            listeners: {
-                stdout: (data: Buffer) => {
-                    output += data.toString();
-                }
-            },
-            ignoreReturnCode: true
-        });
-    } finally {
-        core.endGroup();
-    }
+    exitCode = await exec('git', args, {
+        listeners: {
+            stdout: (data: Buffer) => {
+                output += data.toString();
+            }
+        },
+        ignoreReturnCode: true
+    });
 
     if (exitCode > 0) {
         log(output, 'error');
