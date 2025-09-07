@@ -58505,6 +58505,8 @@ const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
+const blue = '\u001b[34m';
+const reset = '\u001b[0m';
 async function GetOrSetXcodeVersion() {
     let xcodeVersionString = core.getInput('xcode-version');
     if (xcodeVersionString) {
@@ -59480,17 +59482,23 @@ async function getWhatsNew() {
 async function execXcodeBuild(xcodeBuildArgs) {
     let exitCode = 1;
     let output = '';
-    exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
-        listeners: {
-            stdout: (data) => {
-                output += data.toString();
+    core.startGroup(`${blue}xcodebuild ${xcodeBuildArgs.join(' ')}${reset}`);
+    try {
+        exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
+            listeners: {
+                stdout: (data) => {
+                    output += data.toString();
+                },
+                stderr: (data) => {
+                    output += data.toString();
+                },
             },
-            stderr: (data) => {
-                output += data.toString();
-            },
-        },
-        ignoreReturnCode: true
-    });
+            ignoreReturnCode: true
+        });
+    }
+    finally {
+        core.endGroup();
+    }
     if (exitCode !== 0) {
         await parseBundleLog(output);
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
@@ -59508,22 +59516,28 @@ async function execWithXcBeautify(xcodeBuildArgs) {
     const xcBeautifyProcess = (0, child_process_1.spawn)('xcbeautify', ['--quiet', '--is-ci', '--disable-logging'], {
         stdio: ['pipe', process.stdout, process.stderr]
     });
-    core.info(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
+    core.startGroup(`${blue}${xcodebuild} ${xcodeBuildArgs.join(' ')}${reset}`);
     let errorOutput = '';
-    const exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
-        listeners: {
-            stdout: (data) => {
-                xcBeautifyProcess.stdin.write(data);
+    let exitCode = 1;
+    try {
+        exitCode = await (0, exec_1.exec)(xcodebuild, xcodeBuildArgs, {
+            listeners: {
+                stdout: (data) => {
+                    xcBeautifyProcess.stdin.write(data);
+                },
+                stderr: (data) => {
+                    xcBeautifyProcess.stdin.write(data);
+                    errorOutput += data.toString();
+                }
             },
-            stderr: (data) => {
-                xcBeautifyProcess.stdin.write(data);
-                errorOutput += data.toString();
-            }
-        },
-        silent: true,
-        ignoreReturnCode: true
-    });
-    xcBeautifyProcess.stdin.end();
+            silent: true,
+            ignoreReturnCode: true
+        });
+    }
+    finally {
+        xcBeautifyProcess.stdin.end();
+        core.endGroup();
+    }
     await new Promise((resolve, reject) => {
         xcBeautifyProcess.stdin.on('finish', () => {
             xcBeautifyProcess.on('close', (code) => {
@@ -59546,48 +59560,25 @@ async function execXcRun(args) {
     let output = '';
     let errorOutput = '';
     let isJsonOutput = args.includes('--output-format') && args.includes('json');
-    if (!core.isDebug()) {
-        core.info(`[command]xcrun ${args.join(' ')}`);
-        core.startGroup(`xcrun ${args.join(' ')}`);
+    if (core.isDebug()) {
+        args.push('-verbose');
     }
-    else {
-        args.push('--verbose');
-    }
-    let partialLine = '';
+    core.startGroup(`${blue}xcrun ${args.join(' ')}${reset}`);
     try {
         exitCode = await (0, exec_1.exec)(xcrun, args, {
             listeners: {
                 stdout: (data) => {
-                    partialLine += data.toString();
-                    if (partialLine.includes('\n')) {
-                        const lines = partialLine.split('\n');
-                        lines.slice(0, -1).forEach(l => {
-                            output += `${l}\n`;
-                            if (!core.isDebug()) {
-                                core.info(l);
-                            }
-                        });
-                        partialLine = lines[lines.length - 1];
-                    }
+                    output += data.toString();
                 },
                 stderr: (data) => {
                     errorOutput += data.toString();
                 }
             },
-            silent: !core.isDebug(),
             ignoreReturnCode: true
         });
     }
     finally {
-        if (partialLine.length > 0) {
-            output += partialLine + '\n';
-            if (!core.isDebug()) {
-                core.info(partialLine);
-            }
-        }
-        if (!core.isDebug()) {
-            core.endGroup();
-        }
+        core.endGroup();
         if (isJsonOutput) {
             const jsonMatch = output.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
@@ -59608,30 +59599,19 @@ async function execXcRun(args) {
 async function execGit(args) {
     let exitCode = 1;
     let output = '';
-    if (!core.isDebug()) {
-        core.info(`[command]git ${args.join(' ')}`);
-        core.startGroup(`git ${args.join(' ')}`);
-    }
+    core.startGroup(`${blue}git ${args.join(' ')}${reset}`);
     try {
         exitCode = await (0, exec_1.exec)('git', args, {
             listeners: {
                 stdout: (data) => {
                     output += data.toString();
-                },
-                stdline: (data) => {
-                    if (!core.isDebug()) {
-                        core.info(data);
-                    }
                 }
             },
-            silent: !core.isDebug(),
             ignoreReturnCode: true
         });
     }
     finally {
-        if (!core.isDebug()) {
-            core.endGroup();
-        }
+        core.endGroup();
     }
     if (exitCode > 0) {
         (0, utilities_1.log)(output, 'error');

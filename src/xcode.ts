@@ -30,6 +30,9 @@ const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
 
+const blue = '\u001b[34m';
+const reset = '\u001b[0m';
+
 export async function GetOrSetXcodeVersion(): Promise<SemVer> {
     let xcodeVersionString = core.getInput('xcode-version');
 
@@ -1224,17 +1227,23 @@ async function execXcodeBuild(xcodeBuildArgs: string[]): Promise<string> {
     let exitCode: number = 1;
     let output: string = '';
 
-    exitCode = await exec(xcodebuild, xcodeBuildArgs, {
-        listeners: {
-            stdout: (data: Buffer) => {
-                output += data.toString();
+    core.startGroup(`${blue}xcodebuild ${xcodeBuildArgs.join(' ')}${reset}`);
+
+    try {
+        exitCode = await exec(xcodebuild, xcodeBuildArgs, {
+            listeners: {
+                stdout: (data: Buffer) => {
+                    output += data.toString();
+                },
+                stderr: (data: Buffer) => {
+                    output += data.toString();
+                },
             },
-            stderr: (data: Buffer) => {
-                output += data.toString();
-            },
-        },
-        ignoreReturnCode: true
-    });
+            ignoreReturnCode: true
+        });
+    } finally {
+        core.endGroup();
+    }
 
     if (exitCode !== 0) {
         await parseBundleLog(output);
@@ -1256,24 +1265,28 @@ async function execWithXcBeautify(xcodeBuildArgs: string[]) {
         stdio: ['pipe', process.stdout, process.stderr]
     });
 
-    core.info(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
+    core.startGroup(`${blue}${xcodebuild} ${xcodeBuildArgs.join(' ')}${reset}`);
+    let errorOutput: string = '';
+    let exitCode: number = 1;
 
-    let errorOutput = '';
-    const exitCode = await exec(xcodebuild, xcodeBuildArgs, {
-        listeners: {
-            stdout: (data: Buffer) => {
-                xcBeautifyProcess.stdin.write(data);
+    try {
+        exitCode = await exec(xcodebuild, xcodeBuildArgs, {
+            listeners: {
+                stdout: (data: Buffer) => {
+                    xcBeautifyProcess.stdin.write(data);
+                },
+                stderr: (data: Buffer) => {
+                    xcBeautifyProcess.stdin.write(data);
+                    errorOutput += data.toString();
+                }
             },
-            stderr: (data: Buffer) => {
-                xcBeautifyProcess.stdin.write(data);
-                errorOutput += data.toString();
-            }
-        },
-        silent: true,
-        ignoreReturnCode: true
-    });
-
-    xcBeautifyProcess.stdin.end();
+            silent: true,
+            ignoreReturnCode: true
+        });
+    } finally {
+        xcBeautifyProcess.stdin.end();
+        core.endGroup();
+    }
 
     await new Promise<void>((resolve, reject) => {
         xcBeautifyProcess.stdin.on('finish', () => {
@@ -1299,52 +1312,26 @@ async function execXcRun(args: string[]): Promise<string> {
     let errorOutput: string = '';
     let isJsonOutput = args.includes('--output-format') && args.includes('json');
 
-    if (!core.isDebug()) {
-        core.info(`[command]xcrun ${args.join(' ')}`);
-        core.startGroup(`xcrun ${args.join(' ')}`);
-    } else {
-        args.push('--verbose');
+    if (core.isDebug()) {
+        args.push('-verbose');
     }
 
-    let partialLine = '';
+    core.startGroup(`${blue}xcrun ${args.join(' ')}${reset}`);
+
     try {
         exitCode = await exec(xcrun, args, {
             listeners: {
                 stdout: (data: Buffer) => {
-                    partialLine += data.toString();
-
-                    if (partialLine.includes('\n')) {
-                        const lines = partialLine.split('\n');
-                        lines.slice(0, -1).forEach(l => {
-                            output += `${l}\n`;
-
-                            if (!core.isDebug()) {
-                                core.info(l);
-                            }
-                        });
-                        partialLine = lines[lines.length - 1];
-                    }
+                    output += data.toString();
                 },
                 stderr: (data: Buffer) => {
                     errorOutput += data.toString();
                 }
             },
-            silent: !core.isDebug(),
             ignoreReturnCode: true
         });
     } finally {
-        // process any remaining partial line
-        if (partialLine.length > 0) {
-            output += partialLine + '\n';
-
-            if (!core.isDebug()) {
-                core.info(partialLine);
-            }
-        }
-
-        if (!core.isDebug()) {
-            core.endGroup();
-        }
+        core.endGroup();
 
         if (isJsonOutput) { // pretty print json output
             // Use regex to extract the first JSON object from the output
@@ -1372,30 +1359,19 @@ async function execGit(args: string[]): Promise<string> {
     let exitCode: number = 1;
     let output: string = '';
 
-    if (!core.isDebug()) {
-        core.info(`[command]git ${args.join(' ')}`);
-        core.startGroup(`git ${args.join(' ')}`);
-    }
+    core.startGroup(`${blue}git ${args.join(' ')}${reset}`);
 
     try {
         exitCode = await exec('git', args, {
             listeners: {
                 stdout: (data: Buffer) => {
                     output += data.toString();
-                },
-                stdline: (data: string) => {
-                    if (!core.isDebug()) {
-                        core.info(data);
-                    }
                 }
             },
-            silent: !core.isDebug(),
             ignoreReturnCode: true
         });
     } finally {
-        if (!core.isDebug()) {
-            core.endGroup();
-        }
+        core.endGroup();
     }
 
     if (exitCode > 0) {
