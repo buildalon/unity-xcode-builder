@@ -59427,6 +59427,7 @@ async function UploadApp(projectRef) {
         '--bundle-short-version-string', projectRef.versionString,
         '--apiKey', projectRef.credential.appStoreConnectKeyId,
         '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
+        '--show-progress',
         '--output-format', 'json'
     ];
     let output = '';

@@ -1170,6 +1170,7 @@ export async function UploadApp(projectRef: XcodeProject) {
         '--bundle-short-version-string', projectRef.versionString,
         '--apiKey', projectRef.credential.appStoreConnectKeyId,
         '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
+        '--show-progress',
         '--output-format', 'json'
     ];
 
