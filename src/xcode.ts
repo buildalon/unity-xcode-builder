@@ -1330,8 +1330,7 @@ async function execXcRun(args: string[]): Promise<string> {
                 }
             },
             silent: !core.isDebug(),
-            ignoreReturnCode: true,
-            failOnStdErr: true
+            ignoreReturnCode: true
         });
     } finally {
         // process any remaining partial line
@@ -1346,17 +1345,17 @@ async function execXcRun(args: string[]): Promise<string> {
         if (!core.isDebug()) {
             core.endGroup();
         }
-    }
 
-    if (isJsonOutput) { // pretty print json output
-        // Use regex to extract the first JSON object from the output
-        const jsonMatch = output.match(/\{[\s\S]*\}/);
+        if (isJsonOutput) { // pretty print json output
+            // Use regex to extract the first JSON object from the output
+            const jsonMatch = output.match(/\{[\s\S]*\}/);
 
-        if (jsonMatch) {
-            try {
-                output = JSON.stringify(JSON.parse(jsonMatch[0]), null, 2);
-            } catch (error) {
-                // If JSON parsing fails, keep the original output
+            if (jsonMatch) {
+                try {
+                    output = JSON.stringify(JSON.parse(jsonMatch[0]), null, 2);
+                } catch (error) {
+                    // If JSON parsing fails, keep the original output
+                }
             }
         }
     }
@@ -1373,12 +1372,12 @@ async function execGit(args: string[]): Promise<string> {
     let exitCode: number = 1;
     let output: string = '';
 
+    if (!core.isDebug()) {
+        core.info(`[command]git ${args.join(' ')}`);
+        core.startGroup(`git ${args.join(' ')}`);
+    }
+
     try {
-
-        if (!core.isDebug()) {
-            core.startGroup(`[command]git ${args.join(' ')}`);
-        }
-
         exitCode = await exec('git', args, {
             listeners: {
                 stdout: (data: Buffer) => {
@@ -1393,15 +1392,15 @@ async function execGit(args: string[]): Promise<string> {
             silent: !core.isDebug(),
             ignoreReturnCode: true
         });
-
-        if (exitCode > 0) {
-            log(output, 'error');
-            throw new Error(`Git failed with exit code: ${exitCode}`);
-        }
     } finally {
         if (!core.isDebug()) {
             core.endGroup();
         }
+    }
+
+    if (exitCode > 0) {
+        log(output, 'error');
+        throw new Error(`Git failed with exit code: ${exitCode}`);
     }
 
     return output;

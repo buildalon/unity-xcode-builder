@@ -59575,8 +59575,7 @@ async function execXcRun(args) {
                 }
             },
             silent: !core.isDebug(),
-            ignoreReturnCode: true,
-            failOnStdErr: true
+            ignoreReturnCode: true
         });
     }
     finally {
@@ -59589,14 +59588,14 @@ async function execXcRun(args) {
         if (!core.isDebug()) {
             core.endGroup();
         }
-    }
-    if (isJsonOutput) {
-        const jsonMatch = output.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            try {
-                output = JSON.stringify(JSON.parse(jsonMatch[0]), null, 2);
-            }
-            catch (error) {
+        if (isJsonOutput) {
+            const jsonMatch = output.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    output = JSON.stringify(JSON.parse(jsonMatch[0]), null, 2);
+                }
+                catch (error) {
+                }
             }
         }
     }
@@ -59609,10 +59608,11 @@ async function execXcRun(args) {
 async function execGit(args) {
     let exitCode = 1;
     let output = '';
+    if (!core.isDebug()) {
+        core.info(`[command]git ${args.join(' ')}`);
+        core.startGroup(`git ${args.join(' ')}`);
+    }
     try {
-        if (!core.isDebug()) {
-            core.startGroup(`[command]git ${args.join(' ')}`);
-        }
         exitCode = await (0, exec_1.exec)('git', args, {
             listeners: {
                 stdout: (data) => {
@@ -59627,15 +59627,15 @@ async function execGit(args) {
             silent: !core.isDebug(),
             ignoreReturnCode: true
         });
-        if (exitCode > 0) {
-            (0, utilities_1.log)(output, 'error');
-            throw new Error(`Git failed with exit code: ${exitCode}`);
-        }
     }
     finally {
         if (!core.isDebug()) {
             core.endGroup();
         }
+    }
+    if (exitCode > 0) {
+        (0, utilities_1.log)(output, 'error');
+        throw new Error(`Git failed with exit code: ${exitCode}`);
     }
     return output;
 }
