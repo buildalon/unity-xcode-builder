@@ -161,6 +161,8 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 
     const projectName = path.basename(projectPath, '.xcodeproj');
     const buildSettings = await getBuildSettings(projectPath);
+    const configuration = core.getInput('configuration') || 'Release';
+    core.info(`Configuration: ${configuration}`);
     const scheme = await getProjectScheme(projectPath);
     const platform = await getSupportedPlatform(projectPath);
     core.info(`Platform: ${platform}`);
@@ -175,9 +177,6 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 
         await execXcRun(['simctl', 'list', 'runtimes', '--json'], true);
     }
-
-    const configuration = core.getInput('configuration') || 'Release';
-    core.info(`Configuration: ${configuration}`);
 
     if (!platform) {
         throw new Error('Unable to determine the platform to build for.');
@@ -477,8 +476,8 @@ async function getProjectScheme(projectPath: string): Promise<string> {
         throw new Error('No schemes found in the project');
     }
 
-    core.info(`Available Schemes:`);
-    schemes.forEach(s => core.info(`  > ${s}`));
+    core.debug(`Available Schemes:`);
+    schemes.forEach(s => core.debug(`  > ${s}`));
 
     if (!scheme) {
         if (schemes.includes('Unity-iPhone')) {
@@ -1174,10 +1173,8 @@ export async function UploadApp(projectRef: XcodeProject) {
         '--output-format', 'json'
     ];
 
-    let output: string = '';
-
     try {
-        output = await execXcRun(uploadArgs);
+        await execXcRun(uploadArgs);
     } catch (error) {
         throw new Error(`Failed to upload app:\n${error}`);
     }
