@@ -173,7 +173,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             await downloadPlatformSdk(platform, platformSdkVersion);
         }
 
-        await execXcRun(['simctl', 'list', 'runtimes', '--output-format', '--json']);
+        await execXcRun(['simctl', 'list', 'runtimes', '--json']);
     }
 
     const configuration = core.getInput('configuration') || 'Release';

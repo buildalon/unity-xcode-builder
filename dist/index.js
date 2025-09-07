@@ -58616,7 +58616,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
         if (!sdkInfo) {
             await downloadPlatformSdk(platform, platformSdkVersion);
         }
-        await execXcRun(['simctl', 'list', 'runtimes', '--output-format', '--json']);
+        await execXcRun(['simctl', 'list', 'runtimes', '--json']);
     }
     const configuration = core.getInput('configuration') || 'Release';
     core.info(`Configuration: ${configuration}`);
