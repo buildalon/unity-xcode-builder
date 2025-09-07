@@ -58624,9 +58624,9 @@ async function GetProjectDetails(credential, xcodeVersion) {
         throw new Error('Unable to determine the platform to build for.');
     }
     const destination = await getDestination(projectPath, scheme, platform);
-    core.debug(`Destination: ${destination}`);
+    core.info(`Destination: ${destination}`);
     const bundleId = getBundleId(buildSettings);
-    core.debug(`Bundle ID: ${bundleId}`);
+    core.info(`Bundle ID: ${bundleId}`);
     if (!bundleId) {
         throw new Error('Unable to determine the bundle ID');
     }
@@ -59401,7 +59401,8 @@ async function ValidateApp(projectRef) {
         '--type', platforms[projectRef.platform],
         '--apiKey', projectRef.credential.appStoreConnectKeyId,
         '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
-        '--output-format', 'json'
+        '--show-progress',
+        '--progress-width', 5
     ];
     try {
         await execXcRun(validateArgs);
@@ -59428,7 +59429,7 @@ async function UploadApp(projectRef) {
         '--apiKey', projectRef.credential.appStoreConnectKeyId,
         '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
         '--show-progress',
-        '--output-format', 'json'
+        '--progress-width', 5
     ];
     try {
         await execXcRun(uploadArgs);
@@ -59556,8 +59557,9 @@ async function execXcRun(args, silence = false) {
     let exitCode = 1;
     let output = '';
     let errorOutput = '';
-    let isJsonOutput = args.includes('--output-format') && args.includes('json') || args.includes('-j') || args.includes('--json');
+    let isJsonOutput = (args.includes('--output-format') && args.includes('json')) || args.includes('-j') || args.includes('--json');
     if (core.isDebug()) {
+        args.push('-v');
         silence = false;
     }
     if (silence) {

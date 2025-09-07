@@ -183,9 +183,9 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     }
 
     const destination: string = await getDestination(projectPath, scheme, platform);
-    core.debug(`Destination: ${destination}`);
+    core.info(`Destination: ${destination}`);
     const bundleId = getBundleId(buildSettings);
-    core.debug(`Bundle ID: ${bundleId}`);
+    core.info(`Bundle ID: ${bundleId}`);
 
     if (!bundleId) {
         throw new Error('Unable to determine the bundle ID');
@@ -1141,7 +1141,8 @@ export async function ValidateApp(projectRef: XcodeProject) {
         '--type', platforms[projectRef.platform],
         '--apiKey', projectRef.credential.appStoreConnectKeyId,
         '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
-        '--output-format', 'json'
+        '--show-progress',
+        '--progress-width', 5
     ];
 
     try {
@@ -1170,7 +1171,7 @@ export async function UploadApp(projectRef: XcodeProject) {
         '--apiKey', projectRef.credential.appStoreConnectKeyId,
         '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
         '--show-progress',
-        '--output-format', 'json'
+        '--progress-width', 5
     ];
 
     try {
@@ -1309,9 +1310,10 @@ async function execXcRun(args: string[], silence: boolean = false): Promise<stri
     let exitCode: number = 1;
     let output: string = '';
     let errorOutput: string = '';
-    let isJsonOutput = args.includes('--output-format') && args.includes('json') || args.includes('-j') || args.includes('--json');
+    let isJsonOutput = (args.includes('--output-format') && args.includes('json')) || args.includes('-j') || args.includes('--json');
 
     if (core.isDebug()) {
+        args.push('-v'); // verbose output
         silence = false;
     }
 
