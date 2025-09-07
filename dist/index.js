@@ -59402,7 +59402,7 @@ async function ValidateApp(projectRef) {
         '--apiKey', projectRef.credential.appStoreConnectKeyId,
         '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
         '--show-progress',
-        '--progress-width', 5
+        '--progress-width', '5'
     ];
     try {
         await execXcRun(validateArgs);
@@ -59429,7 +59429,7 @@ async function UploadApp(projectRef) {
         '--apiKey', projectRef.credential.appStoreConnectKeyId,
         '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
         '--show-progress',
-        '--progress-width', 5
+        '--progress-width', '5'
     ];
     try {
         await execXcRun(uploadArgs);

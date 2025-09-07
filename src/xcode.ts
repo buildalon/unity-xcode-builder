@@ -1142,7 +1142,7 @@ export async function ValidateApp(projectRef: XcodeProject) {
         '--apiKey', projectRef.credential.appStoreConnectKeyId,
         '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
         '--show-progress',
-        '--progress-width', 5
+        '--progress-width', '5'
     ];
 
     try {
@@ -1171,7 +1171,7 @@ export async function UploadApp(projectRef: XcodeProject) {
         '--apiKey', projectRef.credential.appStoreConnectKeyId,
         '--apiIssuer', projectRef.credential.appStoreConnectIssuerId,
         '--show-progress',
-        '--progress-width', 5
+        '--progress-width', '5'
     ];
 
     try {
