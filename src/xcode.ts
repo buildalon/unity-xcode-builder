@@ -689,11 +689,11 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         archiveArgs.push('-verbose');
     }
 
-    // if (core.isDebug()) {
-    await execXcodeBuild(archiveArgs);
-    // } else {
-    //     await execWithXcBeautify(archiveArgs);
-    // }
+    if (core.isDebug()) {
+        await execXcodeBuild(archiveArgs);
+    } else {
+        await execWithXcBeautify(archiveArgs);
+    }
 
     projectRef.archivePath = archivePath
     return projectRef;
@@ -740,11 +740,11 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         exportArgs.push('-verbose');
     }
 
-    //if (core.isDebug()) {
-    await execXcodeBuild(exportArgs);
-    // } else {
-    //     await execWithXcBeautify(exportArgs);
-    // }
+    if (core.isDebug()) {
+        await execXcodeBuild(exportArgs);
+    } else {
+        await execWithXcBeautify(exportArgs);
+    }
 
     if (platform === 'macOS') {
         if (!projectRef.isAppStoreUpload()) {
@@ -1309,45 +1309,64 @@ async function execWithXcBeautify(xcodeBuildArgs: string[]) {
 async function execXcRun(args: string[]): Promise<string> {
     let exitCode: number = 1;
     let output: string = '';
+    let errorOutput: string = '';
     let isJsonOutput = args.includes('--output-format') && args.includes('json');
 
-    if (core.isDebug()) {
+    if (!core.isDebug()) {
+        core.startGroup(`[command]xcrun ${args.join(' ')}`);
+    } else {
         args.push('--verbose');
     }
 
     try {
+        let partialLine = '';
         exitCode = await exec(xcrun, args, {
             listeners: {
                 stdout: (data: Buffer) => {
-                    output += data.toString();
+                    partialLine += data.toString();
+
+                    if (partialLine.includes('\n')) {
+                        const lines = partialLine.split('\n');
+                        lines.slice(0, -1).forEach(l => {
+                            output += l + '\n';
+
+                            if (!core.isDebug()) {
+                                core.info(l);
+                            }
+                        });
+                        partialLine = lines[lines.length - 1];
+                    }
                 },
                 stderr: (data: Buffer) => {
-                    output += data.toString();
+                    errorOutput += data.toString();
                 }
             },
-            ignoreReturnCode: true
+            silent: !core.isDebug(),
+            ignoreReturnCode: true,
+            failOnStdErr: true
         });
-
-        if (isJsonOutput) { // pretty print json output
-            // Use regex to extract the first JSON object from the output
-            const jsonMatch = output.match(/\{[\s\S]*\}/);
-
-            if (jsonMatch) {
-                try {
-                    output = JSON.stringify(JSON.parse(jsonMatch[0]), null, 2);
-                } catch (error) {
-                    // If JSON parsing fails, keep the original output
-                }
-            }
-        }
-
-        if (exitCode > 0) {
-            throw new Error(output);
-        }
     } finally {
         if (!core.isDebug()) {
             core.endGroup();
         }
+    }
+
+    if (isJsonOutput) { // pretty print json output
+        // Use regex to extract the first JSON object from the output
+        const jsonMatch = output.match(/\{[\s\S]*\}/);
+
+        if (jsonMatch) {
+            try {
+                output = JSON.stringify(JSON.parse(jsonMatch[0]), null, 2);
+            } catch (error) {
+                // If JSON parsing fails, keep the original output
+            }
+        }
+    }
+
+    if (exitCode > 0) {
+        await parseBundleLog(errorOutput);
+        throw new Error(output);
     }
 
     return output;
