@@ -118,7 +118,7 @@ export async function GetOrSetXcodeVersion(): Promise<SemVer> {
 
 export async function GetProjectDetails(credential: AppleCredential, xcodeVersion: SemVer): Promise<XcodeProject> {
     const projectPathInput = core.getInput('project-path') || `${WORKSPACE}/**/*.xcodeproj`;
-    core.info(`Project path input: ${projectPathInput}`);
+    core.debug(`Project path input: ${projectPathInput}`);
     let projectPath = undefined;
     const globber = await glob.create(projectPathInput);
     const files = await globber.glob();
@@ -127,7 +127,9 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         throw new Error(`No project found at: ${projectPathInput}`);
     }
 
-    core.info(`Files found during search: ${files.join(', ')}`);
+    core.debug(`Files found during search:`);
+    files.forEach(file => core.debug(`  > ${file}`));
+
     const excludedProjects = ['GameAssembly', 'UnityFramework', 'Pods'];
 
     for (const file of files) {
@@ -139,7 +141,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
                 continue;
             }
 
-            core.info(`Found Xcode project: ${file}`);
+            core.debug(`Found Xcode project: ${file}`);
             projectPath = file;
             break;
         }
@@ -149,12 +151,17 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         throw new Error(`Invalid project-path! Unable to find .xcodeproj in ${projectPathInput}. ${files.length} files were found but none matched.\n${files.join(', ')}`);
     }
 
-    core.info(`Resolved Project path: ${projectPath}`);
+    core.info(`Xcode Project: ${projectPath}`);
     await fs.promises.access(projectPath, fs.constants.R_OK);
+
     const projectDirectory = path.dirname(projectPath);
-    core.info(`Project directory: ${projectDirectory}`);
-    const projectFiles = await fs.promises.readdir(projectDirectory);
-    projectFiles.forEach(file => core.info(`  > ${file}`));
+
+    if (core.isDebug()) {
+        core.debug(`Project directory: ${projectDirectory}`);
+        const projectFiles = await fs.promises.readdir(projectDirectory);
+        projectFiles.forEach(file => core.debug(`  > ${file}`));
+    }
+
     const projectName = path.basename(projectPath, '.xcodeproj');
     const buildSettings = await getBuildSettings(projectPath);
     const scheme = await getProjectScheme(projectPath);
@@ -169,7 +176,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             await downloadPlatformSdk(platform, platformSdkVersion);
         }
 
-        await execXcRun(['simctl', 'list', 'runtimes']);
+        await execXcRun(['simctl', 'list', 'runtimes', '--output-format', 'json']);
     }
 
     const configuration = core.getInput('configuration') || 'Release';
@@ -398,11 +405,7 @@ async function getDestination(projectPath: string, scheme: string, platform: str
 }
 
 async function getBuildSettings(projectPath: string): Promise<string> {
-    return await execXcodeBuild([
-        'build',
-        '-project', projectPath,
-        '-showBuildSettings'
-    ]);
+    return await execXcodeBuild(['build', '-project', projectPath, '-showBuildSettings']);
 }
 
 function getBundleId(buildSettingsOutput: string) {
@@ -1225,7 +1228,13 @@ async function getWhatsNew(): Promise<string> {
 
 async function execXcodeBuild(xcodeBuildArgs: string[]): Promise<string> {
     let exitCode: number = 1;
+    let errorOutput: string = '';
     let output: string = '';
+    const silenceOutput = xcodeBuildArgs.includes('-json') && !core.isDebug();
+
+    if (silenceOutput) {
+        core.info(`[command]${xcodebuild} ${xcodeBuildArgs.join(' ')}`);
+    }
 
     exitCode = await exec(xcodebuild, xcodeBuildArgs, {
         listeners: {
@@ -1233,14 +1242,15 @@ async function execXcodeBuild(xcodeBuildArgs: string[]): Promise<string> {
                 output += data.toString();
             },
             stderr: (data: Buffer) => {
-                output += data.toString();
+                errorOutput += data.toString();
             },
         },
+        silent: silenceOutput,
         ignoreReturnCode: true
     });
 
     if (exitCode !== 0) {
-        await parseBundleLog(output);
+        await parseBundleLog(errorOutput);
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
     }
 
