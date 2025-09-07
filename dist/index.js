@@ -58505,8 +58505,6 @@ const AppStoreConnectClient_1 = __nccwpck_require__(7486);
 const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
-const blue = '\u001b[34m';
-const reset = '\u001b[0m';
 async function GetOrSetXcodeVersion() {
     let xcodeVersionString = core.getInput('xcode-version');
     if (xcodeVersionString) {
@@ -58618,7 +58616,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
         if (!sdkInfo) {
             await downloadPlatformSdk(platform, platformSdkVersion);
         }
-        await execXcRun(['simctl', 'list', 'runtimes', '--output-format', 'json']);
+        await execXcRun(['simctl', 'list', 'runtimes', '--output-format', '--json']);
     }
     const configuration = core.getInput('configuration') || 'Release';
     core.info(`Configuration: ${configuration}`);
@@ -58626,9 +58624,9 @@ async function GetProjectDetails(credential, xcodeVersion) {
         throw new Error('Unable to determine the platform to build for.');
     }
     const destination = await getDestination(projectPath, scheme, platform);
-    core.info(`Destination: ${destination}`);
+    core.debug(`Destination: ${destination}`);
     const bundleId = getBundleId(buildSettings);
-    core.info(`Bundle ID: ${bundleId}`);
+    core.debug(`Bundle ID: ${bundleId}`);
     if (!bundleId) {
         throw new Error('Unable to determine the bundle ID');
     }
@@ -58636,7 +58634,7 @@ async function GetProjectDetails(credential, xcodeVersion) {
     if (!fs.existsSync(infoPlistPath)) {
         infoPlistPath = `${projectDirectory}/Info.plist`;
     }
-    core.info(`Info.plist path: ${infoPlistPath}`);
+    core.debug(`Info.plist path: ${infoPlistPath}`);
     let infoPlistContent = await (0, utilities_1.getFileContents)(infoPlistPath, false);
     const infoPlist = plist.parse(infoPlistContent);
     let cFBundleShortVersionString = infoPlist['CFBundleShortVersionString'];
@@ -58659,9 +58657,9 @@ async function GetProjectDetails(credential, xcodeVersion) {
             throw new Error(`Invalid CFBundleShortVersionString format: ${cFBundleShortVersionString}`);
         }
     }
-    core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
+    core.debug(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'];
-    core.info(`CFBundleVersion: ${cFBundleVersion}`);
+    core.debug(`CFBundleVersion: ${cFBundleVersion}`);
     const projectRef = new XcodeProject_1.XcodeProject(projectPath, projectName, projectDirectory, platform, destination, configuration, bundleId, cFBundleShortVersionString, cFBundleVersion, scheme, credential, xcodeVersion);
     projectRef.autoIncrementBuildNumber = core.getInput('auto-increment-build-number') === 'true';
     await getExportOptions(projectRef);
@@ -58805,7 +58803,13 @@ async function getDestination(projectPath, scheme, platform) {
     }
 }
 async function getBuildSettings(projectPath) {
-    return await execXcodeBuild(['build', '-project', projectPath, '-showBuildSettings']);
+    try {
+        core.startGroup('Build Settings');
+        return await execXcodeBuild(['build', '-project', projectPath, '-showBuildSettings']);
+    }
+    finally {
+        core.endGroup();
+    }
 }
 function getBundleId(buildSettingsOutput) {
     const bundleId = core.getInput('bundle-id') || (0, utilities_1.matchRegexPattern)(buildSettingsOutput, /\s+PRODUCT_BUNDLE_IDENTIFIER = (?<bundleId>[\w.-]+)/, 'bundleId');
@@ -58893,7 +58897,7 @@ async function getExportOptions(projectRef) {
                     method = exportOption;
                     break;
             }
-            core.info(`Export Archive type: ${archiveType}`);
+            core.debug(`Export Archive type: ${archiveType}`);
         }
         else {
             if (exportOption === 'steam') {
@@ -58932,7 +58936,7 @@ async function getExportOptions(projectRef) {
     else {
         exportOptionsPath = exportOptionPlistInput;
     }
-    core.info(`Export options path: ${exportOptionsPath}`);
+    core.debug(`Export options path: ${exportOptionsPath}`);
     if (!exportOptionsPath) {
         throw new Error(`Invalid path for export-option-plist: ${exportOptionsPath}`);
     }
@@ -58943,7 +58947,7 @@ async function getDefaultEntitlementsMacOS(projectRef) {
     const entitlementsPath = `${projectRef.projectPath}/Entitlements.plist`;
     try {
         await fs.promises.access(entitlementsPath, fs.constants.R_OK);
-        core.info(`Existing Entitlements.plist found at: ${entitlementsPath}`);
+        core.debug(`Existing Entitlements.plist found at: ${entitlementsPath}`);
         return entitlementsPath;
     }
     catch (error) {
@@ -59552,7 +59556,7 @@ async function execXcRun(args) {
     let exitCode = 1;
     let output = '';
     let errorOutput = '';
-    let isJsonOutput = args.includes('--output-format') && args.includes('json');
+    let isJsonOutput = args.includes('--output-format') && args.includes('json') || args.includes('-j') || args.includes('--json');
     if (core.isDebug()) {
         args.push('-verbose');
     }

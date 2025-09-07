@@ -30,9 +30,6 @@ const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
 
-const blue = '\u001b[34m';
-const reset = '\u001b[0m';
-
 export async function GetOrSetXcodeVersion(): Promise<SemVer> {
     let xcodeVersionString = core.getInput('xcode-version');
 
@@ -176,7 +173,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
             await downloadPlatformSdk(platform, platformSdkVersion);
         }
 
-        await execXcRun(['simctl', 'list', 'runtimes', '--output-format', 'json']);
+        await execXcRun(['simctl', 'list', 'runtimes', '--output-format', '--json']);
     }
 
     const configuration = core.getInput('configuration') || 'Release';
@@ -187,9 +184,9 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     }
 
     const destination: string = await getDestination(projectPath, scheme, platform);
-    core.info(`Destination: ${destination}`);
+    core.debug(`Destination: ${destination}`);
     const bundleId = getBundleId(buildSettings);
-    core.info(`Bundle ID: ${bundleId}`);
+    core.debug(`Bundle ID: ${bundleId}`);
 
     if (!bundleId) {
         throw new Error('Unable to determine the bundle ID');
@@ -201,7 +198,7 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         infoPlistPath = `${projectDirectory}/Info.plist`;
     }
 
-    core.info(`Info.plist path: ${infoPlistPath}`);
+    core.debug(`Info.plist path: ${infoPlistPath}`);
     let infoPlistContent: string = await getFileContents(infoPlistPath, false);
     const infoPlist = plist.parse(infoPlistContent) as any;
     let cFBundleShortVersionString: string = infoPlist['CFBundleShortVersionString'];
@@ -226,9 +223,9 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
         }
     }
 
-    core.info(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
+    core.debug(`CFBundleShortVersionString: ${cFBundleShortVersionString}`);
     const cFBundleVersion = infoPlist['CFBundleVersion'] as string;
-    core.info(`CFBundleVersion: ${cFBundleVersion}`);
+    core.debug(`CFBundleVersion: ${cFBundleVersion}`);
 
     const projectRef = new XcodeProject(
         projectPath,
@@ -405,7 +402,12 @@ async function getDestination(projectPath: string, scheme: string, platform: str
 }
 
 async function getBuildSettings(projectPath: string): Promise<string> {
-    return await execXcodeBuild(['build', '-project', projectPath, '-showBuildSettings']);
+    try {
+        core.startGroup('Build Settings');
+        return await execXcodeBuild(['build', '-project', projectPath, '-showBuildSettings']);
+    } finally {
+        core.endGroup();
+    }
 }
 
 function getBundleId(buildSettingsOutput: string) {
@@ -521,7 +523,7 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
                     method = exportOption;
                     break;
             }
-            core.info(`Export Archive type: ${archiveType}`);
+            core.debug(`Export Archive type: ${archiveType}`);
         } else {
             // revert back to development just in case user passes in steam for non-macos platforms
             if (exportOption === 'steam') {
@@ -565,14 +567,13 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
         exportOptionsPath = exportOptionPlistInput;
     }
 
-    core.info(`Export options path: ${exportOptionsPath}`);
+    core.debug(`Export options path: ${exportOptionsPath}`);
 
     if (!exportOptionsPath) {
         throw new Error(`Invalid path for export-option-plist: ${exportOptionsPath}`);
     }
 
     await getFileContents(exportOptionsPath);
-
     projectRef.exportOptionsPath = exportOptionsPath;
 }
 
@@ -581,7 +582,7 @@ async function getDefaultEntitlementsMacOS(projectRef: XcodeProject): Promise<st
 
     try {
         await fs.promises.access(entitlementsPath, fs.constants.R_OK);
-        core.info(`Existing Entitlements.plist found at: ${entitlementsPath}`);
+        core.debug(`Existing Entitlements.plist found at: ${entitlementsPath}`);
         return entitlementsPath;
     } catch (error) {
         core.info(`Creating default entitlements at ${entitlementsPath}...`);
@@ -1310,7 +1311,7 @@ async function execXcRun(args: string[]): Promise<string> {
     let exitCode: number = 1;
     let output: string = '';
     let errorOutput: string = '';
-    let isJsonOutput = args.includes('--output-format') && args.includes('json');
+    let isJsonOutput = args.includes('--output-format') && args.includes('json') || args.includes('-j') || args.includes('--json');
 
     if (core.isDebug()) {
         args.push('-verbose');
