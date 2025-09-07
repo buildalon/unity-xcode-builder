@@ -59234,25 +59234,14 @@ async function signMacOSAppBundle(projectRef) {
 }
 async function createMacOSInstallerPkg(projectRef) {
     core.info('Creating macOS installer pkg...');
-    let output = '';
     const pkgPath = `${projectRef.exportPath}/${projectRef.projectName}.pkg`;
     const appPath = await (0, utilities_1.getFirstPathWithGlob)(`${projectRef.exportPath}/**/*.app`);
-    const productBuildExitCode = await (0, exec_1.exec)(xcrun, [
-        'productbuild',
-        '--component',
-        appPath, '/Applications',
-        pkgPath
-    ], {
-        listeners: {
-            stdout: (data) => {
-                output += data.toString();
-            }
-        },
-        ignoreReturnCode: true
-    });
-    if (productBuildExitCode !== 0) {
-        (0, utilities_1.log)(output, 'error');
-        throw new Error(`Failed to create the pkg!`);
+    try {
+        await execXcRun(['productbuild', '--component', appPath, '/Applications', pkgPath]);
+    }
+    catch (error) {
+        core.error(`Failed to create the pkg!\n${error}`);
+        throw error;
     }
     try {
         await fs.promises.access(pkgPath, fs.constants.R_OK);
@@ -59558,13 +59547,14 @@ async function execXcRun(args) {
     let errorOutput = '';
     let isJsonOutput = args.includes('--output-format') && args.includes('json');
     if (!core.isDebug()) {
-        core.startGroup(`[command]xcrun ${args.join(' ')}`);
+        core.info(`[command]xcrun ${args.join(' ')}`);
+        core.startGroup(`xcrun ${args.join(' ')}`);
     }
     else {
         args.push('--verbose');
     }
+    let partialLine = '';
     try {
-        let partialLine = '';
         exitCode = await (0, exec_1.exec)(xcrun, args, {
             listeners: {
                 stdout: (data) => {
@@ -59572,7 +59562,7 @@ async function execXcRun(args) {
                     if (partialLine.includes('\n')) {
                         const lines = partialLine.split('\n');
                         lines.slice(0, -1).forEach(l => {
-                            output += l + '\n';
+                            output += `${l}\n`;
                             if (!core.isDebug()) {
                                 core.info(l);
                             }
@@ -59590,6 +59580,12 @@ async function execXcRun(args) {
         });
     }
     finally {
+        if (partialLine.length > 0) {
+            output += partialLine + '\n';
+            if (!core.isDebug()) {
+                core.info(partialLine);
+            }
+        }
         if (!core.isDebug()) {
             core.endGroup();
         }
