@@ -1,6 +1,6 @@
 {
   "os": [
-    "macos-14"
+    "macos-latest"
   ],
   "unity-version": [
     "2021.x",
@@ -15,8 +15,8 @@
     "VisionOS"
   ],
   "xcode-version": [
-    "16.1",
-    "16.2"
+    "16.2",
+    "16.4"
   ],
   "exclude": [
     {
