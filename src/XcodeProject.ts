@@ -5,10 +5,11 @@ export class XcodeProject {
     constructor(
         projectPath: string,
         projectName: string,
+        projectDirectory: string,
         platform: string,
         destination: string,
+        configuration: string,
         bundleId: string,
-        projectDirectory: string,
         versionString: string,
         bundleVersion: string,
         scheme: string,
@@ -17,31 +18,35 @@ export class XcodeProject {
     ) {
         this.projectPath = projectPath;
         this.projectName = projectName;
+        this.projectDirectory = projectDirectory;
         this.platform = platform;
         this.destination = destination;
+        this.configuration = configuration;
         this.bundleId = bundleId;
-        this.projectDirectory = projectDirectory;
         this.versionString = versionString;
         this.bundleVersion = bundleVersion;
         this.scheme = scheme;
         this.credential = credential
         this.xcodeVersion = xcodeVersion;
         this.isSteamBuild = false;
+        this.archivePath = `${projectDirectory}/${projectName}.xcarchive`;
+        this.exportPath = `${projectDirectory}/${projectName}`;
     }
     projectPath: string;
     projectName: string;
+    projectDirectory: string;
     bundleId: string;
     appId: string;
-    projectDirectory: string;
     credential: AppleCredential;
     platform: string;
     destination: string;
+    configuration: string;
     archivePath: string;
     exportPath: string;
     executablePath: string;
     exportOption: string;
     exportOptionsPath: string;
-    entitlementsPath: string;
+    entitlementsPath: string | undefined = undefined;
     versionString: string;
     bundleVersion: string;
     scheme: string;

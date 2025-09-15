@@ -1,5 +1,7 @@
 
 import core = require('@actions/core');
+import glob = require('@actions/glob');
+import fs = require('fs');
 
 export function log(message: string, type: 'info' | 'warning' | 'error' = 'info') {
     if (type == 'info' && !core.isDebug()) { return; }
@@ -49,4 +51,59 @@ export function DeepEqual(a: any, b: any): boolean {
         if (!DeepEqual(a[key], b[key])) return false;
     }
     return true;
+}
+
+export function matchRegexPattern(string: string, pattern: RegExp, group: string | null): string {
+    const match = string.match(pattern);
+
+    if (!match) {
+        throw new Error(`Failed to resolve: ${pattern}`);
+    }
+
+    return group ? match.groups?.[group] : match[1];
+}
+
+export async function getPathsWithGlob(globPattern: string): Promise<string[]> {
+    const globber = await glob.create(globPattern);
+    const files = await globber.glob();
+
+    if (files.length === 0) {
+        throw new Error(`No file found at: ${globPattern}`);
+    }
+
+    return files;
+}
+
+export async function getFirstPathWithGlob(globPattern: string): Promise<string> {
+    const globber = await glob.create(globPattern);
+    const files = await globber.glob();
+
+    if (files.length === 0) {
+        throw new Error(`No file found at: ${globPattern}`);
+    }
+
+    return files[0];
+}
+
+export async function getFileContents(filePath: string, printContent: boolean = true): Promise<string> {
+    let fileContents: string = '';
+
+    if (printContent) {
+        core.startGroup(`${filePath} content:`);
+    }
+
+    const fileHandle = await fs.promises.open(filePath, fs.constants.O_RDONLY);
+
+    try {
+        fileContents = await fs.promises.readFile(fileHandle, 'utf8');
+    } finally {
+        await fileHandle.close();
+
+        if (printContent) {
+            core.info(fileContents);
+            core.endGroup();
+        }
+    }
+
+    return fileContents;
 }

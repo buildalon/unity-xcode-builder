@@ -1,0 +1,186 @@
+name: build
+permissions:
+  contents: read
+on:
+  workflow_call:
+    inputs:
+      matrix:
+        required: true
+        type: string
+    secrets:
+      UNITY_USERNAME:
+        required: true
+      UNITY_PASSWORD:
+        required: true
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      matrix: ${{ fromJSON(inputs.matrix) }}
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    env:
+      VERSION: ''
+      EXPORT_OPTION: ''
+      BUILD_DIRECTORY: ''
+      UNITY_PROJECT_PATH: ${{ github.workspace }}/UnityProject
+    steps:
+      - uses: actions/checkout@v4
+      - run: 'npm install -g openupm-cli'
+      - uses: buildalon/unity-setup@v1
+        with:
+          version-file: 'None'
+          build-targets: ${{ matrix.build-target }}
+          unity-version: ${{ matrix.unity-version }}
+      - name: Set Build Args
+        shell: bash
+        run: |
+          set -e
+          # Read version from package.json instead of git tags
+          package_json_path="${{ github.workspace }}/package.json"
+          version=$(jq -r .version "$package_json_path")
+
+          if [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Version from package.json: $version"
+          else
+            echo "Version: $version is not a valid version string"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+          # Only set export option to app-store-connect if unity-version is 6000.2.x AND xcode-version is 16.4
+          if [[ "${{ matrix.unity-version }}" == "6000.2.x" && "${{ matrix.xcode-version }}" == "16.2" ]]; then
+            echo "EXPORT_OPTION=app-store-connect" >> "$GITHUB_ENV"
+          else
+            if [[ "${{ matrix.build-target }}" == "StandaloneOSX" ]]; then
+              if [[ "${{ matrix.unity-version }}" == "2022.x" ]]; then
+                echo "EXPORT_OPTION=steam" >> "$GITHUB_ENV"
+              else
+                echo "EXPORT_OPTION=developer-id" >> "$GITHUB_ENV"
+              fi
+            else
+              echo "EXPORT_OPTION=development" >> "$GITHUB_ENV"
+            fi
+          fi
+
+          # set BUILD_DIRECTORY to a path in the root of the workspace named ./Builds/<build-target>/
+          build_directory="${{ github.workspace }}/Builds/${{ matrix.build-target }}"
+          echo "Creating build directory at $build_directory"
+          mkdir -p "$build_directory"
+          echo "BUILD_DIRECTORY=$build_directory" >> "$GITHUB_ENV"
+      - uses: buildalon/activate-unity-license@v1
+        with:
+          license: 'Personal'
+          username: ${{ secrets.UNITY_USERNAME }}
+          password: ${{ secrets.UNITY_PASSWORD }}
+      - uses: buildalon/create-unity-project@v1
+        name: Create Test Project
+        with:
+          project-name: UnityProject
+          template-name: com.unity.template.3d(-cross-platform)?
+      - run: openupm add com.virtualmaker.buildalon
+        name: Add Build Pipeline Package
+        working-directory:  ${{ env.UNITY_PROJECT_PATH }}
+      - uses: buildalon/unity-action@v1
+        name: '${{ matrix.build-target }}-Validate'
+        with:
+          build-target: ${{ matrix.build-target }}
+          log-name: '${{ matrix.build-target }}-Validate'
+          args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.ValidateProject -importTMProEssentialsAsset'
+      - uses: buildalon/unity-action@v1
+        name: '${{ matrix.build-target }}-Build'
+        with:
+          build-target: ${{ matrix.build-target }}
+          log-name: '${{ matrix.build-target }}-Build'
+          args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.StartCommandLineBuild -sceneList Assets/Scenes/SampleScene.unity -export -enableAppleAutomaticSigning -bundleIdentifier com.test.buildalon.xcode -versionName ${{ env.VERSION }} -buildOutputDirectory ${{ env.BUILD_DIRECTORY }}'
+      - name: Update Info.Plist with encryption compliance
+        shell: bash
+        run: |
+          set -e
+          BUILD_DIRECTORY="${{ env.BUILD_DIRECTORY }}"
+
+          if [ -z "$BUILD_DIRECTORY" ]; then
+            echo "env.BUILD_DIRECTORY is not set!"
+            exit 1
+          fi
+
+          # recursively list build output files
+          echo "::group::Build Output Directory: ${BUILD_DIRECTORY}/com.test.buildalon.xcode"
+          ls -alR "${BUILD_DIRECTORY}/com.test.buildalon.xcode"
+          echo "::endgroup::"
+
+          # find the Info.plist file in the build directory
+          # MacOSStandalone Info.plist path: /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/StandaloneOSX/com.test.buildalon.xcode/UnityProject/UnityProject/Info.plist
+          # all others: /Users/runner/work/unity-xcode-builder/unity-xcode-builder/UnityProject/Builds/iOS/com.test.buildalon.xcode/Info.plist
+          EXPORT_OPTION="${{ env.EXPORT_OPTION }}"
+
+          if [ "$EXPORT_OPTION" != "app-store-connect" ]; then
+            exit 0
+          fi
+
+          TARGET_PLATFORM="${{ matrix.build-target }}"
+
+          INFO_PLIST_PATH="${BUILD_DIRECTORY}/com.test.buildalon.xcode/UnityProject/UnityProject/Info.plist"
+
+          if [ ! -f "$INFO_PLIST_PATH" ]; then
+            INFO_PLIST_PATH="${BUILD_DIRECTORY}/com.test.buildalon.xcode/Info.plist"
+          fi
+
+          # test path exists
+          if [ ! -f "$INFO_PLIST_PATH" ]; then
+            echo "Info.plist not found at path: $INFO_PLIST_PATH"
+            exit 1
+          fi
+
+          # make sure plist buddy is installed
+          if ! command -v /usr/libexec/PlistBuddy &> /dev/null
+          then
+              echo "PlistBuddy could not be found"
+              # list build output files recursively
+              ls -alR "${BUILD_DIRECTORY}/com.test.buildalon.xcode"
+              exit 1
+          fi
+
+          # set ITSAppUsesNonExemptEncryption to false in Info.plist using PlistBuddy
+          /usr/libexec/PlistBuddy -c "Add :ITSAppUsesNonExemptEncryption bool false" "$INFO_PLIST_PATH"
+      - uses: ./ # buildalon/unity-xcode-builder
+        id: xcode-build
+        with:
+          xcode-version: ${{ matrix.xcode-version }}
+          project-path: ${{ env.BUILD_DIRECTORY }}/**/*.xcodeproj
+          app-store-connect-key: ${{ secrets.APP_STORE_CONNECT_KEY }}
+          app-store-connect-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          app-store-connect-issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          team-id: ${{ secrets.APPLE_TEAM_ID }}
+          export-option: ${{ env.EXPORT_OPTION }}
+          notarize: ${{ env.EXPORT_OPTION != 'app-store-connect' }}
+          archive-type: pkg
+          test-groups: Beta
+          developer-id-application-certificate: ${{ secrets.DEVELOPER_ID_APPLICATION_CERT }}
+          developer-id-application-certificate-password: ${{ secrets.SIGNING_CERT_PASSWORD }}
+          developer-id-installer-certificate: ${{ secrets.DEVELOPER_ID_INSTALLER_CERT }}
+          developer-id-installer-certificate-password: ${{ secrets.SIGNING_CERT_PASSWORD }}
+      - name: print outputs
+        run: |
+          set -e
+
+          EXECUTABLE="${{ steps.xcode-build.outputs.executable }}"
+
+          if [ -z "${EXECUTABLE}" ]; then
+            echo "No executable found in outputs"
+            exit 1
+          fi
+
+          echo "Executable: ${EXECUTABLE}"
+          OUTPUT_DIRECTORY="${{ steps.xcode-build.outputs.output-directory }}"
+
+          if [ -z "${OUTPUT_DIRECTORY}" ]; then
+            echo "No output directory found in outputs"
+            exit 1
+          fi
+
+          echo "::group::Output Directory: ${OUTPUT_DIRECTORY}"
+          ls -R "${OUTPUT_DIRECTORY}"
+          echo "::endgroup::"

@@ -1,0 +1,31 @@
+{
+  "os": [
+    "macos-latest"
+  ],
+  "unity-version": [
+    "2021.x",
+    "2022.x",
+    "6000.0.x",
+    "6000.1.x",
+    "6000.2.x"
+  ],
+  "build-target": [
+    "StandaloneOSX",
+    "iOS",
+    "VisionOS"
+  ],
+  "xcode-version": [
+    "16.3",
+    "16.4"
+  ],
+  "exclude": [
+    {
+      "unity-version": "2021.x",
+      "build-target": "VisionOS"
+    },
+    {
+      "unity-version": "2022.x",
+      "build-target": "VisionOS"
+    }
+  ]
+}
