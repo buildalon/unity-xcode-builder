@@ -83,13 +83,13 @@ jobs:
       - run: openupm add com.virtualmaker.buildalon
         name: Add Build Pipeline Package
         working-directory:  ${{ env.UNITY_PROJECT_PATH }}
-      - uses: buildalon/unity-action@v1
+      - uses: buildalon/unity-action@v2
         name: '${{ matrix.build-target }}-Validate'
         with:
           build-target: ${{ matrix.build-target }}
           log-name: '${{ matrix.build-target }}-Validate'
           args: '-quit -nographics -batchmode -executeMethod Buildalon.Editor.BuildPipeline.UnityPlayerBuildTools.ValidateProject -importTMProEssentialsAsset'
-      - uses: buildalon/unity-action@v1
+      - uses: buildalon/unity-action@v2
         name: '${{ matrix.build-target }}-Build'
         with:
           build-target: ${{ matrix.build-target }}
