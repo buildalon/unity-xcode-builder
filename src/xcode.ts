@@ -31,58 +31,67 @@ const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
 
 export async function GetOrSetXcodeVersion(): Promise<SemVer> {
-    let xcodeVersionString = core.getInput('xcode-version');
+    let xcodeVersionString = core.getInput('xcode-version') || 'latest';
 
-    if (xcodeVersionString) {
-        core.info(`Setting xcode version to ${xcodeVersionString}`);
-        let xcodeVersionOutput = '';
+    core.info(`Setting xcode version to ${xcodeVersionString}`);
+    let xcodeVersionOutput = '';
 
-        const installedExitCode = await exec('xcodes', ['installed'], {
-            listeners: {
-                stdout: (data: Buffer) => {
-                    xcodeVersionOutput += data.toString();
-                }
+    const installedExitCode = await exec('xcodes', ['installed'], {
+        listeners: {
+            stdout: (data: Buffer) => {
+                xcodeVersionOutput += data.toString();
             }
-        });
+        }
+    });
 
-        if (installedExitCode !== 0) {
-            throw new Error('Failed to get installed Xcode versions!');
+    if (installedExitCode !== 0) {
+        throw new Error('Failed to get installed Xcode versions!');
+    }
+
+    // Keep full lines so we can detect Beta & Release Candidate builds
+    const installedLines = xcodeVersionOutput.split('\n').filter(l => l.trim().length > 0);
+    type XcodeInstallEntry = { version: string; raw: string; isBeta: boolean; isRC: boolean; isSelected?: boolean; };
+    const installedXcodeEntries: XcodeInstallEntry[] = installedLines.map(line => {
+        const match = line.match(/^(\d+\.\d+)/); // first number like 16.4, 26.0
+        if (!match) { return null; }
+        const version = match[1];
+        const isBeta = /Beta/i.test(line);
+        // Detect various RC naming styles (Release Candidate, Release_Candidate, RC suffix/word)
+        const isRC = /(Release[_\s]?Candidate|\bRC\b)/i.test(line);
+        const isSelected = /(Selected)/i.test(line);
+        return { version, raw: line, isBeta, isRC, isSelected };
+    }).filter(Boolean) as XcodeInstallEntry[];
+
+    core.info(`Installed Xcode versions:`);
+    installedXcodeEntries.forEach(e => core.info(`  > ${e.version}${e.isBeta ? ' (Beta)' : e.isRC ? ' (RC)' : ''}`));
+
+    if (installedXcodeEntries.length === 0 || !xcodeVersionString.includes('latest')) {
+        if (installedXcodeEntries.length === 0 || !installedXcodeEntries.some(e => e.version === xcodeVersionString)) {
+            throw new Error(`Xcode version ${xcodeVersionString} is not installed! You will need to install this in a step before this one.`);
+        }
+    } else {
+        // Exclude Beta & Release Candidate versions when selecting 'latest'
+        const stableVersions = installedXcodeEntries.filter(e => !e.isBeta && !e.isRC);
+
+        if (stableVersions.length === 0) {
+            throw new Error('No stable (non-Beta / non-RC) Xcode versions installed!');
         }
 
-        const installedXcodeVersions = xcodeVersionOutput.split('\n').map(line => {
-            const match = line.match(/(\d+\.\d+(\s\w+)?)/);
-            return match ? match[1] : null;
-        }).filter(Boolean) as string[];
+        xcodeVersionString = stableVersions[stableVersions.length - 1].version;
+    }
 
-        core.info(`Installed Xcode versions:`);
-        installedXcodeVersions.forEach(version => core.info(`  > ${version}`));
-
-        if (installedXcodeVersions.length === 0 || !xcodeVersionString.includes('latest')) {
-            if (installedXcodeVersions.length === 0 || !installedXcodeVersions.includes(xcodeVersionString)) {
-                throw new Error(`Xcode version ${xcodeVersionString} is not installed! You will need to install this is a step before this one.`);
-            }
-        } else {
-            // Exclude versions containing 'Beta' and select the latest version
-            const nonBetaVersions = installedXcodeVersions.filter(v => !/Beta/i.test(v));
-
-            if (nonBetaVersions.length === 0) {
-                throw new Error('No Xcode versions installed!');
-            }
-
-            xcodeVersionString = nonBetaVersions[nonBetaVersions.length - 1];
-        }
-
-        core.info(`Selecting latest installed Xcode version ${xcodeVersionString}...`);
+    if (installedXcodeEntries.some(e => e.isSelected && e.version !== xcodeVersionString)) {
+        core.info(`Selecting new Xcode version ${xcodeVersionString}...`);
         const selectExitCode = await exec('xcodes', ['select', xcodeVersionString]);
 
         if (selectExitCode !== 0) {
             throw new Error(`Failed to select Xcode version ${xcodeVersionString}!`);
         }
+
+        await exec('xcodes', ['installed']);
     }
 
-    await exec('xcodes', ['installed']);
-
-    let xcodeVersionOutput = '';
+    xcodeVersionOutput = '';
     await exec('xcodebuild', ['-version'], {
         listeners: {
             stdout: (data: Buffer) => {
