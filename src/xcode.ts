@@ -52,7 +52,8 @@ export async function GetOrSetXcodeVersion(): Promise<SemVer> {
     const installedLines = xcodeVersionOutput.split('\n').filter(l => l.trim().length > 0);
     type XcodeInstallEntry = { version: string; raw: string; isBeta: boolean; isRC: boolean; isSelected?: boolean; };
     const installedXcodeEntries: XcodeInstallEntry[] = installedLines.map(line => {
-        const match = line.match(/^(\d+\.\d+)/); // first number like 16.4, 26.0
+        // capture the full dotted version (major.minor[.patch...]) e.g. 26.0.1
+        const match = line.match(/^(\d+(?:\.\d+)+)/); // first number like 16.4 or 26.0.1
         if (!match) { return null; }
         const version = match[1];
         const isBeta = /Beta/i.test(line);
@@ -71,11 +72,20 @@ export async function GetOrSetXcodeVersion(): Promise<SemVer> {
         }
     } else {
         // Exclude Beta & Release Candidate versions when selecting 'latest'
-        const stableVersions = installedXcodeEntries.filter(e => !e.isBeta && !e.isRC);
+        let stableVersions = installedXcodeEntries.filter(e => !e.isBeta && !e.isRC);
 
         if (stableVersions.length === 0) {
             throw new Error('No stable (non-Beta / non-RC) Xcode versions installed!');
         }
+
+        // Sort by semantic version to ensure we pick the true latest installed
+        stableVersions = stableVersions.sort((a, b) => {
+            const av = semver.coerce(a.version);
+            const bv = semver.coerce(b.version);
+            const as = av ? av.version : '0.0.0';
+            const bs = bv ? bv.version : '0.0.0';
+            return semver.compare(as, bs);
+        });
 
         xcodeVersionString = stableVersions[stableVersions.length - 1].version;
     }
@@ -100,7 +110,8 @@ export async function GetOrSetXcodeVersion(): Promise<SemVer> {
         }
     });
 
-    const xcodeVersionMatch = xcodeVersionOutput.match(/Xcode (?<version>\d+\.\d+)/);
+    // capture full dotted version from `xcodebuild -version` (e.g. "Xcode 26.0.1")
+    const xcodeVersionMatch = xcodeVersionOutput.match(/Xcode (?<version>\d+(?:\.\d+)+)/);
 
     if (!xcodeVersionMatch) {
         throw new Error('Failed to get Xcode version!');
