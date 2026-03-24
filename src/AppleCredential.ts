@@ -2,10 +2,13 @@ import core = require('@actions/core');
 import exec = require('@actions/exec');
 import uuid = require('uuid');
 import fs = require('fs');
+import http = require('http');
+import https = require('https');
 
 const security = '/usr/bin/security';
 const temp = process.env['RUNNER_TEMP'] || '.';
 const appStoreConnectKeyDir = `${process.env.HOME}/.appstoreconnect/private_keys`;
+const developerIdG2CertificateUrl = 'http://certs.apple.com/devidg2.der';
 
 export class AppleCredential {
     constructor(
@@ -75,6 +78,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             }
             core.info('Importing manual signing certificate...');
             await importCertificate(
+                false,
                 keychainPath,
                 tempCredential,
                 manualSigningCertificateBase64.trim(),
@@ -145,6 +149,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             }
             core.info('Importing developer id application certificate...');
             await importCertificate(
+                true,
                 keychainPath,
                 tempCredential,
                 developerIdApplicationCertificateBase64.trim(),
@@ -159,6 +164,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             }
             core.info('Importing developer id installer certificate...');
             await importCertificate(
+                true,
                 keychainPath,
                 tempCredential,
                 developerIdInstallerCertificateBase64.trim(),
@@ -251,7 +257,7 @@ async function getCertificateDirectory(): Promise<string> {
     return certificateDirectory;
 }
 
-async function importCertificate(keychainPath: string, tempCredential: string, certificateBase64: string, certificatePassword: string): Promise<void> {
+async function importCertificate(importDeveloperIdIntermediate: boolean, keychainPath: string, tempCredential: string, certificateBase64: string, certificatePassword: string): Promise<void> {
     const certificateDirectory = await getCertificateDirectory();
     const certificatePath = `${certificateDirectory}/${tempCredential}-${uuid.v4()}.p12`;
     const certificate = Buffer.from(certificateBase64, 'base64');
@@ -260,8 +266,11 @@ async function importCertificate(keychainPath: string, tempCredential: string, c
         'import', certificatePath,
         '-k', keychainPath,
         '-P', certificatePassword,
-        '-A', '-t', 'cert', '-f', 'pkcs12'
+        '-A', '-f', 'pkcs12'
     ]);
+    if (importDeveloperIdIntermediate) {
+        await ensureDeveloperIdIntermediateInKeychain(keychainPath, certificateDirectory);
+    }
     const partitionList = 'apple-tool:,apple:,codesign:';
     if (core.isDebug()) {
         core.info(`[command]${security} set-key-partition-list -S ${partitionList} -s -k ${tempCredential} ${keychainPath}`);
@@ -282,4 +291,49 @@ async function unlockTemporaryKeychain(keychainPath: string, tempCredential: str
     if (exitCode !== 0) {
         throw new Error(`Failed to unlock keychain! Exit code: ${exitCode}`);
     }
+}
+
+async function ensureDeveloperIdIntermediateInKeychain(keychainPath: string, certificateDirectory: string): Promise<void> {
+    const intermediatePath = `${certificateDirectory}/${uuid.v4()}-developer-id-g2.der`;
+    try {
+        const certificateData = await downloadFileBuffer(developerIdG2CertificateUrl);
+        await fs.promises.writeFile(intermediatePath, certificateData);
+        await exec.exec(security, ['add-certificates', '-k', keychainPath, intermediatePath]);
+        core.info('Imported Developer ID Certification Authority G2 into the temporary keychain.');
+    } finally {
+        try {
+            await fs.promises.unlink(intermediatePath);
+        } catch {
+            // Best-effort cleanup for temporary certificate downloads.
+        }
+    }
+}
+
+async function downloadFileBuffer(url: string): Promise<Buffer> {
+    return await new Promise((resolve, reject) => {
+        const client = url.startsWith('https://') ? https : http;
+        const request = client.get(url, response => {
+            if (!response.statusCode || response.statusCode >= 400) {
+                reject(new Error(`HTTP ${response.statusCode || 'unknown'} downloading ${url}`));
+                response.resume();
+                return;
+            }
+
+            if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
+                response.resume();
+                downloadFileBuffer(response.headers.location).then(resolve, reject);
+                return;
+            }
+
+            const chunks: Buffer[] = [];
+            response.on('data', chunk => {
+                chunks.push(chunk);
+            });
+            response.on('end', () => {
+                resolve(Buffer.concat(chunks));
+            });
+            response.on('error', reject);
+        });
+        request.on('error', reject);
+    });
 }
