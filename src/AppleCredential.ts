@@ -2,8 +2,6 @@ import core = require('@actions/core');
 import exec = require('@actions/exec');
 import uuid = require('uuid');
 import fs = require('fs');
-import http = require('http');
-import https = require('https');
 
 const security = '/usr/bin/security';
 const temp = process.env['RUNNER_TEMP'] || '.';
@@ -310,30 +308,9 @@ async function ensureDeveloperIdIntermediateInKeychain(keychainPath: string, cer
 }
 
 async function downloadFileBuffer(url: string): Promise<Buffer> {
-    return await new Promise((resolve, reject) => {
-        const client = url.startsWith('https://') ? https : http;
-        const request = client.get(url, response => {
-            if (!response.statusCode || response.statusCode >= 400) {
-                reject(new Error(`HTTP ${response.statusCode || 'unknown'} downloading ${url}`));
-                response.resume();
-                return;
-            }
-
-            if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-                response.resume();
-                downloadFileBuffer(response.headers.location).then(resolve, reject);
-                return;
-            }
-
-            const chunks: Buffer[] = [];
-            response.on('data', chunk => {
-                chunks.push(chunk);
-            });
-            response.on('end', () => {
-                resolve(Buffer.concat(chunks));
-            });
-            response.on('error', reject);
-        });
-        request.on('error', reject);
-    });
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status} downloading ${url}`);
+    }
+    return Buffer.from(await response.arrayBuffer());
 }
