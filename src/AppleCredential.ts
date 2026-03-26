@@ -17,7 +17,8 @@ export class AppleCredential {
         appStoreConnectKey?: string,
         teamId?: string,
         manualSigningIdentity?: string,
-        manualProvisioningProfileUUID?: string
+        manualProvisioningProfileUUID?: string,
+        manualProvisioningProfileName?: string
     ) {
         this.tempPassPhrase = tempPassPhrase;
         this.keychainPath = keychainPath;
@@ -28,6 +29,7 @@ export class AppleCredential {
         this.teamId = teamId;
         this.manualSigningIdentity = manualSigningIdentity;
         this.manualProvisioningProfileUUID = manualProvisioningProfileUUID;
+        this.manualProvisioningProfileName = manualProvisioningProfileName;
     }
     tempPassPhrase: string;
     keychainPath: string;
@@ -38,6 +40,7 @@ export class AppleCredential {
     teamId?: string;
     manualSigningIdentity?: string;
     manualProvisioningProfileUUID?: string;
+    manualProvisioningProfileName?: string;
     bearerToken?: string;
     ascPublicId?: string;
 }
@@ -118,21 +121,24 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         const manualProvisioningProfileBase64 = core.getInput('provisioning-profile');
         const manualProvisioningProfileInputPath = core.getInput('provisioning-profile-path');
         let manualProvisioningProfileUUID: string | undefined;
+        let manualProvisioningProfileName: string | undefined;
         if (manualProvisioningProfileBase64 && manualProvisioningProfileInputPath) {
             throw new Error('Cannot specify both `provisioning-profile` and `provisioning-profile-path`. Use one or the other.');
         }
         if (manualProvisioningProfileBase64) {
             core.info('Importing provisioning profile from base64...');
-            const provisioningProfileName = core.getInput('provisioning-profile-name', { required: true });
-            if (!provisioningProfileName.endsWith('.mobileprovision') &&
-                !provisioningProfileName.endsWith('.provisionprofile')) {
+            const provisioningProfileFileName = core.getInput('provisioning-profile-name', { required: true });
+            if (!provisioningProfileFileName.endsWith('.mobileprovision') &&
+                !provisioningProfileFileName.endsWith('.provisionprofile')) {
                 throw new Error('Provisioning profile name must end with .mobileprovision or .provisionprofile');
             }
-            const provisioningProfilePath = `${temp}/${provisioningProfileName}`;
+            const provisioningProfilePath = `${temp}/${provisioningProfileFileName}`;
             core.saveState('provisioningProfilePath', provisioningProfilePath);
             const provisioningProfile = Buffer.from(manualProvisioningProfileBase64, 'base64').toString('binary');
             await fs.promises.writeFile(provisioningProfilePath, provisioningProfile, 'binary');
-            manualProvisioningProfileUUID = await parseProvisioningProfileUUID(provisioningProfilePath);
+            const profileInfo = await parseProvisioningProfile(provisioningProfilePath);
+            manualProvisioningProfileUUID = profileInfo.uuid;
+            manualProvisioningProfileName = profileInfo.name;
         } else if (manualProvisioningProfileInputPath) {
             core.info(`Importing provisioning profile from path: ${manualProvisioningProfileInputPath}`);
             if (!manualProvisioningProfileInputPath.endsWith('.mobileprovision') &&
@@ -144,11 +150,13 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             } catch {
                 throw new Error(`Provisioning profile not found at path: ${manualProvisioningProfileInputPath}`);
             }
-            const provisioningProfileName = manualProvisioningProfileInputPath.split('/').pop()!;
-            const provisioningProfilePath = `${temp}/${provisioningProfileName}`;
+            const provisioningProfileFileName = manualProvisioningProfileInputPath.split('/').pop()!;
+            const provisioningProfilePath = `${temp}/${provisioningProfileFileName}`;
             core.saveState('provisioningProfilePath', provisioningProfilePath);
             await fs.promises.copyFile(manualProvisioningProfileInputPath, provisioningProfilePath);
-            manualProvisioningProfileUUID = await parseProvisioningProfileUUID(provisioningProfilePath);
+            const profileInfo = await parseProvisioningProfile(provisioningProfilePath);
+            manualProvisioningProfileUUID = profileInfo.uuid;
+            manualProvisioningProfileName = profileInfo.name;
         }
         const developerIdApplicationCertificateBase64 = core.getInput('developer-id-application-certificate');
         if (developerIdApplicationCertificateBase64) {
@@ -211,7 +219,8 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             appStoreConnectKey,
             teamId,
             manualSigningIdentity,
-            manualProvisioningProfileUUID
+            manualProvisioningProfileUUID,
+            manualProvisioningProfileName
         );
     } finally {
         core.endGroup();
@@ -290,13 +299,18 @@ async function importCertificate(keychainPath: string, tempCredential: string, c
     await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
 }
 
-async function parseProvisioningProfileUUID(profilePath: string): Promise<string> {
+async function parseProvisioningProfile(profilePath: string): Promise<{ uuid: string; name: string }> {
     const content = await fs.promises.readFile(profilePath, 'utf8');
     const uuidMatch = content.match(/<key>UUID<\/key>\s*<string>([^<]+)<\/string>/);
     if (!uuidMatch) {
         throw new Error('Failed to parse provisioning profile UUID');
     }
-    return uuidMatch[1];
+    const nameMatch = content.match(/<key>Name<\/key>\s*<string>([^<]+)<\/string>/);
+    if (!nameMatch) {
+        throw new Error('Failed to parse provisioning profile Name');
+    }
+    core.info(`Provisioning profile: ${nameMatch[1]} (${uuidMatch[1]})`);
+    return { uuid: uuidMatch[1], name: nameMatch[1] };
 }
 
 async function unlockTemporaryKeychain(keychainPath: string, tempCredential: string): Promise<void> {

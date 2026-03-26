@@ -379,29 +379,51 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     return projectRef;
 }
 
-async function setProvisioningProfileInProject(projectPath: string, provisioningProfileUUID: string): Promise<void> {
+interface ManualSigningSettings {
+    provisioningProfileUUID: string;
+    provisioningProfileName: string;
+    signingIdentity?: string;
+    teamId?: string;
+    entitlementsPath?: string;
+}
+
+async function setManualSigningInProject(projectPath: string, settings: ManualSigningSettings): Promise<void> {
     const projectFilePath = `${projectPath}/project.pbxproj`;
-    core.info(`Setting PROVISIONING_PROFILE=${provisioningProfileUUID} on app target in ${projectFilePath}`);
+    core.info(`Setting manual signing build settings on app target in ${projectFilePath}`);
     let content = await fs.promises.readFile(projectFilePath, 'utf8');
     // Match buildSettings blocks that contain PRODUCT_BUNDLE_IDENTIFIER (app targets only).
-    // This avoids applying the provisioning profile to library targets like GameAssembly.dylib.
+    // This avoids applying signing settings to library targets like GameAssembly.dylib.
     const buildSettingsRegex = /(buildSettings\s*=\s*\{[^}]*PRODUCT_BUNDLE_IDENTIFIER\s*=[^}]*?)(};)/g;
     let matchCount = 0;
     content = content.replace(buildSettingsRegex, (match, prefix, suffix) => {
         matchCount++;
-        if (match.includes('PROVISIONING_PROFILE')) {
-            // Already has a provisioning profile setting, replace it
-            return match.replace(
-                /PROVISIONING_PROFILE\s*=\s*"[^"]*"\s*;/,
-                `PROVISIONING_PROFILE = "${provisioningProfileUUID}";`
-            );
+        let result = match;
+        const setOrAdd = (key: string, value: string) => {
+            const keyRegex = new RegExp(`${key}\\s*=\\s*[^;]*;`);
+            if (result.match(keyRegex)) {
+                result = result.replace(keyRegex, `${key} = ${value};`);
+            } else {
+                result = result.replace(suffix, `\t\t\t\t${key} = ${value};\n\t\t\t${suffix}`);
+            }
+        };
+        setOrAdd('CODE_SIGN_STYLE', 'Manual');
+        setOrAdd('PROVISIONING_PROFILE', `"${settings.provisioningProfileUUID}"`);
+        setOrAdd('PROVISIONING_PROFILE_SPECIFIER', `"${settings.provisioningProfileName}"`);
+        if (settings.signingIdentity) {
+            setOrAdd('CODE_SIGN_IDENTITY', `"${settings.signingIdentity}"`);
         }
-        return `${prefix}\t\t\t\tPROVISIONING_PROFILE = "${provisioningProfileUUID}";\n\t\t\t${suffix}`;
+        if (settings.teamId) {
+            setOrAdd('DEVELOPMENT_TEAM', settings.teamId);
+        }
+        if (settings.entitlementsPath) {
+            setOrAdd('CODE_SIGN_ENTITLEMENTS', `"${settings.entitlementsPath}"`);
+        }
+        return result;
     });
     if (matchCount === 0) {
         throw new Error('Failed to find any build configurations with PRODUCT_BUNDLE_IDENTIFIER in the Xcode project');
     }
-    core.info(`Updated ${matchCount} build configuration(s) with PROVISIONING_PROFILE`);
+    core.info(`Updated ${matchCount} build configuration(s) with manual signing settings`);
     await fs.promises.writeFile(projectFilePath, content, 'utf8');
 }
 
@@ -678,6 +700,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         teamId,
         manualSigningIdentity,
         manualProvisioningProfileUUID,
+        manualProvisioningProfileName,
         keychainPath,
         appStoreConnectIssuerId,
         appStoreConnectKeyId,
@@ -698,38 +721,44 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         `-authenticationKeyIssuerID`, appStoreConnectIssuerId
     ];
 
-    if (teamId) {
-        archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
-    }
-
-    if (manualSigningIdentity) {
-        archiveArgs.push(
-            `CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
-            `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
-            `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
-        );
-    } else if (!manualProvisioningProfileUUID) {
-        archiveArgs.push(
-            `CODE_SIGN_IDENTITY=-`,
-            `EXPANDED_CODE_SIGN_IDENTITY=-`
-        );
-    }
-
-    archiveArgs.push(
-        `CODE_SIGN_STYLE=${manualProvisioningProfileUUID || manualSigningIdentity ? 'Manual' : 'Automatic'}`
-    );
-
     if (manualProvisioningProfileUUID) {
-        await setProvisioningProfileInProject(projectPath, manualProvisioningProfileUUID);
+        // Set all manual signing settings in the pbxproj on the app target only,
+        // so library targets like GameAssembly.dylib are not affected.
+        await setManualSigningInProject(projectPath, {
+            provisioningProfileUUID: manualProvisioningProfileUUID,
+            provisioningProfileName: manualProvisioningProfileName,
+            signingIdentity: manualSigningIdentity,
+            teamId: teamId,
+            entitlementsPath: entitlementsPath
+        });
+        if (manualSigningIdentity) {
+            archiveArgs.push(`OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
+        }
     } else {
+        if (teamId) {
+            archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
+        }
+        if (manualSigningIdentity) {
+            archiveArgs.push(
+                `CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
+                `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
+                `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
+            );
+            archiveArgs.push(`CODE_SIGN_STYLE=Manual`);
+        } else {
+            archiveArgs.push(
+                `CODE_SIGN_IDENTITY=-`,
+                `EXPANDED_CODE_SIGN_IDENTITY=-`
+            );
+            archiveArgs.push(`CODE_SIGN_STYLE=Automatic`);
+        }
         archiveArgs.push(
             `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
             `-allowProvisioningUpdates`
         );
-    }
-
-    if (entitlementsPath) {
-        archiveArgs.push(`CODE_SIGN_ENTITLEMENTS=${entitlementsPath}`);
+        if (entitlementsPath) {
+            archiveArgs.push(`CODE_SIGN_ENTITLEMENTS=${entitlementsPath}`);
+        }
     }
 
     if (platform === 'iOS') {
