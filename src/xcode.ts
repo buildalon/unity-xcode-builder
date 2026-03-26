@@ -584,6 +584,11 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
         await fs.promises.writeFile(exportOptionsPath, plist.build(exportOptions));
     } else {
         exportOptionsPath = exportOptionPlistInput;
+        const exportOptionsPlistContent = await fs.promises.readFile(exportOptionsPath, 'utf8');
+        const exportOptionsPlist = plist.parse(exportOptionsPlistContent) as Record<string, unknown>;
+        if (exportOptionsPlist.method) {
+            projectRef.exportOption = exportOptionsPlist.method as string;
+        }
     }
 
     core.debug(`Export options path: ${exportOptionsPath}`);
