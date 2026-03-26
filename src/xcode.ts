@@ -379,20 +379,17 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     return projectRef;
 }
 
-interface ManualSigningSettings {
+interface ProvisioningProfileSettings {
     provisioningProfileUUID: string;
     provisioningProfileName: string;
-    signingIdentity?: string;
-    teamId?: string;
-    entitlementsPath?: string;
 }
 
-async function setManualSigningInProject(projectPath: string, settings: ManualSigningSettings): Promise<void> {
+async function setManualSigningInProject(projectPath: string, settings: ProvisioningProfileSettings): Promise<void> {
     const projectFilePath = `${projectPath}/project.pbxproj`;
-    core.info(`Setting manual signing build settings on app target in ${projectFilePath}`);
+    core.info(`Setting provisioning profile on app target in ${projectFilePath}`);
     let content = await fs.promises.readFile(projectFilePath, 'utf8');
     // Match buildSettings blocks that contain PRODUCT_BUNDLE_IDENTIFIER (app targets only).
-    // This avoids applying signing settings to library targets like GameAssembly.dylib.
+    // This avoids applying the provisioning profile to library targets like GameAssembly.dylib.
     const buildSettingsRegex = /(buildSettings\s*=\s*\{[^}]*PRODUCT_BUNDLE_IDENTIFIER\s*=[^}]*?)(};)/g;
     let matchCount = 0;
     content = content.replace(buildSettingsRegex, (match, prefix, suffix) => {
@@ -406,24 +403,14 @@ async function setManualSigningInProject(projectPath: string, settings: ManualSi
                 result = result.replace(suffix, `\t\t\t\t${key} = ${value};\n\t\t\t${suffix}`);
             }
         };
-        setOrAdd('CODE_SIGN_STYLE', 'Manual');
         setOrAdd('PROVISIONING_PROFILE', `"${settings.provisioningProfileUUID}"`);
         setOrAdd('PROVISIONING_PROFILE_SPECIFIER', `"${settings.provisioningProfileName}"`);
-        if (settings.signingIdentity) {
-            setOrAdd('CODE_SIGN_IDENTITY', `"${settings.signingIdentity}"`);
-        }
-        if (settings.teamId) {
-            setOrAdd('DEVELOPMENT_TEAM', settings.teamId);
-        }
-        if (settings.entitlementsPath) {
-            setOrAdd('CODE_SIGN_ENTITLEMENTS', `"${settings.entitlementsPath}"`);
-        }
         return result;
     });
     if (matchCount === 0) {
         throw new Error('Failed to find any build configurations with PRODUCT_BUNDLE_IDENTIFIER in the Xcode project');
     }
-    core.info(`Updated ${matchCount} build configuration(s) with manual signing settings`);
+    core.info(`Updated ${matchCount} build configuration(s) with provisioning profile`);
     await fs.promises.writeFile(projectFilePath, content, 'utf8');
 }
 
@@ -721,23 +708,27 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         `-authenticationKeyIssuerID`, appStoreConnectIssuerId
     ];
 
+    if (teamId) {
+        archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
+    }
+
     if (manualProvisioningProfileUUID) {
-        // Set all manual signing settings in the pbxproj on the app target only,
+        // Set provisioning profile in the pbxproj on the app target only,
         // so library targets like GameAssembly.dylib are not affected.
         await setManualSigningInProject(projectPath, {
             provisioningProfileUUID: manualProvisioningProfileUUID,
             provisioningProfileName: manualProvisioningProfileName,
-            signingIdentity: manualSigningIdentity,
-            teamId: teamId,
-            entitlementsPath: entitlementsPath
         });
+        // These are safe to set globally on the CLI.
+        archiveArgs.push(`CODE_SIGN_STYLE=Manual`);
         if (manualSigningIdentity) {
-            archiveArgs.push(`OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`);
+            archiveArgs.push(
+                `CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
+                `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
+                `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
+            );
         }
     } else {
-        if (teamId) {
-            archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
-        }
         if (manualSigningIdentity) {
             archiveArgs.push(
                 `CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
@@ -756,9 +747,10 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
             `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
             `-allowProvisioningUpdates`
         );
-        if (entitlementsPath) {
-            archiveArgs.push(`CODE_SIGN_ENTITLEMENTS=${entitlementsPath}`);
-        }
+    }
+
+    if (entitlementsPath) {
+        archiveArgs.push(`CODE_SIGN_ENTITLEMENTS=${entitlementsPath}`);
     }
 
     if (platform === 'iOS') {
@@ -768,6 +760,9 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     if (platform === 'macOS' && !projectRef.isAppStoreUpload()) {
         archiveArgs.push('ENABLE_HARDENED_RUNTIME=YES');
     }
+
+    // Dump build settings after any pbxproj modifications so we can verify they took effect.
+    await getBuildSettings(projectPath);
 
     if (!core.isDebug()) {
         archiveArgs.push('-quiet');
