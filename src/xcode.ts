@@ -379,45 +379,6 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     return projectRef;
 }
 
-interface ProvisioningProfileSettings {
-    provisioningProfileUUID: string;
-    provisioningProfileName: string;
-}
-
-async function setManualSigningInProject(projectPath: string, settings: ProvisioningProfileSettings): Promise<void> {
-    const projectFilePath = `${projectPath}/project.pbxproj`;
-    core.info(`Setting provisioning profile on app target in ${projectFilePath}`);
-    let content = await fs.promises.readFile(projectFilePath, 'utf8');
-    // Match buildSettings blocks that contain PRODUCT_BUNDLE_IDENTIFIER (app targets only).
-    // Skip framework targets (UnityFramework) and library targets (GameAssembly.dylib)
-    // which don't support provisioning profiles.
-    const buildSettingsRegex = /(buildSettings\s*=\s*\{[^}]*PRODUCT_BUNDLE_IDENTIFIER\s*=[^}]*?)(};)/g;
-    let matchCount = 0;
-    content = content.replace(buildSettingsRegex, (match, prefix, suffix) => {
-        if (match.includes('WRAPPER_EXTENSION = framework')) {
-            return match; // skip framework targets
-        }
-        matchCount++;
-        let result = match;
-        const setOrAdd = (key: string, value: string) => {
-            const keyRegex = new RegExp(`${key}\\s*=\\s*[^;]*;`);
-            if (result.match(keyRegex)) {
-                result = result.replace(keyRegex, `${key} = ${value};`);
-            } else {
-                result = result.replace(suffix, `\t\t\t\t${key} = ${value};\n\t\t\t${suffix}`);
-            }
-        };
-        setOrAdd('PROVISIONING_PROFILE', `"${settings.provisioningProfileUUID}"`);
-        setOrAdd('PROVISIONING_PROFILE_SPECIFIER', `"${settings.provisioningProfileName}"`);
-        return result;
-    });
-    if (matchCount === 0) {
-        throw new Error('Failed to find any build configurations with PRODUCT_BUNDLE_IDENTIFIER in the Xcode project');
-    }
-    core.info(`Updated ${matchCount} build configuration(s) with provisioning profile`);
-    await fs.promises.writeFile(projectFilePath, content, 'utf8');
-}
-
 async function getSupportedPlatform(projectPath: string): Promise<string> {
     const projectFilePath = `${projectPath}/project.pbxproj`;
     core.debug(`.pbxproj file path: ${projectFilePath}`);
@@ -717,13 +678,12 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     }
 
     if (manualProvisioningProfileUUID) {
-        // Set provisioning profile in the pbxproj on the app target only,
-        // so library targets like GameAssembly.dylib are not affected.
-        await setManualSigningInProject(projectPath, {
-            provisioningProfileUUID: manualProvisioningProfileUUID,
-            provisioningProfileName: manualProvisioningProfileName,
-        });
-        // These are safe to set globally on the CLI.
+        // Use Unity's _APP suffix to target only the app target, not UnityFramework or GameAssembly.
+        // https://docs.unity3d.com/2022.1/Documentation/Manual/StructureOfXcodeProject.html
+        archiveArgs.push(
+            `PROVISIONING_PROFILE_APP=${manualProvisioningProfileUUID}`,
+            `PROVISIONING_PROFILE_SPECIFIER_APP=${manualProvisioningProfileName}`
+        );
         archiveArgs.push(`CODE_SIGN_STYLE=Manual`);
         if (manualSigningIdentity) {
             archiveArgs.push(
@@ -764,9 +724,6 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     if (platform === 'macOS' && !projectRef.isAppStoreUpload()) {
         archiveArgs.push('ENABLE_HARDENED_RUNTIME=YES');
     }
-
-    // Dump build settings after any pbxproj modifications so we can verify they took effect.
-    await getBuildSettings(projectPath);
 
     if (!core.isDebug()) {
         archiveArgs.push('-quiet');
