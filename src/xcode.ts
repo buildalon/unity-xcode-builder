@@ -1338,6 +1338,9 @@ async function execWithXcBeautify(xcodeBuildArgs: string[]) {
 
     if (exitCode !== 0) {
         await parseBundleLog(errorOutput);
+        if (errorOutput) {
+            core.error(`xcodebuild stderr:\n${errorOutput}`);
+        }
         throw new Error(`xcodebuild exited with code: ${exitCode}`);
     }
 }
