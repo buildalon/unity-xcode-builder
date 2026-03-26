@@ -389,10 +389,14 @@ async function setManualSigningInProject(projectPath: string, settings: Provisio
     core.info(`Setting provisioning profile on app target in ${projectFilePath}`);
     let content = await fs.promises.readFile(projectFilePath, 'utf8');
     // Match buildSettings blocks that contain PRODUCT_BUNDLE_IDENTIFIER (app targets only).
-    // This avoids applying the provisioning profile to library targets like GameAssembly.dylib.
+    // Skip framework targets (UnityFramework) and library targets (GameAssembly.dylib)
+    // which don't support provisioning profiles.
     const buildSettingsRegex = /(buildSettings\s*=\s*\{[^}]*PRODUCT_BUNDLE_IDENTIFIER\s*=[^}]*?)(};)/g;
     let matchCount = 0;
     content = content.replace(buildSettingsRegex, (match, prefix, suffix) => {
+        if (match.includes('WRAPPER_EXTENSION = framework')) {
+            return match; // skip framework targets
+        }
         matchCount++;
         let result = match;
         const setOrAdd = (key: string, value: string) => {
