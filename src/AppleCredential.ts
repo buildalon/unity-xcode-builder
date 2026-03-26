@@ -116,9 +116,13 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             }
         }
         const manualProvisioningProfileBase64 = core.getInput('provisioning-profile');
+        const manualProvisioningProfileInputPath = core.getInput('provisioning-profile-path');
         let manualProvisioningProfileUUID: string | undefined;
+        if (manualProvisioningProfileBase64 && manualProvisioningProfileInputPath) {
+            throw new Error('Cannot specify both `provisioning-profile` and `provisioning-profile-path`. Use one or the other.');
+        }
         if (manualProvisioningProfileBase64) {
-            core.info('Importing provisioning profile...');
+            core.info('Importing provisioning profile from base64...');
             const provisioningProfileName = core.getInput('provisioning-profile-name', { required: true });
             if (!provisioningProfileName.endsWith('.mobileprovision') &&
                 !provisioningProfileName.endsWith('.provisionprofile')) {
@@ -128,14 +132,23 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             core.saveState('provisioningProfilePath', provisioningProfilePath);
             const provisioningProfile = Buffer.from(manualProvisioningProfileBase64, 'base64').toString('binary');
             await fs.promises.writeFile(provisioningProfilePath, provisioningProfile, 'binary');
-            const provisioningProfileContent = await fs.promises.readFile(provisioningProfilePath, 'utf8');
-            const uuidMatch = provisioningProfileContent.match(/<key>UUID<\/key>\s*<string>([^<]+)<\/string>/);
-            if (uuidMatch) {
-                manualProvisioningProfileUUID = uuidMatch[1];
+            manualProvisioningProfileUUID = await parseProvisioningProfileUUID(provisioningProfilePath);
+        } else if (manualProvisioningProfileInputPath) {
+            core.info(`Importing provisioning profile from path: ${manualProvisioningProfileInputPath}`);
+            if (!manualProvisioningProfileInputPath.endsWith('.mobileprovision') &&
+                !manualProvisioningProfileInputPath.endsWith('.provisionprofile')) {
+                throw new Error('Provisioning profile path must end with .mobileprovision or .provisionprofile');
             }
-            if (!manualProvisioningProfileUUID) {
-                throw new Error('Failed to parse provisioning profile UUID');
+            try {
+                await fs.promises.access(manualProvisioningProfileInputPath, fs.constants.R_OK);
+            } catch {
+                throw new Error(`Provisioning profile not found at path: ${manualProvisioningProfileInputPath}`);
             }
+            const provisioningProfileName = manualProvisioningProfileInputPath.split('/').pop()!;
+            const provisioningProfilePath = `${temp}/${provisioningProfileName}`;
+            core.saveState('provisioningProfilePath', provisioningProfilePath);
+            await fs.promises.copyFile(manualProvisioningProfileInputPath, provisioningProfilePath);
+            manualProvisioningProfileUUID = await parseProvisioningProfileUUID(provisioningProfilePath);
         }
         const developerIdApplicationCertificateBase64 = core.getInput('developer-id-application-certificate');
         if (developerIdApplicationCertificateBase64) {
@@ -275,6 +288,15 @@ async function importCertificate(keychainPath: string, tempCredential: string, c
         silent: !core.isDebug()
     });
     await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
+}
+
+async function parseProvisioningProfileUUID(profilePath: string): Promise<string> {
+    const content = await fs.promises.readFile(profilePath, 'utf8');
+    const uuidMatch = content.match(/<key>UUID<\/key>\s*<string>([^<]+)<\/string>/);
+    if (!uuidMatch) {
+        throw new Error('Failed to parse provisioning profile UUID');
+    }
+    return uuidMatch[1];
 }
 
 async function unlockTemporaryKeychain(keychainPath: string, tempCredential: string): Promise<void> {
