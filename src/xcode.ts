@@ -379,6 +379,32 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
     return projectRef;
 }
 
+async function setProvisioningProfileInProject(projectPath: string, provisioningProfileUUID: string): Promise<void> {
+    const projectFilePath = `${projectPath}/project.pbxproj`;
+    core.info(`Setting PROVISIONING_PROFILE=${provisioningProfileUUID} on app target in ${projectFilePath}`);
+    let content = await fs.promises.readFile(projectFilePath, 'utf8');
+    // Match buildSettings blocks that contain PRODUCT_BUNDLE_IDENTIFIER (app targets only).
+    // This avoids applying the provisioning profile to library targets like GameAssembly.dylib.
+    const buildSettingsRegex = /(buildSettings\s*=\s*\{[^}]*PRODUCT_BUNDLE_IDENTIFIER\s*=[^}]*?)(};)/g;
+    let matchCount = 0;
+    content = content.replace(buildSettingsRegex, (match, prefix, suffix) => {
+        matchCount++;
+        if (match.includes('PROVISIONING_PROFILE')) {
+            // Already has a provisioning profile setting, replace it
+            return match.replace(
+                /PROVISIONING_PROFILE\s*=\s*"[^"]*"\s*;/,
+                `PROVISIONING_PROFILE = "${provisioningProfileUUID}";`
+            );
+        }
+        return `${prefix}\t\t\t\tPROVISIONING_PROFILE = "${provisioningProfileUUID}";\n\t\t\t${suffix}`;
+    });
+    if (matchCount === 0) {
+        throw new Error('Failed to find any build configurations with PRODUCT_BUNDLE_IDENTIFIER in the Xcode project');
+    }
+    core.info(`Updated ${matchCount} build configuration(s) with PROVISIONING_PROFILE`);
+    await fs.promises.writeFile(projectFilePath, content, 'utf8');
+}
+
 async function getSupportedPlatform(projectPath: string): Promise<string> {
     const projectFilePath = `${projectPath}/project.pbxproj`;
     core.debug(`.pbxproj file path: ${projectFilePath}`);
@@ -694,7 +720,7 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
     );
 
     if (manualProvisioningProfileUUID) {
-        archiveArgs.push(`PROVISIONING_PROFILE=${manualProvisioningProfileUUID}`);
+        await setProvisioningProfileInProject(projectPath, manualProvisioningProfileUUID);
     } else {
         archiveArgs.push(
             `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
