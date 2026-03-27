@@ -18,7 +18,8 @@ export class AppleCredential {
         teamId?: string,
         manualSigningIdentity?: string,
         manualProvisioningProfileUUID?: string,
-        manualProvisioningProfileName?: string
+        manualProvisioningProfileName?: string,
+        isUserKeychain?: boolean
     ) {
         this.tempPassPhrase = tempPassPhrase;
         this.keychainPath = keychainPath;
@@ -30,6 +31,7 @@ export class AppleCredential {
         this.manualSigningIdentity = manualSigningIdentity;
         this.manualProvisioningProfileUUID = manualProvisioningProfileUUID;
         this.manualProvisioningProfileName = manualProvisioningProfileName;
+        this.isUserKeychain = isUserKeychain || false;
     }
     tempPassPhrase: string;
     keychainPath: string;
@@ -41,6 +43,7 @@ export class AppleCredential {
     manualSigningIdentity?: string;
     manualProvisioningProfileUUID?: string;
     manualProvisioningProfileName?: string;
+    isUserKeychain: boolean;
     bearerToken?: string;
     ascPublicId?: string;
 }
@@ -62,16 +65,34 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         const appStoreConnectKey = Buffer.from(appStoreConnectKeyBase64, 'base64').toString('utf8');
         core.setSecret(appStoreConnectKey);
         await fs.promises.writeFile(appStoreConnectKeyPath, appStoreConnectKey, 'utf8');
-        const keychainPath = `${temp}/${tempCredential}.keychain-db`;
-        await exec.exec(security, ['create-keychain', '-p', tempCredential, keychainPath]);
-        await exec.exec(security, ['set-keychain-settings', '-lut', '21600', keychainPath]);
-        await unlockTemporaryKeychain(keychainPath, tempCredential);
+        const userKeychainPath = core.getInput('keychain');
+        const userKeychainPassword = core.getInput('keychain-password');
+        const isUserKeychain = !!userKeychainPath;
+        let keychainPath: string;
+        if (isUserKeychain) {
+            if (!userKeychainPassword) {
+                throw new Error('keychain-password is required when keychain is provided!');
+            }
+            keychainPath = userKeychainPath;
+            core.info(`Using provided keychain: ${keychainPath}`);
+            await exec.exec(security, ['unlock-keychain', '-p', userKeychainPassword, keychainPath]);
+            await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
+        } else {
+            keychainPath = `${temp}/${tempCredential}.keychain-db`;
+            await exec.exec(security, ['create-keychain', '-p', tempCredential, keychainPath]);
+            await exec.exec(security, ['set-keychain-settings', '-lut', '21600', keychainPath]);
+            await unlockTemporaryKeychain(keychainPath, tempCredential);
+        }
+        core.saveState('isUserKeychain', isUserKeychain.toString());
         let manualSigningIdentity = core.getInput('manual-signing-identity') || core.getInput('signing-identity');
         let certificateUUID: string | undefined;
         let teamId = core.getInput('team-id');
         const manualSigningCertificateBase64 = core.getInput('manual-signing-certificate') || core.getInput('certificate');
         let installedCertificates: boolean = false;
-        if (manualSigningCertificateBase64) {
+        if (isUserKeychain) {
+            core.info('Using certificates from provided keychain, skipping certificate imports.');
+            installedCertificates = true;
+        } else if (manualSigningCertificateBase64) {
             const manualSigningCertificatePassword = core.getInput('manual-signing-certificate-password') || core.getInput('certificate-password');
             if (!manualSigningCertificatePassword) {
                 throw new Error('manual-signing-certificate-password is required when manual-signing-certificate is provided!');
@@ -158,33 +179,35 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             manualProvisioningProfileUUID = profileInfo.uuid;
             manualProvisioningProfileName = profileInfo.name;
         }
-        const developerIdApplicationCertificateBase64 = core.getInput('developer-id-application-certificate');
-        if (developerIdApplicationCertificateBase64) {
-            const developerIdApplicationCertificatePassword = core.getInput('developer-id-application-certificate-password');
-            if (!developerIdApplicationCertificatePassword) {
-                throw new Error('developer-id-application-certificate-password is required when developer-id-application-certificate is provided!');
+        if (!isUserKeychain) {
+            const developerIdApplicationCertificateBase64 = core.getInput('developer-id-application-certificate');
+            if (developerIdApplicationCertificateBase64) {
+                const developerIdApplicationCertificatePassword = core.getInput('developer-id-application-certificate-password');
+                if (!developerIdApplicationCertificatePassword) {
+                    throw new Error('developer-id-application-certificate-password is required when developer-id-application-certificate is provided!');
+                }
+                core.info('Importing developer id application certificate...');
+                await importCertificate(
+                    keychainPath,
+                    tempCredential,
+                    developerIdApplicationCertificateBase64.trim(),
+                    developerIdApplicationCertificatePassword.trim());
+                installedCertificates = true;
             }
-            core.info('Importing developer id application certificate...');
-            await importCertificate(
-                keychainPath,
-                tempCredential,
-                developerIdApplicationCertificateBase64.trim(),
-                developerIdApplicationCertificatePassword.trim());
-            installedCertificates = true;
-        }
-        const developerIdInstallerCertificateBase64 = core.getInput('developer-id-installer-certificate');
-        if (developerIdInstallerCertificateBase64) {
-            const developerIdInstallerCertificatePassword = core.getInput('developer-id-installer-certificate-password');
-            if (!developerIdInstallerCertificatePassword) {
-                throw new Error('developer-id-installer-certificate-password is required when developer-id-installer-certificate is provided!');
+            const developerIdInstallerCertificateBase64 = core.getInput('developer-id-installer-certificate');
+            if (developerIdInstallerCertificateBase64) {
+                const developerIdInstallerCertificatePassword = core.getInput('developer-id-installer-certificate-password');
+                if (!developerIdInstallerCertificatePassword) {
+                    throw new Error('developer-id-installer-certificate-password is required when developer-id-installer-certificate is provided!');
+                }
+                core.info('Importing developer id installer certificate...');
+                await importCertificate(
+                    keychainPath,
+                    tempCredential,
+                    developerIdInstallerCertificateBase64.trim(),
+                    developerIdInstallerCertificatePassword.trim());
+                installedCertificates = true;
             }
-            core.info('Importing developer id installer certificate...');
-            await importCertificate(
-                keychainPath,
-                tempCredential,
-                developerIdInstallerCertificateBase64.trim(),
-                developerIdInstallerCertificatePassword.trim());
-            installedCertificates = true;
         }
         if (installedCertificates) {
             let output = '';
@@ -220,7 +243,8 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             teamId,
             manualSigningIdentity,
             manualProvisioningProfileUUID,
-            manualProvisioningProfileName
+            manualProvisioningProfileName,
+            isUserKeychain
         );
     } finally {
         core.endGroup();
@@ -237,8 +261,11 @@ export async function RemoveCredentials(): Promise<void> {
             core.error(`Failed to remove provisioning profile!\n${error.stack}`);
         }
     }
+    const isUserKeychain = core.getState('isUserKeychain') === 'true';
     const tempCredential = core.getState('tempCredential');
-    if (tempCredential) {
+    if (isUserKeychain) {
+        core.info('Skipping keychain removal for user-provided keychain.');
+    } else if (tempCredential) {
         core.info('Removing keychain...');
         const keychainPath = `${temp}/${tempCredential}.keychain-db`;
         await exec.exec(security, ['delete-keychain', keychainPath]);

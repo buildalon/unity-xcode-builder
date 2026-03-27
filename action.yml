@@ -117,6 +117,12 @@ inputs:
   developer-id-installer-certificate-password:
     description: The password for the `Developer ID Installer` certificate. Required if `developer-id-installer-certificate` is provided.
     required: false
+  keychain:
+    description: Path to an existing keychain containing all required signing certificates. When provided, certificate inputs are ignored and no temporary keychain is created. The keychain will not be deleted during cleanup.
+    required: false
+  keychain-password:
+    description: The password to unlock the keychain specified in `keychain`. Required if `keychain` is provided.
+    required: false
 outputs:
   executable:
     description: The path to the generated archive executable.
