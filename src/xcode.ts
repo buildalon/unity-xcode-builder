@@ -345,10 +345,11 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
 
             core.debug(`Notarize input: ${notarizeInput}`);
             projectRef.notarize =
-                notarizeInput === 'true' ||
-                projectRef.isSteamBuild ||
-                projectRef.archiveType === 'pkg' ||
-                projectRef.archiveType === 'dmg';
+                notarizeInput !== 'false' && (
+                    notarizeInput === 'true' ||
+                    projectRef.isSteamBuild ||
+                    projectRef.archiveType === 'pkg' ||
+                    projectRef.archiveType === 'dmg');
             let output = '';
 
             await exec('security', [
