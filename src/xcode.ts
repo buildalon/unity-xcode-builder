@@ -364,13 +364,15 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
                 silent: true
             });
 
-            if (!output.includes('Developer ID Application')) {
-                throw new Error('Developer ID Application not found! developer-id-application-certificate input is required for notarization.');
-            }
+            if (projectRef.notarize) {
+                if (!output.includes('Developer ID Application')) {
+                    throw new Error('Developer ID Application not found! developer-id-application-certificate input is required for notarization.');
+                }
 
-            if (projectRef.archiveType === 'pkg' || projectRef.archiveType === 'dmg') {
-                if (!output.includes('Developer ID Installer')) {
-                    throw new Error('Developer ID Installer not found! developer-id-installer-certificate input is required for notarization.');
+                if (projectRef.archiveType === 'pkg' || projectRef.archiveType === 'dmg') {
+                    if (!output.includes('Developer ID Installer')) {
+                        throw new Error('Developer ID Installer not found! developer-id-installer-certificate input is required for notarization.');
+                    }
                 }
             }
         }
