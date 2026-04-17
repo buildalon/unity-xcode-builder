@@ -76,6 +76,19 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             keychainPath = userKeychainPath;
             core.info(`Using provided keychain: ${keychainPath}`);
             await exec.exec(security, ['unlock-keychain', '-p', userKeychainPassword, keychainPath]);
+            await exec.exec(security, ['set-keychain-settings', '-lut', '21600', keychainPath]);
+            const partitionList = 'apple-tool:,apple:,codesign:';
+            if (core.isDebug()) {
+                core.info(`[command]${security} set-key-partition-list -S ${partitionList} -s -k *** ${keychainPath}`);
+            }
+            await exec.exec(security, [
+                'set-key-partition-list',
+                '-S', partitionList,
+                '-s', '-k', userKeychainPassword,
+                keychainPath
+            ], {
+                silent: !core.isDebug()
+            });
             await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
         } else {
             keychainPath = `${temp}/${tempCredential}.keychain-db`;
