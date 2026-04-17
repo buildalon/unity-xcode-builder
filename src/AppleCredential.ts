@@ -247,7 +247,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             }
         }
         return new AppleCredential(
-            tempCredential,
+            isUserKeychain ? userKeychainPassword : tempCredential,
             keychainPath,
             authenticationKeyID,
             authenticationKeyIssuerID,

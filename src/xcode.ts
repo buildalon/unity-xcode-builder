@@ -868,6 +868,17 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     }
 
     await exec('xattr', ['-cr', appPath]);
+
+    // Re-unlock keychain and set partition list right before signing to ensure
+    // the keychain is accessible (it may have auto-locked during archive/export)
+    await exec('/usr/bin/security', ['unlock-keychain', '-p', projectRef.credential.tempPassPhrase, projectRef.credential.keychainPath]);
+    await exec('/usr/bin/security', [
+        'set-key-partition-list',
+        '-S', 'apple-tool:,apple:,codesign:',
+        '-s', '-k', projectRef.credential.tempPassPhrase,
+        projectRef.credential.keychainPath
+    ], { silent: true });
+
     let findSigningIdentityOutput = '';
 
     const findSigningIdentityExitCode = await exec('security', [
@@ -1012,6 +1023,15 @@ async function createMacOSInstallerPkg(projectRef: XcodeProject): Promise<string
     } catch (error) {
         throw new Error(`Failed to create the pkg at: ${pkgPath}!`);
     }
+
+    // Re-unlock keychain and set partition list before signing
+    await exec('/usr/bin/security', ['unlock-keychain', '-p', projectRef.credential.tempPassPhrase, projectRef.credential.keychainPath]);
+    await exec('/usr/bin/security', [
+        'set-key-partition-list',
+        '-S', 'apple-tool:,apple:,codesign:',
+        '-s', '-k', projectRef.credential.tempPassPhrase,
+        projectRef.credential.keychainPath
+    ], { silent: true });
 
     let findSigningIdentityOutput = '';
 
