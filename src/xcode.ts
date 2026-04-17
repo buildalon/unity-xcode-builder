@@ -592,6 +592,14 @@ async function getExportOptions(projectRef: XcodeProject): Promise<void> {
         if (exportOptionsPlist.method) {
             projectRef.exportOption = exportOptionsPlist.method as string;
         }
+        if (projectRef.platform === 'macOS') {
+            const exportOption = core.getInput('export-option') || '';
+            projectRef.archiveType = core.getInput('archive-type') || 'app';
+            if (exportOption === 'steam') {
+                projectRef.isSteamBuild = true;
+                projectRef.archiveType = 'app';
+            }
+        }
     }
 
     core.debug(`Export options path: ${exportOptionsPath}`);
@@ -798,19 +806,18 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
             if (notarize) {
                 await signMacOSAppBundle(projectRef);
 
-                if (isSteamBuild) {
+                if (archiveType === 'pkg') {
+                    projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
+                } else if (archiveType === 'dmg') {
+                    throw new Error('DMG export is not supported yet!');
+                } else {
+                    // app bundle (steam or plain Developer ID) — zip, notarize, staple
                     const isNotarized = await isAppBundleNotarized(projectRef.executablePath);
                     if (!isNotarized) {
                         const zipPath = path.join(exportPath, projectRef.executablePath.replace('.app', '.zip'));
                         await exec('ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', projectRef.executablePath, zipPath]);
                         await notarizeArchive(projectRef, zipPath, projectRef.executablePath);
                     }
-                } else if (archiveType === 'pkg') {
-                    projectRef.executablePath = await createMacOSInstallerPkg(projectRef);
-                } else if (archiveType === 'dmg') {
-                    throw new Error('DMG export is not supported yet!');
-                } else {
-                    throw new Error(`Invalid archive type: ${archiveType}`);
                 }
             }
         }
