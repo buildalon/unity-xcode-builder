@@ -98,10 +98,10 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         let certificateUUID: string | undefined;
         let teamId = core.getInput('team-id');
         const manualSigningCertificateBase64 = core.getInput('manual-signing-certificate') || core.getInput('certificate');
-        let installedCertificates: boolean = false;
+        let findCertificates: boolean = false;
         if (isUserKeychain) {
             core.info('Using certificates from provided keychain, skipping certificate imports.');
-            installedCertificates = true;
+            findCertificates = true;
         } else if (manualSigningCertificateBase64) {
             const manualSigningCertificatePassword = core.getInput('manual-signing-certificate-password') || core.getInput('certificate-password');
             if (!manualSigningCertificatePassword) {
@@ -113,7 +113,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
                 tempCredential,
                 manualSigningCertificateBase64.trim(),
                 manualSigningCertificatePassword.trim());
-            installedCertificates = true;
+            findCertificates = true;
             if (!manualSigningIdentity) {
                 let output = '';
                 core.info(`[command]${security} find-identity -v -p codesigning ${keychainPath}`);
@@ -177,7 +177,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
                     tempCredential,
                     developerIdApplicationCertificateBase64.trim(),
                     developerIdApplicationCertificatePassword.trim());
-                installedCertificates = true;
+                findCertificates = true;
             }
             const developerIdInstallerCertificateBase64 = core.getInput('developer-id-installer-certificate');
             if (developerIdInstallerCertificateBase64) {
@@ -191,10 +191,10 @@ export async function ImportCredentials(): Promise<AppleCredential> {
                     tempCredential,
                     developerIdInstallerCertificateBase64.trim(),
                     developerIdInstallerCertificatePassword.trim());
-                installedCertificates = true;
+                findCertificates = true;
             }
         }
-        if (installedCertificates) {
+        if (findCertificates) {
             let output = '';
             core.info(`[command]${security} find-identity -v ${keychainPath}`);
             const exitCode = await exec.exec(security, ['find-identity', '-v', keychainPath], {

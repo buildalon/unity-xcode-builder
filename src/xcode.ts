@@ -864,7 +864,6 @@ async function signMacOSAppBundle(projectRef: XcodeProject): Promise<void> {
     }
 
     await exec('xattr', ['-cr', appPath]);
-
     let findSigningIdentityOutput = '';
 
     const findSigningIdentityExitCode = await exec('security', [
