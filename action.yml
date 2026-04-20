@@ -57,6 +57,10 @@ inputs:
     description: The configuration to build the Xcode project with. Defaults to `Release`.
     required: false
     default: 'Release'
+  verbose:
+    description: Whether to emit raw verbose output from xcodebuild during archive and export. Defaults to `false`.
+    required: false
+    default: 'false'
   scheme:
     description: The scheme to use when building the xcode project.
     required: false

@@ -59,6 +59,7 @@ This action requires several secrets that need to be setup in the repository or 
 | `team-id` | The team ID to use for signing the Xcode project. | Defaults to parsing team ID from `manual-signing-certificate` if provided. |
 | `bundle-id` | The bundle ID of the Xcode project. Overrides the value in the exported Unity project. | Defaults to parsing bundle ID from `.xcodeproj`. |
 | `configuration` | The configuration to build the Xcode project with. | Defaults to `Release`. |
+| `verbose` | Whether to emit raw verbose output from `xcodebuild` during archive and export. | Defaults to `false`. |
 | `scheme` | The scheme to use when building the xcode project. | false |
 | `destination` | The destination to use when building the xcode project. | Defaults to `generic/platform={platform}`. |
 | `platform` | The platform to build for. Can be one of `iOS`, `macOS`, `tvOS`, `visionOS`. | Defaults to parsing platform from `.xcodeproj`. |

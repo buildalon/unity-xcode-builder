@@ -30,6 +30,10 @@ const xcodebuild = '/usr/bin/xcodebuild';
 const xcrun = '/usr/bin/xcrun';
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
 
+function verboseLogging(): boolean {
+    return core.isDebug() || core.getInput('verbose') === 'true';
+}
+
 export async function GetOrSetXcodeVersion(): Promise<SemVer> {
     let xcodeVersionString = core.getInput('xcode-version') || 'latest';
 
@@ -709,13 +713,15 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         archiveArgs.push('ENABLE_HARDENED_RUNTIME=YES');
     }
 
-    if (!core.isDebug()) {
-        archiveArgs.push('-quiet');
-    } else {
+    const verbose = verboseLogging();
+
+    if (verbose) {
         archiveArgs.push('-verbose');
+    } else {
+        archiveArgs.push('-quiet');
     }
 
-    if (core.isDebug()) {
+    if (verbose) {
         await execXcodeBuild(archiveArgs);
     } else {
         await execWithXcBeautify(archiveArgs);
@@ -760,13 +766,15 @@ export async function ExportXcodeArchive(projectRef: XcodeProject): Promise<Xcod
         exportArgs.push(`-allowProvisioningUpdates`);
     }
 
-    if (!core.isDebug()) {
-        exportArgs.push('-quiet');
-    } else {
+    const verbose = verboseLogging();
+
+    if (verbose) {
         exportArgs.push('-verbose');
+    } else {
+        exportArgs.push('-quiet');
     }
 
-    if (core.isDebug()) {
+    if (verbose) {
         await execXcodeBuild(exportArgs);
     } else {
         await execWithXcBeautify(exportArgs);
