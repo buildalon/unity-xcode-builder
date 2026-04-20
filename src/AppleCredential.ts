@@ -153,12 +153,8 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             }
         }
         const manualProvisioningProfileBase64 = core.getInput('provisioning-profile');
-        const manualProvisioningProfileInputPath = core.getInput('provisioning-profile-path');
         let manualProvisioningProfileUUID: string | undefined;
         let manualProvisioningProfileName: string | undefined;
-        if (manualProvisioningProfileBase64 && manualProvisioningProfileInputPath) {
-            throw new Error('Cannot specify both `provisioning-profile` and `provisioning-profile-path`. Use one or the other.');
-        }
         if (manualProvisioningProfileBase64) {
             core.info('Importing provisioning profile from base64...');
             const provisioningProfileFileName = core.getInput('provisioning-profile-name', { required: true });
@@ -170,24 +166,6 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             core.saveState('provisioningProfilePath', provisioningProfilePath);
             const provisioningProfile = Buffer.from(manualProvisioningProfileBase64, 'base64').toString('binary');
             await fs.promises.writeFile(provisioningProfilePath, provisioningProfile, 'binary');
-            const profileInfo = await parseProvisioningProfile(provisioningProfilePath);
-            manualProvisioningProfileUUID = profileInfo.uuid;
-            manualProvisioningProfileName = profileInfo.name;
-        } else if (manualProvisioningProfileInputPath) {
-            core.info(`Importing provisioning profile from path: ${manualProvisioningProfileInputPath}`);
-            if (!manualProvisioningProfileInputPath.endsWith('.mobileprovision') &&
-                !manualProvisioningProfileInputPath.endsWith('.provisionprofile')) {
-                throw new Error('Provisioning profile path must end with .mobileprovision or .provisionprofile');
-            }
-            try {
-                await fs.promises.access(manualProvisioningProfileInputPath, fs.constants.R_OK);
-            } catch {
-                throw new Error(`Provisioning profile not found at path: ${manualProvisioningProfileInputPath}`);
-            }
-            const provisioningProfileFileName = manualProvisioningProfileInputPath.split('/').pop()!;
-            const provisioningProfilePath = `${temp}/${provisioningProfileFileName}`;
-            core.saveState('provisioningProfilePath', provisioningProfilePath);
-            await fs.promises.copyFile(manualProvisioningProfileInputPath, provisioningProfilePath);
             const profileInfo = await parseProvisioningProfile(provisioningProfilePath);
             manualProvisioningProfileUUID = profileInfo.uuid;
             manualProvisioningProfileName = profileInfo.name;
