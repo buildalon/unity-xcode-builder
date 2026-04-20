@@ -663,7 +663,6 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         teamId,
         manualSigningIdentity,
         manualProvisioningProfileUUID,
-        manualProvisioningProfileName,
         keychainPath,
         appStoreConnectIssuerId,
         appStoreConnectKeyId,
@@ -688,36 +687,26 @@ export async function ArchiveXcodeProject(projectRef: XcodeProject): Promise<Xco
         archiveArgs.push(`DEVELOPMENT_TEAM=${teamId}`);
     }
 
-    if (manualProvisioningProfileUUID) {
-        // Use Unity's _APP suffix to target only the app target, not UnityFramework or GameAssembly.
-        // https://docs.unity3d.com/2022.1/Documentation/Manual/StructureOfXcodeProject.html
+    if (manualSigningIdentity) {
         archiveArgs.push(
-            `PROVISIONING_PROFILE_APP=${manualProvisioningProfileUUID}`,
-            `PROVISIONING_PROFILE_SPECIFIER_APP=${manualProvisioningProfileName}`
+            `CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
+            `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
+            `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
         );
-        archiveArgs.push(`CODE_SIGN_STYLE=Manual`);
-        if (manualSigningIdentity) {
-            archiveArgs.push(
-                `CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
-                `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
-                `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
-            );
-        }
     } else {
-        if (manualSigningIdentity) {
-            archiveArgs.push(
-                `CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
-                `EXPANDED_CODE_SIGN_IDENTITY=${manualSigningIdentity}`,
-                `OTHER_CODE_SIGN_FLAGS=--keychain ${keychainPath}`
-            );
-            archiveArgs.push(`CODE_SIGN_STYLE=Manual`);
-        } else {
-            archiveArgs.push(
-                `CODE_SIGN_IDENTITY=-`,
-                `EXPANDED_CODE_SIGN_IDENTITY=-`
-            );
-            archiveArgs.push(`CODE_SIGN_STYLE=Automatic`);
-        }
+        archiveArgs.push(
+            `CODE_SIGN_IDENTITY=-`,
+            `EXPANDED_CODE_SIGN_IDENTITY=-`
+        );
+    }
+
+    archiveArgs.push(
+        `CODE_SIGN_STYLE=${manualProvisioningProfileUUID || manualSigningIdentity ? 'Manual' : 'Automatic'}`
+    );
+
+    if (manualProvisioningProfileUUID) {
+        archiveArgs.push(`PROVISIONING_PROFILE=${manualProvisioningProfileUUID}`);
+    } else {
         archiveArgs.push(
             `AD_HOC_CODE_SIGNING_ALLOWED=YES`,
             `-allowProvisioningUpdates`

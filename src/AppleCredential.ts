@@ -18,7 +18,6 @@ export class AppleCredential {
         teamId?: string,
         manualSigningIdentity?: string,
         manualProvisioningProfileUUID?: string,
-        manualProvisioningProfileName?: string,
         isUserKeychain?: boolean
     ) {
         this.tempPassPhrase = tempPassPhrase;
@@ -30,7 +29,6 @@ export class AppleCredential {
         this.teamId = teamId;
         this.manualSigningIdentity = manualSigningIdentity;
         this.manualProvisioningProfileUUID = manualProvisioningProfileUUID;
-        this.manualProvisioningProfileName = manualProvisioningProfileName;
         this.isUserKeychain = isUserKeychain || false;
     }
     tempPassPhrase: string;
@@ -42,7 +40,6 @@ export class AppleCredential {
     teamId?: string;
     manualSigningIdentity?: string;
     manualProvisioningProfileUUID?: string;
-    manualProvisioningProfileName?: string;
     isUserKeychain: boolean;
     bearerToken?: string;
     ascPublicId?: string;
@@ -154,7 +151,6 @@ export async function ImportCredentials(): Promise<AppleCredential> {
         }
         const manualProvisioningProfileBase64 = core.getInput('provisioning-profile');
         let manualProvisioningProfileUUID: string | undefined;
-        let manualProvisioningProfileName: string | undefined;
         if (manualProvisioningProfileBase64) {
             core.info('Importing provisioning profile from base64...');
             const provisioningProfileFileName = core.getInput('provisioning-profile-name', { required: true });
@@ -166,9 +162,7 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             core.saveState('provisioningProfilePath', provisioningProfilePath);
             const provisioningProfile = Buffer.from(manualProvisioningProfileBase64, 'base64').toString('binary');
             await fs.promises.writeFile(provisioningProfilePath, provisioningProfile, 'binary');
-            const profileInfo = await parseProvisioningProfile(provisioningProfilePath);
-            manualProvisioningProfileUUID = profileInfo.uuid;
-            manualProvisioningProfileName = profileInfo.name;
+            manualProvisioningProfileUUID = await parseProvisioningProfile(provisioningProfilePath);
         }
         if (!isUserKeychain) {
             const developerIdApplicationCertificateBase64 = core.getInput('developer-id-application-certificate');
@@ -234,7 +228,6 @@ export async function ImportCredentials(): Promise<AppleCredential> {
             teamId,
             manualSigningIdentity,
             manualProvisioningProfileUUID,
-            manualProvisioningProfileName,
             isUserKeychain
         );
     } finally {
@@ -317,18 +310,13 @@ async function importCertificate(keychainPath: string, tempCredential: string, c
     await exec.exec(security, ['list-keychains', '-d', 'user', '-s', keychainPath, 'login.keychain-db']);
 }
 
-async function parseProvisioningProfile(profilePath: string): Promise<{ uuid: string; name: string }> {
+async function parseProvisioningProfile(profilePath: string): Promise<string> {
     const content = await fs.promises.readFile(profilePath, 'utf8');
     const uuidMatch = content.match(/<key>UUID<\/key>\s*<string>([^<]+)<\/string>/);
     if (!uuidMatch) {
         throw new Error('Failed to parse provisioning profile UUID');
     }
-    const nameMatch = content.match(/<key>Name<\/key>\s*<string>([^<]+)<\/string>/);
-    if (!nameMatch) {
-        throw new Error('Failed to parse provisioning profile Name');
-    }
-    core.info(`Provisioning profile: ${nameMatch[1]} (${uuidMatch[1]})`);
-    return { uuid: uuidMatch[1], name: nameMatch[1] };
+    return uuidMatch[1];
 }
 
 async function unlockTemporaryKeychain(keychainPath: string, tempCredential: string): Promise<void> {
