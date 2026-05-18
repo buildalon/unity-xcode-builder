@@ -5,11 +5,11 @@ on:
   workflow_dispatch:
 jobs:
   update-release-tags:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - uses: RageAgainstThePixel/update-action-release-tags@v1
