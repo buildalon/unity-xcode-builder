@@ -1,9 +1,8 @@
-import {
-    AppStoreConnectClient,
-    AppStoreConnectOptions
-} from '@rage-against-the-pixel/app-store-connect-api';
+import core = require('@actions/core');
+import { log } from './utilities';
 import { XcodeProject } from './XcodeProject';
 import {
+    AppStoreConnectClient,
     Build,
     BuildsGetCollectionData,
     BetaBuildLocalization,
@@ -19,9 +18,8 @@ import {
     BuildBetaDetailsGetCollectionData,
     BuildBetaDetailsUpdateInstanceData,
     BuildBetaDetail,
-} from '@rage-against-the-pixel/app-store-connect-api/dist/app_store_connect_api';
-import { log } from './utilities';
-import core = require('@actions/core');
+    AppStoreConnectOptions,
+} from '@rage-against-the-pixel/app-store-connect-api';
 
 let appStoreConnectClient: AppStoreConnectClient | null = null;
 
@@ -362,7 +360,7 @@ async function autoNotifyBetaUsers(project: XcodeProject, build: Build): Promise
     }
     if (!buildBetaDetail.attributes?.autoNotifyEnabled) {
         const payload: BuildBetaDetailsUpdateInstanceData = {
-            url: `/v1/buildBetaDetails/{id}`,
+            url: '/v1/buildBetaDetails/{id}',
             path: { id: buildBetaDetail.id },
             body: {
                 data: {
@@ -418,7 +416,7 @@ export async function AddBuildToTestGroups(project: XcodeProject, build: Build, 
     const payload: BuildsBetaGroupsCreateToManyRelationshipData = {
         url: '/v1/builds/{id}/relationships/betaGroups',
         path: { id: build.id },
-        body: { data: betaGroups }
+        body: { data: betaGroups },
     };
     log(`POST /builds/${build.id}/relationships/betaGroups\n${JSON.stringify(payload, null, 2)}`);
     const { error } = await appStoreConnectClient.api.Builds.buildsBetaGroupsCreateToManyRelationship(payload);
@@ -436,7 +434,7 @@ async function getBetaGroupsByName(project: XcodeProject, groupNames: string[]):
         query: {
             'filter[name]': groupNames,
             'filter[app]': [appId],
-        }
+        },
     }
     log(`GET /betaGroups?${JSON.stringify(request.query)}`);
     const { data: response, error } = await appStoreConnectClient.api.BetaGroups.betaGroupsGetCollection(request);

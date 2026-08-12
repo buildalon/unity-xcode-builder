@@ -1,24 +1,24 @@
 {
-    "compilerOptions": {
-        "target": "es2018",
-        "module": "commonjs",
-        "moduleResolution": "node",
-        "noImplicitAny": false,
-        "removeComments": true,
-        "preserveConstEnums": true,
-        "sourceMap": true,
-        "forceConsistentCasingInFileNames": true,
-        "outDir": "dist",
-        "declaration": false,
-        "noEmit": true
-    },
-    "compileOnSave": true,
-    "include": [
-        "src/**/*.ts"
-    ],
-    "exclude": [
-        "node_modules",
-        "src/**/*.spec.ts",
-        "dist"
-    ]
+  "compilerOptions": {
+    "target": "es2018",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noImplicitAny": false,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "dist",
+    "declaration": false,
+    "noEmit": true
+  },
+  "compileOnSave": true,
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/**/*.spec.ts",
+    "dist"
+  ]
 }
