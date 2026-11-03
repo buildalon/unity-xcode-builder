@@ -1,7 +1,7 @@
 import { XcodeProject } from './XcodeProject';
 import { spawn } from 'child_process';
 import { exec } from '@actions/exec';
-import * as glob from '@actions/glob';
+import * as glob from './glob';
 import * as github from '@actions/github';
 import * as plist from 'plist';
 import * as path from 'path';

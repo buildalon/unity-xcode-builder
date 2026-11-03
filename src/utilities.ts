@@ -1,6 +1,6 @@
 
 import * as core from '@actions/core';
-import * as glob from '@actions/glob';
+import * as glob from './glob';
 import * as fs from 'fs';
 
 export function log(message: string, type: 'info' | 'warning' | 'error' = 'info') {
