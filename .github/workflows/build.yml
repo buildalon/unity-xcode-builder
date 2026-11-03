@@ -47,6 +47,8 @@ jobs:
           build-targets: ${{ matrix.build-target }}
           unity-version: ${{ matrix.unity-version }}
           allow-security-alert: ${{ inputs.allow-security-alert }}
+          # the streams include the beta and alpha, which only have prereleases until they ship
+          channels: f,b,a
       - name: Set Build Args
         env:
           MATRIX_UNITY_VERSION: ${{ matrix.unity-version }}
