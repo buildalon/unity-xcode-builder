@@ -1,7 +1,7 @@
 
-import core = require('@actions/core');
-import glob = require('@actions/glob');
-import fs = require('fs');
+import * as core from '@actions/core';
+import * as glob from '@actions/glob';
+import * as fs from 'fs';
 
 export function log(message: string, type: 'info' | 'warning' | 'error' = 'info') {
     if (type == 'info' && !core.isDebug()) { return; }
