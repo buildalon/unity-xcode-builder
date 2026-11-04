@@ -1,42 +1,187 @@
 name: validate
 on:
+  schedule:
+    - cron: '0 8 25 * *' # monthly: the older editors, which no longer change
   push:
     branches: ['main']
   pull_request:
     branches: ['*']
-    types: [opened, reopened, synchronize, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review]
   workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
+    inputs:
+      editors:
+        description: Which editors to test
+        type: choice
+        options: [unity-6-and-newer, legacy]
+        default: unity-6-and-newer
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # the monthly legacy run gets its own group, so a push to main does not cancel it
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'schedule' && 'legacy' || inputs.editors || 'unity-6-and-newer' }}
   cancel-in-progress: true
 jobs:
-  setup:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+  changes:
     permissions:
       contents: read
+      pull-requests: read
+    # docs-only pull requests skip validation; validate-result still reports for them
+    uses: RageAgainstThePixel/workflows/.github/workflows/detect-changes.yml@main
+  setup:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' && github.event.pull_request.draft == false }}
+    permissions:
+      contents: read
+    # pull requests and pushes test the streams Unity lists; the older editors run monthly or on demand
+    uses: RageAgainstThePixel/workflows/.github/workflows/unity-stream-matrix.yml@main
+    with:
+      legacy: ${{ inputs.editors == 'legacy' }}
+  # One sign-in for the whole run. Every row is a macOS runner, and macOS runners share one machine identity, so the
+  # license activated here serves every row of this run. It is passed on encrypted, because artifacts of a public
+  # repository can be downloaded by anyone, and it is never returned: a return would revoke it for every job on that
+  # identity, other repositories' included. license-cleanup deletes it after the run.
+  license:
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' && github.event.pull_request.draft == false }}
+    name: license ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest]
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - name: Check secrets
+        id: secrets
+        env:
+          UNITY_USERNAME: ${{ secrets.UNITY_USERNAME }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          CI_TOKEN: ${{ secrets.CI_TOKEN }}
+        run: |
+          if [ -z "${UNITY_USERNAME}" ] || [ -z "${UNITY_PASSWORD}" ] || [ -z "${CI_TOKEN}" ]; then
+            # pull requests from forks get no secrets; their rows fall back to their own activation
+            echo '::warning::No Unity credentials or CI_TOKEN, so this run has no shared license'
+            exit 0
+          fi
+          echo "available=true" >> "${GITHUB_OUTPUT}"
+      - uses: buildalon/activate-unity-license@v3
+        if: ${{ steps.secrets.outputs.available == 'true' }}
         with:
-          sparse-checkout: .github/
-      - uses: RageAgainstThePixel/job-builder@v1
-        id: setup-jobs
+          license: Personal
+          username: ${{ secrets.UNITY_USERNAME }}
+          password: ${{ secrets.UNITY_PASSWORD }}
+      - name: Encrypt run license
+        id: encrypt
+        if: ${{ steps.secrets.outputs.available == 'true' }}
+        env:
+          # the encryption key comes from a random token, never the account password, so the public artifact gives
+          # nobody a way to test password guesses offline
+          CI_TOKEN: ${{ secrets.CI_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! license="$(npx --yes @rage-against-the-pixel/unity-cli@4 license-file-path)"; then
+            echo 'Could not find the license file path' >&2
+            exit 1
+          fi
+          dir="${RUNNER_TEMP}/unity-license"
+          mkdir -p "${dir}"
+          # the key never reaches a command line: openssl reads it from the environment
+          export LICENSE_KEY="${CI_TOKEN}:${GITHUB_RUN_ID}"
+          if ! openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -in "${license}" -out "${dir}/unity-license.enc" -pass env:LICENSE_KEY; then
+            echo 'Could not encrypt the run license' >&2
+            exit 1
+          fi
+          echo "encrypted=true" >> "${GITHUB_OUTPUT}"
+      - uses: actions/upload-artifact@v7
+        if: ${{ steps.encrypt.outputs.encrypted == 'true' }}
         with:
-          build-options: ./.github/workflows/build-options.json
-          group-by: 'unity-version'
-    outputs:
-      jobs: ${{ steps.setup-jobs.outputs.jobs }}
+          name: unity-license-${{ runner.os }}
+          path: ${{ runner.temp }}/unity-license/unity-license.enc
+          retention-days: 1
+          if-no-files-found: error
   validate:
-    if: ${{ needs.setup.outputs.jobs }}
-    needs: setup
+    # the rows still run when the license job fails, and activate with the account instead
+    if: ${{ !cancelled() && needs.setup.result == 'success' && needs.setup.outputs.jobs }}
+    needs: [setup, license]
     name: build ${{ matrix.jobs.name }}
     permissions:
       contents: read
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.jobs) }}
       fail-fast: false
-      max-parallel: 1
     secrets: inherit
     uses: ./.github/workflows/build.yml
     with:
       matrix: ${{ toJSON(matrix.jobs.matrix) }}
+      allow-security-alert: ${{ needs.setup.outputs.allow-security-alert == 'true' }}
+  row-checks:
+    needs: [setup, validate]
+    if: ${{ always() && needs.setup.result == 'success' && needs.setup.outputs.jobs }}
+    permissions:
+      actions: read
+      checks: write
+    uses: RageAgainstThePixel/workflows/.github/workflows/unity-row-checks.yml@main
+  license-cleanup:
+    needs: [license, validate]
+    # a failed run may be retried by rerun-validate (3 attempts at most), and the license job is not rerun with the
+    # failed rows, so the artifacts stay for the retry; this job reruns with them and cleans up on the last attempt.
+    # Anything left expires with the 1-day retention
+    if: ${{ always() && needs.license.result != 'skipped' && (needs.validate.result != 'failure' || github.run_attempt >= 3) }}
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    permissions:
+      actions: write # to delete this run's license artifacts
+    steps:
+      - name: Delete the run license
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! ids="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts?per_page=100" --paginate --jq '.artifacts[] | select(.name | startswith("unity-license-")) | .id')"; then
+            echo 'Could not list the run artifacts' >&2
+            exit 1
+          fi
+          count=0
+          for id in ${ids}; do
+            if ! gh api -X DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}"; then
+              echo "Could not delete artifact ${id}" >&2
+              exit 1
+            fi
+            count=$((count + 1))
+          done
+          echo "Deleted ${count} license artifacts"
+  # the one required check: passes when every job passed, or was skipped for a draft or a docs-only change
+  validate-result:
+    # the license job only saves sign-ins: the rows activate with the account when it fails
+    needs: [changes, setup, validate]
+    if: always()
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Check results
+        shell: bash
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: ${RESULTS}"
+          for result in ${RESULTS}; do
+            case "${result}" in
+              success|skipped) ;;
+              *) exit 1 ;;
+            esac
+          done
+  timeline:
+    needs: [setup, license, validate]
+    if: always()
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: Kesin11/actions-timeline@460b1f8a750077029ad3589824d371b200e91dcf # v3.2.1
+        continue-on-error: true

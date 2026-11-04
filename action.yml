@@ -103,7 +103,7 @@ inputs:
     description: Whether to submit the build for review when uploading to TestFlight. Defaults to `false`.
     required: false
   developer-id-application-certificate:
-    description: The `Developer ID Application` certificate encoded as base64 string. Required if `export-option === steam` or `export-option === developer-id` or `notarize === true`.
+    description: The `Developer ID Application` certificate encoded as base64 string. Required if `notarize === true` for a macOS export, which `export-option === steam` and `archive-type === pkg` always are.
     required: false
   developer-id-application-certificate-password:
     description: The password for the `Developer ID Application` certificate. Required if `developer-id-application-certificate` is provided.
@@ -120,6 +120,6 @@ outputs:
   output-directory:
     description: The path to the export output directory.
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js'
   post: 'dist/index.js'

@@ -1,7 +1,7 @@
-import core = require('@actions/core');
-import exec = require('@actions/exec');
-import uuid = require('uuid');
-import fs = require('fs');
+import * as core from '@actions/core';
+import * as exec from '@actions/exec';
+import * as uuid from 'uuid';
+import * as fs from 'fs';
 
 const security = '/usr/bin/security';
 const temp = process.env['RUNNER_TEMP'] || '.';

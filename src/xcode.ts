@@ -1,12 +1,12 @@
 import { XcodeProject } from './XcodeProject';
 import { spawn } from 'child_process';
 import { exec } from '@actions/exec';
-import glob = require('@actions/glob');
-import github = require('@actions/github');
-import plist = require('plist');
-import path = require('path');
-import fs = require('fs');
-import semver = require('semver');
+import * as glob from './glob';
+import * as github from '@actions/github';
+import * as plist from 'plist';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as semver from 'semver';
 import {
     DeepEqual,
     log,
@@ -15,7 +15,7 @@ import {
     getFileContents
 } from './utilities';
 import { SemVer } from 'semver';
-import core = require('@actions/core');
+import * as core from '@actions/core';
 import {
     AppleCredential
 } from './AppleCredential';
@@ -349,27 +349,31 @@ export async function GetProjectDetails(credential: AppleCredential, xcodeVersio
                 projectRef.isSteamBuild ||
                 projectRef.archiveType === 'pkg' ||
                 projectRef.archiveType === 'dmg';
-            let output = '';
 
-            await exec('security', [
-                'find-identity',
-                '-v', projectRef.credential.keychainPath
-            ], {
-                listeners: {
-                    stdout: (data: Buffer) => {
-                        output += data.toString();
+            // the Developer ID identities are only needed to notarize
+            if (projectRef.notarize) {
+                let output = '';
+
+                await exec('security', [
+                    'find-identity',
+                    '-v', projectRef.credential.keychainPath
+                ], {
+                    listeners: {
+                        stdout: (data: Buffer) => {
+                            output += data.toString();
+                        }
+                    },
+                    silent: true
+                });
+
+                if (!output.includes('Developer ID Application')) {
+                    throw new Error('Developer ID Application not found! developer-id-application-certificate input is required for notarization.');
+                }
+
+                if (projectRef.archiveType === 'pkg' || projectRef.archiveType === 'dmg') {
+                    if (!output.includes('Developer ID Installer')) {
+                        throw new Error('Developer ID Installer not found! developer-id-installer-certificate input is required for notarization.');
                     }
-                },
-                silent: true
-            });
-
-            if (!output.includes('Developer ID Application')) {
-                throw new Error('Developer ID Application not found! developer-id-application-certificate input is required for notarization.');
-            }
-
-            if (projectRef.archiveType === 'pkg' || projectRef.archiveType === 'dmg') {
-                if (!output.includes('Developer ID Installer')) {
-                    throw new Error('Developer ID Installer not found! developer-id-installer-certificate input is required for notarization.');
                 }
             }
         }
