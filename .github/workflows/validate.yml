@@ -31,7 +31,7 @@ jobs:
     permissions:
       contents: read
     # pull requests and pushes test the streams Unity lists; the older editors run monthly or on demand
-    uses: RageAgainstThePixel/workflows/.github/workflows/unity-stream-matrix.yml@ci/unity-row-checks
+    uses: RageAgainstThePixel/workflows/.github/workflows/unity-stream-matrix.yml@main
     with:
       legacy: ${{ inputs.editors == 'legacy' }}
   # One sign-in for the whole run. Every row is a macOS runner, and macOS runners share one machine identity, so the
@@ -123,7 +123,7 @@ jobs:
     permissions:
       actions: read
       checks: write
-    uses: RageAgainstThePixel/workflows/.github/workflows/unity-row-checks.yml@ci/unity-row-checks
+    uses: RageAgainstThePixel/workflows/.github/workflows/unity-row-checks.yml@main
   license-cleanup:
     needs: [license, validate]
     # a failed run may be retried by rerun-validate (3 attempts at most), and the license job is not rerun with the
